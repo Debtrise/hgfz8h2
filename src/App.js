@@ -84,6 +84,9 @@ import { IntegrationsProvider } from './context/IntegrationsContext';
 import Journeys from "./pages/Journeys";
 import JourneyBuilder from "./JourneyBuilder";
 
+// Import SMS Blaster component
+import SMSBlaster from "./pages/SMSBlaster";
+
 // Private Route component to handle authenticated routes
 const PrivateRoute = ({ children }) => {
   // For demo purposes, always authenticate
@@ -185,6 +188,7 @@ function App() {
               
               {/* SMS Messaging Routes */}
               <Route path="sms-messaging" element={<SMSMessaging />} />
+              <Route path="sms-blaster" element={<SMSBlaster />} />
 
               {/* Journeys routes */}
               <Route path="journeys" element={<Journeys />} />

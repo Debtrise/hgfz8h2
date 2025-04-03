@@ -144,6 +144,11 @@ const Layout = () => {
                 <MessageOutlined />
                 <span>SMS Messaging</span>
               </NavLink>
+
+              <NavLink to="/sms-blaster" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+                <MessageOutlined />
+                <span>SMS Blaster</span>
+              </NavLink>
             </div>
           )}
 

@@ -2,7 +2,12 @@
   "name": "react",
   "version": "1.0.0",
   "description": "React application with Ant Design and various UI components",
-  "keywords": ["react", "antd", "typescript", "ui"],
+  "keywords": [
+    "react",
+    "antd",
+    "typescript",
+    "ui"
+  ],
   "main": "src/index.js",
   "license": "MIT",
   "repository": {
@@ -26,7 +31,7 @@
     "react-router-dom": "^6.22.3",
     "react-scripts": "5.0.1",
     "reactflow": "^11.11.4",
-    "recharts": "^2.15.1"
+    "recharts": "^2.15.2"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",
