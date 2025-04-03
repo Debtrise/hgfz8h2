@@ -1,0 +1,477 @@
+.drop-zone {
+  min-height: 100%;
+  padding: 1rem;
+  background-color: #ffffff;
+  border: 2px dashed #e2e8f0;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+}
+
+.drop-zone.is-over {
+  background-color: #f8fafc;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.drop-zone-container {
+  min-height: 500px;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow-y: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.empty-drop-zone {
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 1.1rem;
+  gap: 1rem;
+}
+
+.empty-drop-zone-icon {
+  font-size: 2.5rem;
+  color: #94a3b8;
+}
+
+.dropped-item {
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dropped-item:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dropped-item.active {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.item-type {
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.remove-btn:hover {
+  background-color: #fee2e2;
+}
+
+.item-content {
+  padding: 1rem;
+}
+
+/* Component types */
+.text-component,
+.heading-component,
+.quote-component {
+  min-height: 50px;
+  position: relative;
+}
+
+.text-component p,
+.heading-component h1,
+.quote-component blockquote {
+  margin: 0;
+  padding: 0;
+  color: #1e293b;
+  line-height: 1.6;
+}
+
+.heading-component h1 {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+.quote-component blockquote {
+  font-style: italic;
+  padding-left: 16px;
+  border-left: 3px solid #e2e8f0;
+}
+
+.image-component {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc;
+  border: 2px dashed #e2e8f0;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.image-placeholder {
+  color: #64748b;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.image-caption {
+  margin-top: 8px;
+  padding: 8px;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.image-upload-btn {
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.image-upload-btn:hover {
+  background: #2563eb;
+}
+
+.button-component {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  position: relative;
+}
+
+.button-component button {
+  padding: 0.75rem 1.5rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.button-component button.btn-outline {
+  background-color: transparent;
+  border: 2px solid #3b82f6;
+  color: #3b82f6;
+}
+
+.button-component button.btn-rounded {
+  border-radius: 8px;
+}
+
+.button-component button.btn-pill {
+  border-radius: 50px;
+}
+
+.button-component button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.spacer-component {
+  padding: 1rem 0;
+}
+
+.spacer-line {
+  height: 20px;
+  background-color: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 4px;
+}
+
+.divider-component {
+  padding: 1rem 0;
+}
+
+.divider-component hr {
+  margin: 0;
+  border: none;
+  border-top: 1px solid #e2e8f0;
+}
+
+.list-component ul {
+  margin: 0;
+  padding-left: 24px;
+}
+
+.list-component li {
+  margin-bottom: 8px;
+}
+
+.table-component table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-component td,
+.table-component th {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.table-component tr:first-child {
+  background-color: #f8fafc;
+  font-weight: bold;
+}
+
+.container-component {
+  padding: 16px;
+  background-color: #f8fafc;
+  border: 2px dashed #e2e8f0;
+  border-radius: 8px;
+  min-height: 100px;
+}
+
+.container-placeholder,
+.section-placeholder {
+  color: #94a3b8;
+  text-align: center;
+  padding: 16px;
+}
+
+.columns-component {
+  display: flex;
+  gap: 16px;
+}
+
+.column {
+  flex: 1;
+  padding: 16px;
+  background-color: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 8px;
+  min-height: 80px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.section-component {
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 24px;
+  margin: 16px 0;
+}
+
+.social-component {
+  padding: 16px;
+}
+
+.social-icons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.social-icon {
+  display: inline-block;
+  padding: 8px 12px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  color: #3b82f6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.social-icon:hover {
+  background-color: #3b82f6;
+  color: white;
+}
+
+/* Customization Panel */
+.customization-panel {
+  padding: 0.8rem;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.customization-group {
+  margin-bottom: 0.8rem;
+}
+
+.customization-group:last-child {
+  margin-bottom: 0;
+}
+
+.customization-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #475569;
+  margin-bottom: 0.5rem;
+}
+
+.customization-group input,
+.customization-group select,
+.customization-group textarea {
+  width: 100%;
+  padding: 0.4rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  background-color: white;
+}
+
+.customization-group input:focus,
+.customization-group select:focus,
+.customization-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.font-family-selector {
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.color-picker {
+  width: 100%;
+  height: 36px;
+  padding: 2px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.font-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.font-size-selector input {
+  width: 60px;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.alignment-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.alignment-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  background-color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.alignment-btn.active {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+/* Animation Classes */
+.fade-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms, transform 200ms;
+}
+
+.fade-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 200ms, transform 200ms;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .drop-zone-container {
+    min-height: 300px;
+    padding: 12px;
+  }
+  
+  .drop-zone {
+    padding: 0.8rem;
+  }
+  
+  .customization-panel {
+    padding: 0.6rem;
+  }
+  
+  .item-content {
+    padding: 0.8rem;
+  }
+  
+  .customization-group label {
+    font-size: 0.8rem;
+  }
+  
+  .customization-group input, 
+  .customization-group select, 
+  .customization-group textarea {
+    padding: 0.4rem;
+    font-size: 0.8rem;
+  }
+  
+  .alignment-controls {
+    flex-wrap: wrap;
+  }
+  
+  .image-component {
+    min-height: 120px;
+  }
+} 

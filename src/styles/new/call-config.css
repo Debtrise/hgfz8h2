@@ -1,0 +1,261 @@
+/* 
+ * Call Config CSS File
+ * Contains styles for the call configuration page
+ */
+
+/* Call Config Container */
+.call-config-container {
+  width: 100%;
+}
+
+/* Config Header */
+.config-header {
+  margin-bottom: var(--space-lg);
+}
+
+.config-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.config-description {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* Config Card */
+.config-card {
+  background-color: white;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-lg);
+  overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+.config-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary);
+}
+
+.config-card-header {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--gray-50);
+}
+
+.config-card-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.config-card-content {
+  padding: var(--space-lg);
+}
+
+/* Config Form */
+.config-form {
+  max-width: 800px;
+}
+
+.form-section {
+  margin-bottom: var(--space-xl);
+}
+
+.form-section:last-child {
+  margin-bottom: 0;
+}
+
+.form-section-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Form Items */
+.config-form .form-group {
+  margin-bottom: var(--space-lg);
+}
+
+.config-form .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.config-form .form-label {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.config-form .form-control {
+  background-color: white;
+  border: 1px solid var(--border-color);
+}
+
+/* Input Groups */
+.input-group {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.input-group:last-child {
+  margin-bottom: 0;
+}
+
+.input-group .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* Radio and Checkbox Groups */
+.radio-group,
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.radio-item,
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+}
+
+.radio-item input,
+.checkbox-item input {
+  cursor: pointer;
+}
+
+.radio-label,
+.checkbox-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+/* Tabs */
+.config-tabs {
+  margin-bottom: var(--space-lg);
+}
+
+.config-tab {
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  border-bottom: 2px solid transparent;
+}
+
+.config-tab:hover {
+  color: var(--text-primary);
+}
+
+.config-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background-color: var(--primary-light);
+}
+
+/* Config Actions */
+.config-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-color);
+}
+
+/* Alert Messages */
+.config-alert {
+  margin-bottom: var(--space-lg);
+}
+
+/* Loading States */
+.config-loading {
+  padding: var(--space-xl);
+  text-align: center;
+}
+
+.config-loading .loader {
+  margin-bottom: var(--space-md);
+}
+
+.loading-text {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* Permission Error */
+.permission-error {
+  text-align: center;
+  padding: var(--space-xl);
+}
+
+.permission-error-icon {
+  font-size: 48px;
+  color: var(--error);
+  margin-bottom: var(--space-md);
+}
+
+.permission-error-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.permission-error-message {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-lg);
+}
+
+/* Responsive Styles */
+@media (max-width: 1200px) {
+  .config-form {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .config-card-content {
+    padding: var(--space-md);
+  }
+  
+  .input-group {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  
+  .config-actions {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  
+  .config-actions .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .config-card-content {
+    padding: var(--space-sm);
+  }
+  
+  .config-title {
+    font-size: var(--font-size-lg);
+  }
+} 

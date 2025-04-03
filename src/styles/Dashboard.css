@@ -1,0 +1,410 @@
+/* Add these styles to your Dashboard CSS file */
+
+/* Dashboard Layout */
+.dashboard {
+  padding: 20px;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.filter-dropdown select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  margin-right: 10px;
+}
+
+.refresh-btn {
+  padding: 8px 12px;
+  background-color: transparent;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.refresh-btn:hover {
+  background-color: #f5f5f5;
+}
+
+/* Stats Cards */
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  color: white;
+}
+
+.calls-icon {
+  background-color: #3797ce;
+}
+
+.agents-icon {
+  background-color: #6bafd0;
+}
+
+.wait-icon {
+  background-color: #a0cbe5;
+}
+
+.success-icon {
+  background-color: #79b6db;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-content h3 {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 8px 0;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.stat-change {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.stat-change.positive {
+  color: #3797ce;
+}
+
+.stat-change.negative {
+  color: #d0e3ee;
+}
+
+/* Charts */
+.charts-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.chart-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  flex: 1;
+  min-width: 300px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.chart-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.chart-settings-btn {
+  background-color: transparent;
+  border: 1px solid #d6ebf5;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #3797ce;
+  transition: all 0.2s;
+}
+
+.chart-settings-btn:hover {
+  background-color: #f5f5f5;
+}
+
+.chart-placeholder {
+  height: 300px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Quick Controls Section */
+.quick-controls-section {
+  margin-top: 30px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.add-new-control {
+  background-color: #3797ce;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-new-control:hover {
+  background-color: #6bafd0;
+}
+
+.quick-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* Control Cards */
+.control-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.control-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card-icon, .control-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 15px;
+  color: white;
+  font-size: 24px;
+}
+
+.agent-icon {
+  background-color: #0056b3;
+}
+
+.queue-icon {
+  background-color: #0056b3;
+}
+
+.schedule-icon {
+  background-color: #0056b3;
+}
+
+.speed-control-icon {
+  background-color: #0056b3;
+}
+
+.control-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.control-card p {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 15px 0;
+  line-height: 1.5;
+}
+
+.card-actions, .control-card-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+.view-btn, .view-details-btn, .action-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.view-btn, .view-details-btn {
+  background-color: transparent;
+  border: 1px solid #ddd;
+  color: #666;
+}
+
+.view-btn:hover, .view-details-btn:hover {
+  background-color: #f5f5f5;
+}
+
+.action-btn {
+  background-color: #3a84af;
+  color: white;
+}
+
+.action-btn:hover {
+  background-color: #5199c3;
+}
+
+/* Dial Speed Control Card */
+.dial-speed-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.control-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.control-card-header h3 {
+  margin: 0 0 0 15px;
+}
+
+.dial-controls {
+  margin-top: auto;
+  margin-bottom: 15px;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+}
+
+.control-row label {
+  width: 100px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+}
+
+.slider-wrapper {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.dial-slider {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #f0f0f0;
+  outline: none;
+  border-radius: 3px;
+}
+
+.dial-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3a84af;
+  cursor: pointer;
+}
+
+.dial-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3a84af;
+  cursor: pointer;
+}
+
+.slider-value {
+  margin-left: 10px;
+  min-width: 20px;
+  text-align: center;
+  font-weight: 600;
+  color: #333;
+}
+
+.dial-ratio-select {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background-color: white;
+  font-size: 14px;
+}
+
+.min-agents-input {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background-color: white;
+  font-size: 14px;
+}
+
+.update-dial-btn {
+  background-color: #3a84af;
+  color: white;
+}
+
+.update-dial-btn:hover {
+  background-color: #5199c3;
+}
+
+/* Media queries for responsiveness */
+@media (max-width: 768px) {
+  .charts-row {
+    flex-direction: column;
+  }
+  
+  .chart-card {
+    width: 100%;
+  }
+  
+  .quick-controls-grid {
+    grid-template-columns: 1fr;
+  }
+} 

@@ -1,0 +1,139 @@
+/* FlowInventory.css */
+
+.flow-inventory {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+/* Header styles */
+.inventory-header {
+  background-color: white;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  height: 64px;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+}
+
+.header-icon {
+  font-size: 24px;
+  color: #1890ff;
+  margin-right: 10px;
+}
+
+.header-title h3 {
+  margin: 0;
+  color: #262626;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-input {
+  width: 250px;
+  transition: width 0.3s;
+}
+
+.search-input:focus {
+  width: 300px;
+}
+
+/* Content styles */
+.inventory-content {
+  padding: 20px;
+}
+
+.flows-table-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 20px;
+}
+
+.table-header h4 {
+  margin: 0;
+}
+
+/* Table styling */
+.flow-name-link {
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.flow-name-link:hover {
+  text-decoration: underline;
+}
+
+/* Status indicators */
+.status-badge {
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+}
+
+.status-badge-active {
+  background-color: #f6ffed;
+  border: 1px solid #b7eb8f;
+  color: #52c41a;
+}
+
+.status-badge-inactive {
+  background-color: #f5f5f5;
+  border: 1px solid #d9d9d9;
+  color: #8c8c8c;
+}
+
+.status-badge-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.status-badge-indicator-active {
+  background-color: #52c41a;
+}
+
+.status-badge-indicator-inactive {
+  background-color: #8c8c8c;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .inventory-header {
+    flex-direction: column;
+    height: auto;
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .table-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
