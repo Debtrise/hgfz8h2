@@ -87,6 +87,9 @@ import JourneyBuilder from "./JourneyBuilder";
 // Import SMS Blaster component
 import SMSBlaster from "./pages/SMSBlaster";
 
+// Import QueueBuilder component
+import QueueBuilder from "./pages/QueueBuilder";
+
 // Private Route component to handle authenticated routes
 const PrivateRoute = ({ children }) => {
   // For demo purposes, always authenticate
@@ -194,6 +197,9 @@ function App() {
               <Route path="journeys" element={<Journeys />} />
               <Route path="journeys/builder" element={<JourneyBuilder />} />
               <Route path="journeys/builder/:id" element={<JourneyBuilder />} />
+
+              {/* Queue Builder route */}
+              <Route path="/queue-builder" element={<PrivateRoute><QueueBuilder /></PrivateRoute>} />
 
               {/* Catch-all fallback */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />

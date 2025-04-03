@@ -220,6 +220,14 @@ const Layout = () => {
                 <SettingOutlined />
                 <span>Call Config</span>
               </NavLink>
+
+              <NavLink 
+                to="/queue-builder" 
+                className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
+              >
+                <TeamOutlined />
+                <span>Queue Builder</span>
+              </NavLink>
             </div>
           )}
 
