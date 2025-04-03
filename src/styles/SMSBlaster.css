@@ -1,0 +1,35 @@
+.sms-blaster-button {
+  background-color: #3a84af !important;
+  border-color: #3a84af !important;
+  color: white !important;
+}
+
+.sms-blaster-button:hover {
+  background-color: #2d6a8f !important;
+  border-color: #2d6a8f !important;
+  color: white !important;
+}
+
+.sms-blaster-button:active {
+  background-color: #1f4b6a !important;
+  border-color: #1f4b6a !important;
+  color: white !important;
+}
+
+.sms-blaster-button-danger {
+  background-color: #ff4d4f !important;
+  border-color: #ff4d4f !important;
+  color: white !important;
+}
+
+.sms-blaster-button-danger:hover {
+  background-color: #ff7875 !important;
+  border-color: #ff7875 !important;
+  color: white !important;
+}
+
+.sms-blaster-button-danger:active {
+  background-color: #d9363e !important;
+  border-color: #d9363e !important;
+  color: white !important;
+} 

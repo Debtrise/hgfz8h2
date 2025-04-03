@@ -12,9 +12,9 @@
 .auth-card {
   width: 100%;
   max-width: 400px;
-  background-color: #404040;
+  background-color: #4b5563;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(252, 252, 252, 0.1);
   padding: 32px;
 }
 
@@ -39,7 +39,7 @@
 .auth-title {
   font-size: 24px;
   font-weight: 600;
-  color: #1e293b;
+  color: #ffffff;
   margin: 0;
 }
 
@@ -74,6 +74,7 @@
   font-weight: 500;
   color: #ffffff;
   margin-bottom: 6px;
+  color: #ffffff;
 }
 
 .form-group input {
@@ -83,11 +84,12 @@
   border-radius: 6px;
   font-size: 14px;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #e1e1e1;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -96,7 +98,7 @@
 }
 
 .form-group input.error:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  box-shadow: 0 0 0 3px rgba(227, 226, 226, 0.1);
 }
 
 .error-message {
@@ -119,7 +121,7 @@
 
 .forgot-password-link {
   font-size: 13px;
-  color: #3b82f6;
+  color: #d8d8d8;
   text-decoration: none;
   background: none;
   border: none;
@@ -133,7 +135,7 @@
 
 .password-hint {
   font-size: 12px;
-  color: #6b7280;
+  color: #ececec;
   margin-top: 6px;
 }
 
@@ -153,13 +155,13 @@
 
 .form-checkbox label {
   font-size: 14px;
-  color: #4b5563;
+  color: #eeeeee;
 }
 
 .auth-button {
   width: 100%;
   padding: 12px;
-  background-color: #3b82f6;
+  background-color: #456aa6;
   color: white;
   border: none;
   border-radius: 6px;
@@ -173,7 +175,7 @@
 }
 
 .auth-button:hover {
-  background-color: #2563eb;
+  background-color: #375494;
 }
 
 .auth-button:disabled {
@@ -183,7 +185,7 @@
 
 .secondary-button {
   background-color: white;
-  color: #3b82f6;
+  color: #11284b;
   border: 1px solid #3b82f6;
 }
 
@@ -194,11 +196,11 @@
 .auth-footer {
   text-align: center;
   font-size: 14px;
-  color: #4b5563;
+  color: #ffffff;
 }
 
 .auth-link {
-  color: #3b82f6;
+  color: #ffffff;
   text-decoration: none;
   font-weight: 500;
 }
@@ -237,12 +239,12 @@
 
 .success-message h2 {
   font-size: 18px;
-  color: #1e293b;
+  color: #ffffff;
   margin-bottom: 12px;
 }
 
 .success-message p {
-  color: #64748b;
+  color: #ffffff;
   margin-bottom: 20px;
 }
 

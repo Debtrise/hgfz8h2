@@ -33,6 +33,7 @@ import {
   BarChart,
   Bar
 } from 'recharts';
+import '../styles/SMSBlaster.css';
 
 const { Title } = Typography;
 const { TabPane } = Tabs;
@@ -72,17 +73,30 @@ const SMSBlaster = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response:', errorText);
-        // If we get a 500 error, try to get the campaign from the existing list
-        if (response.status === 500) {
-          const campaign = campaigns.find(c => c.id === id);
-          if (campaign) {
-            setSelectedCampaign({
-              ...campaign,
-              recentMessages: [] // Empty array since we can't get message details
-            });
-            return;
-          }
+        
+        // Check if this is the specific index error
+        if (errorText.includes('no matching index found')) {
+          // Show a more user-friendly error message
+          Modal.warning({
+            title: 'Limited Campaign Details Available',
+            content: (
+              <div>
+                <p>We can show basic campaign information, but detailed message history is currently unavailable.</p>
+                <p>The backend team has been notified to add the required index for full functionality.</p>
+              </div>
+            ),
+            okText: 'View Basic Details',
+            onOk: () => {
+              // Find the campaign in our existing data
+              const campaign = campaigns.find(c => c.id === id);
+              if (campaign) {
+                setSelectedCampaign(campaign);
+              }
+            }
+          });
+          return;
         }
+        
         throw new Error(`Failed to fetch campaign details: ${response.status} ${errorText}`);
       }
       
@@ -92,9 +106,10 @@ const SMSBlaster = () => {
     } catch (err) {
       console.error('Error fetching campaign details:', err);
       setError(err.message);
+      // Show error in a more user-friendly way
       Modal.error({
         title: 'Error Loading Campaign Details',
-        content: 'Some detailed information may not be available due to system limitations.',
+        content: err.message,
       });
     }
   };
@@ -197,7 +212,7 @@ const SMSBlaster = () => {
             onClick={() => handleCancelCampaign(record.id)}
             disabled={record.status !== 'in_progress'}
             icon={<CloseOutlined />}
-            style={{ backgroundColor: '#ff4d4f', borderColor: '#ff4d4f' }}
+            className="sms-blaster-button-danger"
           >
             Cancel
           </Button>
@@ -215,20 +230,23 @@ const SMSBlaster = () => {
   }
 
   if (selectedCampaign) {
-    const deliveryData = [
-      { name: 'Delivered', value: selectedCampaign.progress.delivered },
-      { name: 'Failed', value: selectedCampaign.progress.failed },
-      { name: 'Pending', value: selectedCampaign.progress.remaining },
-    ];
+    // Create a simplified view with the data we have from the campaigns list
+    const simplifiedCampaign = {
+      ...selectedCampaign,
+      progress: {
+        sent: selectedCampaign.progress?.sent || 0,
+        delivered: selectedCampaign.progress?.delivered || 0,
+        failed: selectedCampaign.progress?.failed || 0,
+        remaining: selectedCampaign.progress?.remaining || 0
+      },
+      recentMessages: [] // Empty array since we can't fetch message details
+    };
 
-    // Only show timeline if we have recent messages
-    const timeSeriesData = selectedCampaign.recentMessages?.length > 0 
-      ? selectedCampaign.recentMessages.map(msg => ({
-          time: new Date(msg.sentAt).toLocaleTimeString(),
-          delivered: msg.status === 'delivered' ? 1 : 0,
-          failed: msg.status === 'failed' ? 1 : 0,
-        }))
-      : null;
+    const deliveryData = [
+      { name: 'Delivered', value: simplifiedCampaign.progress.delivered },
+      { name: 'Failed', value: simplifiedCampaign.progress.failed },
+      { name: 'Pending', value: simplifiedCampaign.progress.remaining },
+    ];
 
     return (
       <div style={{ padding: '24px' }}>
@@ -237,11 +255,12 @@ const SMSBlaster = () => {
             <Button
               icon={<ArrowLeftOutlined />}
               onClick={() => setSelectedCampaign(null)}
-              style={{ marginBottom: '16px', backgroundColor: '#3a84af', borderColor: '#3a84af', color: '#fff' }}
+              className="sms-blaster-button"
+              style={{ marginBottom: '16px' }}
             >
               Back to Campaigns
             </Button>
-            <Title level={2}>{selectedCampaign.name}</Title>
+            <Title level={2}>{simplifiedCampaign.name}</Title>
           </div>
 
           <Tabs defaultActiveKey="1">
@@ -251,7 +270,7 @@ const SMSBlaster = () => {
                   <Card>
                     <Statistic
                       title="Total Messages"
-                      value={selectedCampaign.totalLeads}
+                      value={simplifiedCampaign.totalLeads}
                     />
                   </Card>
                 </Col>
@@ -259,7 +278,7 @@ const SMSBlaster = () => {
                   <Card>
                     <Statistic
                       title="Delivered"
-                      value={selectedCampaign.progress.delivered}
+                      value={simplifiedCampaign.progress.delivered}
                       valueStyle={{ color: '#52c41a' }}
                     />
                   </Card>
@@ -268,7 +287,7 @@ const SMSBlaster = () => {
                   <Card>
                     <Statistic
                       title="Failed"
-                      value={selectedCampaign.progress.failed}
+                      value={simplifiedCampaign.progress.failed}
                       valueStyle={{ color: '#ff4d4f' }}
                     />
                   </Card>
@@ -287,91 +306,54 @@ const SMSBlaster = () => {
                 </ResponsiveContainer>
               </Card>
 
-              {timeSeriesData && (
-                <Card title="Delivery Timeline" style={{ marginTop: '24px' }}>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={timeSeriesData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="time" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="delivered" stroke="#52c41a" name="Delivered" />
-                      <Line type="monotone" dataKey="failed" stroke="#ff4d4f" name="Failed" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </Card>
-              )}
+              <Alert
+                message="Note"
+                description="Detailed message history is currently unavailable due to backend limitations. We're working on adding this feature."
+                type="info"
+                showIcon
+                style={{ marginTop: '24px' }}
+              />
             </TabPane>
 
             <TabPane tab="Details" key="2">
               <Descriptions bordered column={2}>
-                <Descriptions.Item label="Campaign Name">{selectedCampaign.name}</Descriptions.Item>
+                <Descriptions.Item label="Campaign Name">{simplifiedCampaign.name}</Descriptions.Item>
                 <Descriptions.Item label="Status">
-                  <Tag color={getStatusColor(selectedCampaign.status)}>
-                    {selectedCampaign.status}
+                  <Tag color={getStatusColor(simplifiedCampaign.status)}>
+                    {simplifiedCampaign.status}
                   </Tag>
                 </Descriptions.Item>
                 <Descriptions.Item label="Created At">
-                  {new Date(selectedCampaign.createdAt).toLocaleString()}
+                  {new Date(simplifiedCampaign.createdAt).toLocaleString()}
                 </Descriptions.Item>
                 <Descriptions.Item label="Start Time">
-                  {selectedCampaign.startTime ? new Date(selectedCampaign.startTime).toLocaleString() : 'Not started'}
+                  {simplifiedCampaign.startTime ? new Date(simplifiedCampaign.startTime).toLocaleString() : 'Not started'}
                 </Descriptions.Item>
                 <Descriptions.Item label="End Time">
-                  {selectedCampaign.endTime ? new Date(selectedCampaign.endTime).toLocaleString() : 'Not completed'}
+                  {simplifiedCampaign.endTime ? new Date(simplifiedCampaign.endTime).toLocaleString() : 'Not completed'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Batch Size">{selectedCampaign.batchSize}</Descriptions.Item>
+                <Descriptions.Item label="Batch Size">{simplifiedCampaign.batchSize}</Descriptions.Item>
                 <Descriptions.Item label="Lead Age Range">
-                  {selectedCampaign.criteria.minLeadAge} - {selectedCampaign.criteria.maxLeadAge} days
+                  {simplifiedCampaign.criteria.minLeadAge} - {simplifiedCampaign.criteria.maxLeadAge} days
                 </Descriptions.Item>
-                <Descriptions.Item label="SMS Pool ID">{selectedCampaign.smsPoolId}</Descriptions.Item>
+                <Descriptions.Item label="SMS Pool ID">{simplifiedCampaign.smsPoolId}</Descriptions.Item>
               </Descriptions>
 
               <Card title="Message Content" style={{ marginTop: '24px' }}>
                 <Typography.Paragraph>
-                  {selectedCampaign.messageContent}
+                  {simplifiedCampaign.messageContent}
                 </Typography.Paragraph>
               </Card>
             </TabPane>
 
-            {selectedCampaign.recentMessages?.length > 0 && (
-              <TabPane tab="Recent Messages" key="3">
-                <Table
-                  dataSource={selectedCampaign.recentMessages}
-                  rowKey="id"
-                  pagination={{ pageSize: 10 }}
-                  columns={[
-                    {
-                      title: 'Phone',
-                      dataIndex: 'phone',
-                      key: 'phone',
-                    },
-                    {
-                      title: 'Status',
-                      dataIndex: 'status',
-                      key: 'status',
-                      render: (status) => (
-                        <Tag color={status === 'delivered' ? 'success' : 'error'}>
-                          {status}
-                        </Tag>
-                      ),
-                    },
-                    {
-                      title: 'Sent At',
-                      dataIndex: 'sentAt',
-                      key: 'sentAt',
-                      render: (date) => new Date(date).toLocaleString(),
-                    },
-                    {
-                      title: 'Message SID',
-                      dataIndex: 'messageSid',
-                      key: 'messageSid',
-                    },
-                  ]}
-                />
-              </TabPane>
-            )}
+            <TabPane tab="Recent Messages" key="3">
+              <Alert
+                message="Message History Unavailable"
+                description="Detailed message history is currently unavailable. We're working on adding this feature."
+                type="info"
+                showIcon
+              />
+            </TabPane>
           </Tabs>
         </Card>
       </div>
@@ -381,13 +363,13 @@ const SMSBlaster = () => {
   return (
     <div style={{ padding: '24px' }}>
       <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <Title level={2}>SMS Blaster</Title>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <Title level={2}>SMS Campaigns</Title>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => setIsModalVisible(true)}
-            style={{ backgroundColor: '#3a84af', borderColor: '#3a84af' }}
+            className="sms-blaster-button"
           >
             New Campaign
           </Button>
@@ -494,7 +476,8 @@ const SMSBlaster = () => {
               <Button 
                 type="primary" 
                 htmlType="submit"
-                style={{ backgroundColor: '#3a84af', borderColor: '#3a84af' }}
+                loading={loading}
+                className="sms-blaster-button"
               >
                 Create Campaign
               </Button>
