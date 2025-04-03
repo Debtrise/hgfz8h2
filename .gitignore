@@ -30,6 +30,8 @@ yarn-error.log*
 google-cloud-sdk/
 google-cloud-cli-*.tar.gz
 *.tar.gz
+google-cloud-sdk/data/cli/gcloud.json
+google-cloud-sdk/bin/anthoscli
 
 # Environment variables
 .env
