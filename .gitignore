@@ -28,6 +28,8 @@ yarn-error.log*
 
 # Google Cloud SDK
 google-cloud-sdk/
+google-cloud-cli-*.tar.gz
+*.tar.gz
 
 # Environment variables
 .env
