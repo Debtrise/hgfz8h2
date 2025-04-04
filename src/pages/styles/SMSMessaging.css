@@ -263,6 +263,11 @@
   border-top-right-radius: 4px;
 }
 
+.message.sent .message-bubble p,
+.message.sent .message-bubble .message-time {
+  color: white;
+}
+
 .message.received .message-bubble {
   background-color: #e6e6e6;
   color: #333;

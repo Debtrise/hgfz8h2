@@ -16,7 +16,7 @@ import {
 import './styles/SMSMessaging.css';
 
 // API Configuration
-const API_BASE_URL = 'https://sms-blaster-api-3q7g4o5uxa-uc.a.run.app'; // Updated with actual Cloud Run URL
+const API_BASE_URL = 'https://sms-blaster-api-154842307047.us-central1.run.app'; // Updated with actual Cloud Run URL
 
 const SMSMessaging = () => {
   // State for contacts, messages, and UI
@@ -47,21 +47,30 @@ const SMSMessaging = () => {
         setError(null);
         console.log('Fetching contacts from:', `${API_BASE_URL}/api/campaigns`);
         
-        // Fetch campaigns to get contacts
+        // Fetch campaigns first
         const campaignsResponse = await axios.get(`${API_BASE_URL}/api/campaigns`);
         console.log('Campaigns response:', campaignsResponse.data);
         
+        // Then fetch details for each campaign to get messages
+        const campaignDetails = await Promise.all(
+          campaignsResponse.data.map(campaign => 
+            axios.get(`${API_BASE_URL}/api/campaigns/${campaign.id}`)
+          )
+        );
+        
         // Transform campaign messages into contact list
-        const contactList = campaignsResponse.data.flatMap(campaign => 
-          (campaign.recentMessages || []).map(message => ({
-            id: message.case_id,
-            name: message.f_name,
+        const contactList = campaignDetails.flatMap(response => {
+          const campaign = response.data;
+          return (campaign.recentMessages || []).map(message => ({
+            id: message.id || message.case_id,
+            name: message.f_name || 'Unknown Contact',
             phone: message.phone,
             unread: 0,
             lastMessage: message.content,
-            lastMessageTime: new Date(message.sentAt).toLocaleString()
-          }))
-        );
+            lastMessageTime: new Date(message.sentAt).toLocaleString(),
+            f_name: message.f_name
+          }));
+        });
 
         console.log('Processed contacts:', contactList);
         setContacts(contactList);
@@ -83,14 +92,109 @@ const SMSMessaging = () => {
     fetchContacts();
   }, []);
 
-  // Modify handleSendMessage to send SMS via API
+  // Fetch detailed conversation for a contact
+  const fetchConversation = async (contactId) => {
+    try {
+      // Fetch all campaigns with detailed info
+      const campaignsResponse = await axios.get(`${API_BASE_URL}/api/campaigns`);
+      
+      // Get details for each campaign
+      const campaignDetails = await Promise.all(
+        campaignsResponse.data.map(campaign => 
+          axios.get(`${API_BASE_URL}/api/campaigns/${campaign.id}`)
+        )
+      );
+      
+      // Find messages that match this contact's ID or phone
+      let messages = [];
+      for (const response of campaignDetails) {
+        const campaign = response.data;
+        const matchingMessages = (campaign.recentMessages || []).filter(msg => 
+          msg.id === contactId || msg.case_id === contactId
+        );
+        
+        if (matchingMessages.length > 0) {
+          messages = matchingMessages.map(msg => ({
+            id: msg.messageSid || msg.id,
+            text: msg.content,
+            sender: msg.status === 'delivered' ? 'contact' : 'user',
+            timestamp: new Date(msg.sentAt).toLocaleTimeString(),
+            status: msg.status,
+            campaignId: campaign.id,
+            campaignName: campaign.name,
+            createdAt: new Date(msg.sentAt).toLocaleString(),
+            phone: msg.phone,
+            f_name: msg.f_name || 'Unknown Contact'
+          }));
+          break;
+        }
+      }
+      
+      setConversations(prev => ({
+        ...prev,
+        [contactId]: messages
+      }));
+    } catch (error) {
+      console.error('Error fetching conversation:', error);
+    }
+  };
+
+  // Fetch activities for a contact
+  const fetchActivities = async (contactId) => {
+    try {
+      // Fetch all campaigns with detailed info
+      const campaignsResponse = await axios.get(`${API_BASE_URL}/api/campaigns`);
+      
+      // Get details for each campaign
+      const campaignDetails = await Promise.all(
+        campaignsResponse.data.map(campaign => 
+          axios.get(`${API_BASE_URL}/api/campaigns/${campaign.id}`)
+        )
+      );
+      
+      // Find campaigns that have messages for this contact
+      const activities = campaignDetails.flatMap(response => {
+        const campaign = response.data;
+        const hasMessages = (campaign.recentMessages || []).some(msg => 
+          msg.id === contactId || msg.case_id === contactId
+        );
+        
+        if (hasMessages) {
+          return [{
+            id: campaign.id,
+            type: 'sms',
+            title: `Campaign: ${campaign.name}`,
+            date: new Date(campaign.createdAt).toLocaleDateString(),
+            time: new Date(campaign.createdAt).toLocaleTimeString(),
+            status: campaign.status,
+            progress: campaign.progress,
+            totalLeads: campaign.totalLeads,
+            messageContent: campaign.messageContent,
+            f_name: campaign.recentMessages.find(msg => 
+              msg.id === contactId || msg.case_id === contactId
+            )?.f_name || 'Unknown Contact'
+          }];
+        }
+        return [];
+      });
+
+      setActivities(prev => ({
+        ...prev,
+        [contactId]: activities
+      }));
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    }
+  };
+
+  // Modify handleSendMessage to include f_name
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedContact) return;
 
     try {
       // Create a new campaign for this specific message
       const campaignResponse = await axios.post(`${API_BASE_URL}/api/campaigns`, {
-        name: `Personal Message to ${selectedContact.name}`,
+        name: `Personal Message to ${selectedContact.f_name || selectedContact.name}`,
         minLeadAge: 1,
         maxLeadAge: 7,
         messageContent: messageInput,
@@ -104,7 +208,8 @@ const SMSMessaging = () => {
         text: messageInput,
         sender: 'user',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        campaignId: campaignResponse.data.id
+        campaignId: campaignResponse.data.id,
+        f_name: selectedContact.f_name || selectedContact.name
       };
 
       // Update local conversation
@@ -120,67 +225,7 @@ const SMSMessaging = () => {
       fetchActivities(selectedContact.id);
     } catch (error) {
       console.error('Error sending message:', error);
-      // Optionally show error to user
       alert('Failed to send message. Please try again.');
-    }
-  };
-
-  // Fetch detailed conversation for a contact
-  const fetchConversation = async (contactId) => {
-    try {
-      // Find the campaign associated with this contact
-      const campaignsResponse = await axios.get(`${API_BASE_URL}/api/campaigns`);
-      
-      const relevantCampaigns = campaignsResponse.data.filter(campaign => 
-        campaign.recentMessages.some(msg => msg.case_id === contactId)
-      );
-
-      if (relevantCampaigns.length > 0) {
-        // Get messages from the most relevant campaign
-        const campaign = relevantCampaigns[0];
-        const messages = campaign.recentMessages
-          .filter(msg => msg.case_id === contactId)
-          .map(msg => ({
-            id: msg.messageSid,
-            text: msg.content,
-            sender: msg.sentAt ? 'contact' : 'user',
-            timestamp: new Date(msg.sentAt).toLocaleTimeString()
-          }));
-
-        setConversations(prev => ({
-          ...prev,
-          [contactId]: messages
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching conversation:', error);
-    }
-  };
-
-  // Fetch activities for a contact
-  const fetchActivities = async (contactId) => {
-    try {
-      // Similar to fetchConversation, but focus on campaign-level activities
-      const campaignsResponse = await axios.get(`${API_BASE_URL}/api/campaigns`);
-      
-      const relevantCampaigns = campaignsResponse.data.filter(campaign => 
-        campaign.recentMessages.some(msg => msg.case_id === contactId)
-      );
-
-      const activities = relevantCampaigns.map(campaign => ({
-        id: campaign.id,
-        type: 'sms',
-        title: `Campaign: ${campaign.name}`,
-        date: new Date(campaign.createdAt).toLocaleDateString(),
-        time: new Date(campaign.createdAt).toLocaleTimeString()
-      }));
-
-      setActivities(prev => ({
-        ...prev,
-        [contactId]: activities
-      }));
-    } catch (error) {
-      console.error('Error fetching activities:', error);
     }
   };
 

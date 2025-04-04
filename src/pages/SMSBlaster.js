@@ -53,7 +53,7 @@ const SMSBlaster = () => {
 
   const fetchCampaigns = async () => {
     try {
-      const response = await fetch('https://sms-blaster-api-3q7g4o5uxa-uc.a.run.app/api/campaigns');
+      const response = await fetch('https://sms-blaster-api-154842307047.us-central1.run.app/api/campaigns');
       if (!response.ok) throw new Error('Failed to fetch campaigns');
       const data = await response.json();
       setCampaigns(data);
@@ -67,7 +67,7 @@ const SMSBlaster = () => {
   const fetchCampaignDetails = async (id) => {
     try {
       console.log('Fetching campaign details for ID:', id);
-      const response = await fetch(`https://sms-blaster-api-3q7g4o5uxa-uc.a.run.app/api/campaigns/${id}`);
+      const response = await fetch(`https://sms-blaster-api-154842307047.us-central1.run.app/api/campaigns/${id}`);
       console.log('Response status:', response.status);
       
       if (!response.ok) {
@@ -116,7 +116,7 @@ const SMSBlaster = () => {
 
   const handleCreateCampaign = async (values) => {
     try {
-      const response = await fetch('https://sms-blaster-api-3q7g4o5uxa-uc.a.run.app/api/campaigns', {
+      const response = await fetch('https://sms-blaster-api-154842307047.us-central1.run.app/api/campaigns', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +134,7 @@ const SMSBlaster = () => {
 
   const handleCancelCampaign = async (id) => {
     try {
-      const response = await fetch(`https://sms-blaster-api-3q7g4o5uxa-uc.a.run.app/api/campaigns/${id}`, {
+      const response = await fetch(`https://sms-blaster-api-154842307047.us-central1.run.app/api/campaigns/${id}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to cancel campaign');

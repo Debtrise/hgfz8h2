@@ -27,10 +27,14 @@ import {
   MessageOutlined,
   FormOutlined
 } from '@ant-design/icons';
+import { useSidebar } from '../context/SidebarContext';
+import DemoSidebar from './DemoSidebar';
+import SidebarToggle from './SidebarToggle';
 
 const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDemoMode } = useSidebar();
   
   // Track expanded states for each category
   const [expandedSections, setExpandedSections] = useState({
@@ -61,223 +65,226 @@ const Layout = () => {
     setSidebarVisible(!sidebarVisible);
   };
 
-  return (
-    <div className="app-container">
-      <aside className={`sidebar ${sidebarVisible ? 'active' : ''}`}>
-        <div className="sidebar-logo">
-          <img src="/logo.png" alt="Logo" className="logo-img" />
+  const renderFullSidebar = () => (
+    <aside className={`sidebar ${sidebarVisible ? 'active' : ''}`}>
+      <div className="sidebar-logo">
+        <img src="/logo.png" alt="Logo" className="logo-img" />
+      </div>
+
+      <nav className="sidebar-nav">
+        <NavLink to="/dashboard" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+          <DashboardOutlined />
+          <span>Dashboard</span>
+        </NavLink>
+
+        {/* Campaign Management Section */}
+        <div className="sidebar-category-header" onClick={() => toggleSection('campaigns')}>
+          <div className="category-header-left">
+            <FlagOutlined />
+            <span>Campaign Management</span>
+          </div>
+          {expandedSections.campaigns ? <CaretDownOutlined /> : <CaretRightOutlined />}
         </div>
-
-        <nav className="sidebar-nav">
-          <NavLink to="/dashboard" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-            <DashboardOutlined />
-            <span>Dashboard</span>
-          </NavLink>
-
-          {/* Campaign Management Section */}
-          <div className="sidebar-category-header" onClick={() => toggleSection('campaigns')}>
-            <div className="category-header-left">
+        
+        {expandedSections.campaigns && (
+          <div className="sidebar-category-content">
+            <NavLink to="/campaigns" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <FlagOutlined />
-              <span>Campaign Management</span>
-            </div>
-            {expandedSections.campaigns ? <CaretDownOutlined /> : <CaretRightOutlined />}
+              <span>Campaigns</span>
+            </NavLink>
+
+            <NavLink to="/journeys" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <CompassOutlined />
+              <span>Journeys</span>
+            </NavLink>
+
+            <NavLink to="/forms" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <FormOutlined />
+              <span>Forms</span>
+            </NavLink>
           </div>
-          
-          {expandedSections.campaigns && (
-            <div className="sidebar-category-content">
-              <NavLink to="/campaigns" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-                <FlagOutlined />
-                <span>Campaigns</span>
-              </NavLink>
+        )}
 
-              <NavLink to="/journeys" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-                <CompassOutlined />
-                <span>Journeys</span>
-              </NavLink>
+        <div className="sidebar-divider"></div>
 
-              <NavLink to="/forms" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-                <FormOutlined />
-                <span>Forms</span>
-              </NavLink>
-            </div>
-          )}
-
-          <div className="sidebar-divider"></div>
-
-          {/* Resource Management Section */}
-          <div className="sidebar-category-header" onClick={() => toggleSection('resources')}>
-            <div className="category-header-left">
-              <DatabaseOutlined />
-              <span>Resource Management</span>
-            </div>
-            {expandedSections.resources ? <CaretDownOutlined /> : <CaretRightOutlined />}
+        {/* Resource Management Section */}
+        <div className="sidebar-category-header" onClick={() => toggleSection('resources')}>
+          <div className="category-header-left">
+            <DatabaseOutlined />
+            <span>Resource Management</span>
           </div>
-          
-          {expandedSections.resources && (
-            <div className="sidebar-category-content">
-              <NavLink to="/lead-pools" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-                <TeamOutlined />
-                <span>Lead Pools</span>
-              </NavLink>
+          {expandedSections.resources ? <CaretDownOutlined /> : <CaretRightOutlined />}
+        </div>
+        
+        {expandedSections.resources && (
+          <div className="sidebar-category-content">
+            <NavLink to="/lead-pools" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <TeamOutlined />
+              <span>Lead Pools</span>
+            </NavLink>
 
-              <NavLink to="/leads" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-                <TeamOutlined />
-                <span>Leads List</span>
-              </NavLink>
+            <NavLink to="/leads" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <TeamOutlined />
+              <span>Leads List</span>
+            </NavLink>
 
-              <NavLink to="/did-pools" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-                <PhoneOutlined />
-                <span>DID Pools</span>
-              </NavLink>
-
-              <NavLink to="/dids" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-                <PhoneOutlined />
-                <span>DIDs List</span>
-              </NavLink>
-
-              <NavLink to="/email-templates" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-                <MailOutlined />
-                <span>Email Templates</span>
-              </NavLink>
-
-              <NavLink to="/sms-messaging" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-                <MessageOutlined />
-                <span>SMS Messaging</span>
-              </NavLink>
-
-              <NavLink to="/sms-blaster" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-                <MessageOutlined />
-                <span>SMS Blaster</span>
-              </NavLink>
-            </div>
-          )}
-
-          <div className="sidebar-divider"></div>
-          
-          {/* Call Center Section */}
-          <div className="sidebar-category-header" onClick={() => toggleSection('callCenter')}>
-            <div className="category-header-left">
+            <NavLink to="/did-pools" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <PhoneOutlined />
-              <span>Call Center</span>
-            </div>
-            {expandedSections.callCenter ? <CaretDownOutlined /> : <CaretRightOutlined />}
+              <span>DID Pools</span>
+            </NavLink>
+
+            <NavLink to="/dids" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <PhoneOutlined />
+              <span>DIDs List</span>
+            </NavLink>
+
+            <NavLink to="/email-templates" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <MailOutlined />
+              <span>Email Templates</span>
+            </NavLink>
+
+            <NavLink to="/sms-messaging" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <MessageOutlined />
+              <span>SMS Messaging</span>
+            </NavLink>
+
+            <NavLink to="/sms-blaster" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <MessageOutlined />
+              <span>SMS Blaster</span>
+            </NavLink>
+
+            <NavLink to="/text-to-speech" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <AudioOutlined />
+              <span>Text to Speech</span>
+            </NavLink>
           </div>
-          
-          {expandedSections.callCenter && (
-            <div className="sidebar-category-content">
-              <NavLink 
-                to="/call-center/real-time-dashboard" 
-                className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-              >
-                <BarChartOutlined />
-                <span>Real-Time Dashboard</span>
-              </NavLink>
+        )}
 
-              <NavLink 
-                to="/call-center/agent" 
-                className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-              >
-                <CustomerServiceOutlined />
-                <span>Agent Interface</span>
-              </NavLink>
+        <div className="sidebar-divider"></div>
+        
+        {/* Call Center Section */}
+        <div className="sidebar-category-header" onClick={() => toggleSection('callCenter')}>
+          <div className="category-header-left">
+            <PhoneOutlined />
+            <span>Call Center</span>
+          </div>
+          {expandedSections.callCenter ? <CaretDownOutlined /> : <CaretRightOutlined />}
+        </div>
+        
+        {expandedSections.callCenter && (
+          <div className="sidebar-category-content">
+            <NavLink 
+              to="/call-center/real-time-dashboard" 
+              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
+            >
+              <BarChartOutlined />
+              <span>Real-Time Dashboard</span>
+            </NavLink>
 
-              <NavLink 
-                to="/call-center/admin" 
-                className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-              >
-                <SafetyOutlined />
-                <span>Admin Dashboard</span>
-              </NavLink>
+            <NavLink 
+              to="/call-center/agent" 
+              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
+            >
+              <CustomerServiceOutlined />
+              <span>Agent Interface</span>
+            </NavLink>
 
-              <NavLink 
-                to="/call-center/FlowInventory" 
-                className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-              >
-                <ApiOutlined />
-                <span>Flow Inventory</span>
-              </NavLink>
+            <NavLink 
+              to="/call-center/admin" 
+              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
+            >
+              <SafetyOutlined />
+              <span>Admin Dashboard</span>
+            </NavLink>
 
-              <NavLink 
-                to="/call-center/recordings" 
-                className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-              >
-                <AudioOutlined />
-                <span>Recordings</span>
-              </NavLink>
+            <NavLink 
+              to="/call-center/FlowInventory" 
+              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
+            >
+              <ApiOutlined />
+              <span>Flow Inventory</span>
+            </NavLink>
 
-              <NavLink 
-                to="/call-center/call-logs" 
-                className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-              >
-                <FileTextOutlined />
-                <span>Call Logs</span>
-              </NavLink>
+            <NavLink 
+              to="/call-center/recordings" 
+              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
+            >
+              <AudioOutlined />
+              <span>Recordings</span>
+            </NavLink>
 
-              <NavLink 
-                to="/call-center/call-config" 
-                className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-              >
-                <SettingOutlined />
-                <span>Call Config</span>
-              </NavLink>
+            <NavLink 
+              to="/call-center/call-logs" 
+              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
+            >
+              <FileTextOutlined />
+              <span>Call Logs</span>
+            </NavLink>
 
-              <NavLink 
-                to="/queue-builder" 
-                className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-              >
-                <TeamOutlined />
-                <span>Queue Builder</span>
-              </NavLink>
-            </div>
-          )}
-
-          <div className="sidebar-divider"></div>
-          
-          {/* Settings Section */}
-          <div className="sidebar-category-header" onClick={() => toggleSection('settings')}>
-            <div className="category-header-left">
+            <NavLink 
+              to="/call-center/call-config" 
+              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
+            >
               <SettingOutlined />
-              <span>Settings</span>
-            </div>
-            {expandedSections.settings ? <CaretDownOutlined /> : <CaretRightOutlined />}
+              <span>Call Config</span>
+            </NavLink>
+
+            <NavLink 
+              to="/queue-builder" 
+              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
+            >
+              <TeamOutlined />
+              <span>Queue Builder</span>
+            </NavLink>
           </div>
-          
-          {expandedSections.settings && (
-            <div className="sidebar-category-content">
-              <NavLink to="/settings" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-                <SettingOutlined />
-                <span>General Settings</span>
-              </NavLink>
-              
-              <NavLink to="/settings/profile" className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}>
-                <UserOutlined />
-                <span>User Profile</span>
-              </NavLink>
-              
-              <NavLink to="/settings/users" className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}>
-                <TeamOutlined />
-                <span>User Management</span>
-              </NavLink>
-              
-              <NavLink to="/settings/integrations" className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}>
-                <ApiOutlined />
-                <span>Integrations</span>
-              </NavLink>
-            </div>
-          )}
+        )}
 
-          <div className="sidebar-nav-item signout" onClick={handleSignOut}>
-            <LogoutOutlined />
-            <span>Sign Out</span>
+        <div className="sidebar-divider"></div>
+        
+        {/* Settings Section */}
+        <div className="sidebar-category-header" onClick={() => toggleSection('settings')}>
+          <div className="category-header-left">
+            <SettingOutlined />
+            <span>Settings</span>
           </div>
-        </nav>
-      </aside>
+          {expandedSections.settings ? <CaretDownOutlined /> : <CaretRightOutlined />}
+        </div>
+        
+        {expandedSections.settings && (
+          <div className="sidebar-category-content">
+            <NavLink to="/settings" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <SettingOutlined />
+              <span>General Settings</span>
+            </NavLink>
+            
+            <NavLink to="/settings/profile" className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}>
+              <UserOutlined />
+              <span>User Profile</span>
+            </NavLink>
+            
+            <NavLink to="/settings/users" className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}>
+              <TeamOutlined />
+              <span>User Management</span>
+            </NavLink>
+            
+            <NavLink to="/settings/integrations" className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}>
+              <ApiOutlined />
+              <span>Integrations</span>
+            </NavLink>
+          </div>
+        )}
 
-      {/* Add an overlay for mobile sidebar */}
-      {sidebarVisible && (
-        <div className="sidebar-overlay" onClick={toggleSidebar}></div>
-      )}
+        <div className="sidebar-nav-item signout" onClick={handleSignOut}>
+          <LogoutOutlined />
+          <span>Sign Out</span>
+        </div>
+      </nav>
+    </aside>
+  );
 
+  return (
+    <div className="app-layout">
+      {isDemoMode ? <DemoSidebar /> : renderFullSidebar()}
       <main className="main-content">
         <div className="header">
           <div className="header-left">
@@ -302,6 +309,11 @@ const Layout = () => {
           <Outlet />
         </div>
       </main>
+      <SidebarToggle />
+      {/* Add an overlay for mobile sidebar */}
+      {sidebarVisible && (
+        <div className="sidebar-overlay" onClick={toggleSidebar}></div>
+      )}
     </div>
   );
 };
@@ -384,6 +396,7 @@ function getPageTitle(pathname) {
   
   // SMS Messaging route
   if (pathname === "/sms-messaging") return "SMS Messaging";
+  if (pathname === "/sms-blaster") return "SMS Blaster";
 
   // Form Builder routes
   if (pathname === "/forms") return "Forms";
