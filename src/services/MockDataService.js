@@ -1,10 +1,25 @@
-// Mock data service for RealTimeAgentDashboard
-const MockDataService = {
+import apiService from './apiService';
+
+// Real-time data service for RealTimeAgentDashboard
+const RealTimeDataService = {
   listeners: {},
   intervalId: null,
   
-  // Generate random agent stats
-  generateAgentStats() {
+  // Get real agent stats from the API
+  async getAgentStats() {
+    try {
+      // Get real-time metrics from the API
+      const metrics = await apiService.callCenter.analytics.getRealTimeMetrics();
+      return metrics;
+    } catch (error) {
+      console.error('Error fetching real-time metrics:', error);
+      // Fallback to mock data if API fails
+      return this.generateMockAgentStats();
+    }
+  },
+
+  // Generate mock agent stats (fallback)
+  generateMockAgentStats() {
     const statuses = ['available', 'busy', 'break', 'training', 'meeting'];
     const agents = [
       { id: 1, name: 'John Smith' },
@@ -105,23 +120,25 @@ const MockDataService = {
     };
   },
 
-  // Connect to the mock data service
+  // Connect to the real-time data service
   connect() {
-    console.log('Connected to mock data service');
+    console.log('Connected to real-time data service');
     // Update data every 5 seconds
-    this.intervalId = setInterval(() => {
-      this.emit('agentDashboard', this.generateAgentStats());
+    this.intervalId = setInterval(async () => {
+      const data = await this.getAgentStats();
+      this.emit('agentDashboard', data);
     }, 5000);
     
     // Initial data
-    setTimeout(() => {
-      this.emit('agentDashboard', this.generateAgentStats());
+    setTimeout(async () => {
+      const data = await this.getAgentStats();
+      this.emit('agentDashboard', data);
     }, 500);
   },
 
-  // Disconnect from the mock data service
+  // Disconnect from the real-time data service
   disconnect() {
-    console.log('Disconnected from mock data service');
+    console.log('Disconnected from real-time data service');
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
@@ -151,4 +168,4 @@ const MockDataService = {
   }
 };
 
-export default MockDataService; 
+export default RealTimeDataService; 

@@ -1,7 +1,9 @@
+import apiService from './apiService';
+
 // Configuration for Call Center components
 
 const config = {
-  // API endpoints
+  // API endpoints - now using apiService instead of direct endpoints
   api: {
     // Recordings endpoints
     recordings: {
@@ -62,14 +64,14 @@ const config = {
 
   // SIP configuration
   sip: {
-    server: "wss://sip.example.com",
+    server: process.env.REACT_APP_SIP_SERVER || "wss://35.202.92.164:8443",
     port: 8443,
-    domain: "example.com",
-    debug: false,
+    domain: process.env.REACT_APP_SIP_DOMAIN || "35.202.92.164",
+    debug: process.env.NODE_ENV === "development",
     iceServers: [
-      { urls: "stun:stun.example.com:3478" },
+      { urls: "stun:stun.35.202.92.164:3478" },
       {
-        urls: "turn:turn.example.com:3478",
+        urls: "turn:turn.35.202.92.164:3478",
         username: "user",
         credential: "password",
       },
@@ -128,14 +130,14 @@ if (process.env.NODE_ENV === "development") {
         ? Object.keys(config.api[key]).reduce((endpointAcc, endpointKey) => {
             endpointAcc[
               endpointKey
-            ] = `http://localhost:3001${config.api[key][endpointKey]}`;
+            ] = `http://35.202.92.164:8080${config.api[key][endpointKey]}`;
             return endpointAcc;
           }, {})
-        : `http://localhost:3001${config.api[key]}`;
+        : `http://35.202.92.164:8080${config.api[key]}`;
     return acc;
   }, {});
 
-  config.sip.server = "wss://dev-sip.example.com";
+  config.sip.server = "wss://35.202.92.164:8443";
   config.sip.debug = true;
 }
 
@@ -159,4 +161,9 @@ export const getDefaultSettings = (component) => {
 // Get SIP configuration
 export const getSipConfig = () => {
   return config.sip;
+};
+
+// Helper function to get API service for a component
+export const getApiService = (component) => {
+  return apiService[component] || {};
 };

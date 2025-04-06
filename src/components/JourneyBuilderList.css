@@ -1,0 +1,304 @@
+.journey-builder {
+  padding: 24px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.journey-header-card {
+  margin-bottom: 24px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.journey-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.journey-tabs {
+  margin-bottom: 24px;
+}
+
+.journey-steps-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  min-height: 400px;
+}
+
+.steps-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.steps-container {
+  min-height: 200px;
+  padding: 16px;
+  background-color: #fafafa;
+  border-radius: 8px;
+}
+
+.empty-steps {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px dashed #d9d9d9;
+  color: #8c8c8c;
+}
+
+.step-card {
+  margin-bottom: 16px;
+  padding: 16px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.step-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.step-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.step-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.step-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.journey-info-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.empty-stats {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px dashed #d9d9d9;
+  color: #8c8c8c;
+}
+
+.metrics-container {
+  margin-top: 24px;
+}
+
+/* Popup menu styles */
+.ant-dropdown-menu {
+  background-color: white !important;
+  border-radius: 8px !important;
+  box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05) !important;
+  padding: 4px 0 !important;
+  border: 1px solid #f0f0f0 !important;
+}
+
+.ant-dropdown-menu-item {
+  padding: 8px 16px !important;
+  color: rgba(0, 0, 0, 0.85) !important;
+  transition: background-color 0.3s !important;
+}
+
+.ant-dropdown-menu-item:hover {
+  background-color: #f5f5f5 !important;
+}
+
+.ant-dropdown-menu-item-selected {
+  background-color: #e6f7ff !important;
+  color: #1890ff !important;
+}
+
+.ant-dropdown-menu-item-disabled {
+  color: rgba(0, 0, 0, 0.25) !important;
+  cursor: not-allowed !important;
+}
+
+.ant-dropdown-menu-item-disabled:hover {
+  background-color: transparent !important;
+}
+
+/* Drawer styles */
+.ant-drawer-content {
+  background-color: white !important;
+}
+
+.ant-drawer-header {
+  background-color: white !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+
+.ant-drawer-title {
+  color: rgba(0, 0, 0, 0.85) !important;
+}
+
+.ant-drawer-close {
+  color: rgba(0, 0, 0, 0.45) !important;
+}
+
+.ant-drawer-body {
+  background-color: white !important;
+}
+
+/* Modal styles */
+.ant-modal-content {
+  background-color: white !important;
+  border-radius: 8px !important;
+  box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+.ant-modal-header {
+  background-color: white !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  border-radius: 8px 8px 0 0 !important;
+}
+
+.ant-modal-title {
+  color: rgba(0, 0, 0, 0.85) !important;
+}
+
+.ant-modal-close {
+  color: rgba(0, 0, 0, 0.45) !important;
+}
+
+.ant-modal-body {
+  background-color: white !important;
+}
+
+.ant-modal-footer {
+  background-color: white !important;
+  border-top: 1px solid #f0f0f0 !important;
+  border-radius: 0 0 8px 8px !important;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .journey-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .journey-builder .ant-row {
+    flex-direction: column;
+  }
+  
+  .journey-builder .ant-col {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+}
+
+/* Dark theme support */
+.theme-dark .journey-builder {
+  background-color: #141414;
+}
+
+.theme-dark .journey-header-card,
+.theme-dark .journey-steps-card,
+.theme-dark .journey-info-card {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+.theme-dark .steps-container {
+  background-color: #262626;
+}
+
+.theme-dark .step-card {
+  background-color: #1f1f1f;
+  border-color: #303030;
+}
+
+.theme-dark .empty-steps,
+.theme-dark .empty-stats {
+  background: #262626;
+  border-color: #434343;
+  color: #8c8c8c;
+}
+
+/* Dark theme popup menu styles */
+.theme-dark .ant-dropdown-menu {
+  background-color: #1f1f1f !important;
+  border-color: #303030 !important;
+}
+
+.theme-dark .ant-dropdown-menu-item {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.theme-dark .ant-dropdown-menu-item:hover {
+  background-color: #303030 !important;
+}
+
+.theme-dark .ant-dropdown-menu-item-selected {
+  background-color: #111b26 !important;
+  color: #1890ff !important;
+}
+
+.theme-dark .ant-dropdown-menu-item-disabled {
+  color: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Dark theme drawer styles */
+.theme-dark .ant-drawer-content,
+.theme-dark .ant-drawer-header,
+.theme-dark .ant-drawer-body {
+  background-color: #1f1f1f !important;
+}
+
+.theme-dark .ant-drawer-header {
+  border-bottom-color: #303030 !important;
+}
+
+.theme-dark .ant-drawer-title {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.theme-dark .ant-drawer-close {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+/* Dark theme modal styles */
+.theme-dark .ant-modal-content,
+.theme-dark .ant-modal-header,
+.theme-dark .ant-modal-body,
+.theme-dark .ant-modal-footer {
+  background-color: #1f1f1f !important;
+}
+
+.theme-dark .ant-modal-header {
+  border-bottom-color: #303030 !important;
+}
+
+.theme-dark .ant-modal-title {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.theme-dark .ant-modal-close {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.theme-dark .ant-modal-footer {
+  border-top-color: #303030 !important;
+} 

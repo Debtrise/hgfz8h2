@@ -4,6 +4,8 @@
  * This service handles all API calls to the IRS Logics API.
  */
 
+import apiService from './apiService';
+
 // Base URL for the IRS Logics API
 const API_BASE_URL = process.env.REACT_APP_IRS_LOGICS_API_URL || 'https://api.irslogics.com/v1';
 

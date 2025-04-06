@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./AuthPages.css";
+import AuthService from "../services/AuthService";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -11,12 +12,6 @@ const Login = () => {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Hard-coded credentials for testing
-  const hardcodedCredentials = {
-    email: "test@example.com",
-    password: "password",
-  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -59,24 +54,22 @@ const Login = () => {
     setIsSubmitting(true);
 
     try {
-      // Simulate an API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Check against hard-coded credentials
-      if (
-        formData.email === hardcodedCredentials.email &&
-        formData.password === hardcodedCredentials.password
-      ) {
-        // Successful login: store a token and navigate to dashboard
-        localStorage.setItem("authToken", "testtoken");
-        navigate("/dashboard");
+      // Use AuthService to login
+      const user = await AuthService.login(formData.email, formData.password);
+      
+      // If remember me is checked, store the token in localStorage
+      if (formData.rememberMe) {
+        localStorage.setItem("rememberMe", "true");
       } else {
-        setErrors({ form: "Invalid email or password" });
+        localStorage.removeItem("rememberMe");
       }
+      
+      // Navigate to dashboard on successful login
+      navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
       setErrors({
-        form: "Failed to login. Please try again.",
+        form: error.message || "Failed to login. Please try again.",
       });
     } finally {
       setIsSubmitting(false);

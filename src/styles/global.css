@@ -92,7 +92,7 @@ body {
 }
 
 .button {
-  background-color: var(--component-background);
+  background-color: #f8fafc;
   color: var(--text-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-sm);
@@ -106,7 +106,8 @@ body {
 }
 
 .button:hover {
-  background-color: var(--hover-background);
+  background-color: #f1f5f9;
+  transform: translateY(-1px);
 }
 
 .button.primary {
@@ -118,6 +119,8 @@ body {
 .button.primary:hover {
   background-color: var(--primary-hover);
   border-color: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Form Elements */

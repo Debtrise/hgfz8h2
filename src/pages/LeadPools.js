@@ -1,480 +1,604 @@
-import React, { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import "./ListPages.css"; // Using the updated CSS file
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import apiService from '../services/apiService';
+import './LeadPools.css';
 
 const LeadPools = () => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [poolToDelete, setPoolToDelete] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState({
-    brand: "all",
-    source: "all",
-    leadAge: "all",
+  const [leadPools, setLeadPools] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedPool, setSelectedPool] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    brand: '',
+    source: '',
+    criteria: {
+      minAge: '',
+      maxAge: '',
+      location: '',
+      income: '',
+      creditScore: ''
+    }
   });
+  const [uploadData, setUploadData] = useState({
+    file: null,
+    mapping: {},
+    options: {
+      skipHeader: true,
+      updateExisting: false
+    }
+  });
+  const [brands, setBrands] = useState([]);
+  const [sources, setSources] = useState([]);
+  const [availableFields, setAvailableFields] = useState([]);
+  const [filePreview, setFilePreview] = useState(null);
 
-  // Sample lead pools data
-  const [leadPools, setLeadPools] = useState([
-    {
-      id: 1,
-      title: "New Leads - Web",
-      description: "All web leads aged 0-15 days from all marketing platforms",
-      leadAge: "0-15",
-      brand: "BDS",
-      source: "Web Forms, Fb, TikTok",
-      tags: ["Fresh", "High Intent", "Web"],
-      active: true,
-      lastModified: "2025-01-24",
-      stats: {
-        totalLeads: 1245,
-        activeDays: 31,
-        conversionRate: 8.4
+  // Fetch lead pools, brands, and sources on component mount
+  useEffect(() => {
+    fetchLeadPools();
+    fetchBrands();
+    fetchSources();
+  }, []);
+
+  const fetchLeadPools = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await apiService.leadPools.getAll();
+      setLeadPools(response.data || []);
+    } catch (err) {
+      console.error('Error fetching lead pools:', err);
+      setError('Failed to load lead pools. Please try again later.');
+      setLeadPools([]); // Set empty array on error
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchBrands = async () => {
+    try {
+      const response = await apiService.brands.getAll();
+      setBrands(response.data || []);
+    } catch (err) {
+      console.error('Error fetching brands:', err);
       }
-    },
-    {
-      id: 2,
-      title: "Callback Leads",
-      description: "Leads that requested callbacks within last 30 days",
-      leadAge: "0-30",
-      brand: "BDS",
-      source: "Callbacks",
-      tags: ["Callbacks", "High Priority"],
-      active: true,
-      lastModified: "2025-01-20",
-      stats: {
-        totalLeads: 328,
-        activeDays: 45,
-        conversionRate: 12.7
-      }
-    },
-    {
-      id: 3,
-      title: "Aged Email Leads",
-      description: "Email leads older than 30 days for remarketing",
-      leadAge: "30+",
-      brand: "Lendvia",
-      source: "Email Campaigns",
-      tags: ["Remarketing", "Aged", "Email"],
-      active: false,
-      lastModified: "2025-01-15",
-      stats: {
-        totalLeads: 2817,
-        activeDays: 90,
-        conversionRate: 3.2
-      }
-    },
-    {
-      id: 4,
-      title: "BDS High Intent",
-      description: "High intent leads from all sources for priority dialing",
-      leadAge: "0-7",
-      brand: "BDS",
-      source: "All",
-      tags: ["High Intent", "Priority"],
-      active: true,
-      lastModified: "2025-01-22",
-      stats: {
-        totalLeads: 517,
-        activeDays: 14,
-        conversionRate: 15.3
-      }
-    },
-    {
-      id: 5,
-      title: "SMS Re-engagement",
-      description: "Leads for SMS re-engagement campaign with prior consent",
-      leadAge: "15-45",
-      brand: "Lendvia",
-      source: "SMS Campaigns",
-      tags: ["SMS", "Re-engagement"],
-      active: true,
-      lastModified: "2025-01-18",
-      stats: {
-        totalLeads: 956,
-        activeDays: 30,
-        conversionRate: 5.8
-      }
-    },
-  ]);
-
-  // Calculate stats
-  const stats = useMemo(() => {
-    return {
-      totalPools: leadPools.length,
-      activePools: leadPools.filter(pool => pool.active).length,
-      totalLeads: leadPools.reduce((sum, pool) => sum + pool.stats.totalLeads, 0),
-      averageConversion: (leadPools.reduce((sum, pool) => sum + pool.stats.conversionRate, 0) / leadPools.length).toFixed(1)
-    };
-  }, [leadPools]);
-
-  // Functions for CRUD operations
-  const handleCreateLeadPool = () => {
-    navigate("/leads/pools/create");
   };
 
-  const handleEditLeadPool = (id) => {
-    navigate(`/leads/pools/edit/${id}`);
+  const fetchSources = async () => {
+    try {
+      const response = await apiService.sources.getAll();
+      setSources(response.data || []);
+    } catch (err) {
+      console.error('Error fetching sources:', err);
+    }
   };
 
-  const handleDeleteLeadPool = (id) => {
-    setPoolToDelete(id);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDelete = () => {
-    if (!poolToDelete) return;
-    
-    setIsDeleting(true);
-    
-    // Simulate API call with a delay
-    setTimeout(() => {
-      setLeadPools(leadPools.filter(pool => pool.id !== poolToDelete));
-      setIsDeleting(false);
-      setShowDeleteModal(false);
-      setPoolToDelete(null);
-    }, 1000);
-  };
-
-  const handleToggleActive = (id) => {
-    setLeadPools(
-      leadPools.map((pool) =>
-        pool.id === id ? { ...pool, active: !pool.active } : pool
-      )
-    );
-  };
-
-  const handleViewLeadPool = (id) => {
-    navigate(`/leads/pools/${id}`);
-  };
-  
-  // Search and filtering
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
-  
-  const handleFilterChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFilters({
-      ...filters,
-      [name]: value,
-    });
-    setCurrentPage(1);
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      setFormData(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: value
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
-  // Apply filters and search
-  const filteredPools = useMemo(() => {
-    let result = [...leadPools];
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setUploadData(prev => ({ ...prev, file }));
+      
+      // Preview the file
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const csvContent = event.target.result;
+        const lines = csvContent.split('\n').slice(0, 5); // Get first 5 lines for preview
+        setFilePreview(lines.join('\n'));
     
-    // Apply search
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      result = result.filter(
-        pool => 
-          pool.title.toLowerCase().includes(search) ||
-          pool.description.toLowerCase().includes(search) ||
-          pool.tags.some(tag => tag.toLowerCase().includes(search))
-      );
+        // Extract headers from the first line
+        if (lines.length > 0) {
+          const headers = lines[0].split(',').map(header => header.trim());
+          setAvailableFields(headers);
+          
+          // Set default mapping
+          const defaultMapping = {};
+          headers.forEach(header => {
+            defaultMapping[header] = header.toLowerCase().replace(/\s+/g, '_');
+          });
+          setUploadData(prev => ({
+            ...prev,
+            mapping: defaultMapping
+          }));
+        }
+      };
+      reader.readAsText(file);
     }
-    
-    // Apply filters
-    if (filters.brand !== "all") {
-      result = result.filter(pool => pool.brand === filters.brand);
-    }
-    
-    if (filters.source !== "all") {
-      result = result.filter(pool => pool.source.includes(filters.source));
-    }
-    
-    if (filters.leadAge !== "all") {
-      result = result.filter(pool => pool.leadAge === filters.leadAge);
-    }
-    
-    return result;
-  }, [leadPools, searchTerm, filters]);
-
-  // Pagination
-  const poolsPerPage = 10;
-  const indexOfLastPool = currentPage * poolsPerPage;
-  const indexOfFirstPool = indexOfLastPool - poolsPerPage;
-  const currentPools = filteredPools.slice(indexOfFirstPool, indexOfLastPool);
-  const totalPages = Math.ceil(filteredPools.length / poolsPerPage);
-
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
-
-  // Filter options
-  const getBrandOptions = () => {
-    return ["all", ...new Set(leadPools.map((pool) => pool.brand))];
   };
 
-  const getSourceOptions = () => {
-    const sources = new Set();
-    leadPools.forEach((pool) => {
-      pool.source.split(", ").forEach((source) => {
-        sources.add(source);
+  const handleMappingChange = (header, field) => {
+    setUploadData(prev => ({
+      ...prev,
+      mapping: {
+        ...prev.mapping,
+        [header]: field
+      }
+    }));
+  };
+  
+  const handleOptionChange = (e) => {
+    const { name, checked } = e.target;
+    setUploadData(prev => ({
+      ...prev,
+      options: {
+        ...prev.options,
+        [name]: checked
+      }
+    }));
+  };
+
+  const handleCreateLeadPool = async (e) => {
+    e.preventDefault();
+    try {
+      await apiService.leadPools.create({
+        name: formData.name,
+        description: formData.description,
+        leadAgeMin: parseInt(formData.criteria.minAge) || 0,
+        leadAgeMax: parseInt(formData.criteria.maxAge) || 30,
+        criteria: {
+          location: formData.criteria.location,
+          income: formData.criteria.income,
+          creditScore: formData.criteria.creditScore
+        },
+        status: 'active'
       });
-    });
-    return ["all", ...sources];
+      setShowModal(false);
+      setFormData({
+        name: '',
+        description: '',
+        criteria: {
+          minAge: '',
+          maxAge: '',
+          location: '',
+          income: '',
+          creditScore: ''
+        }
+      });
+      fetchLeadPools();
+    } catch (err) {
+      console.error('Error creating lead pool:', err);
+      setError('Failed to create lead pool. Please try again.');
+    }
   };
 
-  const getLeadAgeOptions = () => {
-    return ["all", ...new Set(leadPools.map((pool) => pool.leadAge))];
+  const handleUploadLeads = async (e) => {
+    e.preventDefault();
+    if (!uploadData.file || !selectedPool) return;
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadData.file);
+      formData.append('mapping', JSON.stringify(uploadData.mapping));
+      formData.append('options', JSON.stringify(uploadData.options));
+      
+      await apiService.leadPools.importLeads(selectedPool.id, formData);
+      
+      setShowUploadModal(false);
+      setUploadData({
+        file: null,
+        mapping: {},
+        options: {
+          skipHeader: true,
+          updateExisting: false
+        }
+      });
+      setFilePreview(null);
+      setSelectedPool(null);
+      
+      // Show success message
+      alert('Leads uploaded successfully!');
+      fetchLeadPools(); // Refresh the list to show updated lead counts
+    } catch (err) {
+      console.error('Error uploading leads:', err);
+      setError('Failed to upload leads. Please try again.');
+    }
   };
+
+  const handleDeleteLeadPool = async (id) => {
+    if (window.confirm('Are you sure you want to delete this lead pool? This action cannot be undone.')) {
+      try {
+        await apiService.leadPools.delete(id);
+        fetchLeadPools();
+      } catch (err) {
+        console.error('Error deleting lead pool:', err);
+        setError('Failed to delete lead pool. Please try again.');
+      }
+    }
+  };
+
+  const openUploadModal = (pool) => {
+    setSelectedPool(pool);
+    setShowUploadModal(true);
+  };
+
+  const openCreateModal = () => {
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setFormData({
+      name: '',
+      description: '',
+      brand: '',
+      source: '',
+      criteria: {
+        minAge: '',
+        maxAge: '',
+        location: '',
+        income: '',
+        creditScore: ''
+      }
+    });
+  };
+
+  const closeUploadModal = () => {
+    setShowUploadModal(false);
+    setUploadData({
+      file: null,
+      mapping: {},
+      options: {
+        skipHeader: true,
+        updateExisting: false
+      }
+    });
+    setFilePreview(null);
+    setSelectedPool(null);
+  };
+
+  const viewLeadPoolDetails = (id) => {
+    navigate(`/lead-pools/${id}`);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="lead-pools-container">
+        <div className="loading-spinner">Loading...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="page-container">
-      <div className="content-container">
-        <div className="content-header">
-          <h1 className="page-title">Lead Pools</h1>
-          <div className="header-actions">
-            <div className="search-container">
-              <input
-                type="text"
-                className="search-input"
-                placeholder="Search lead pools..."
-                value={searchTerm}
-                onChange={handleSearch}
-              />
-            </div>
-            <button className="button-blue" onClick={handleCreateLeadPool}>
+    <div className="lead-pools-container">
+      <div className="page-header">
+        <h1>Lead Pools</h1>
+        <button className="create-button" onClick={openCreateModal}>
               Create Lead Pool
             </button>
           </div>
+
+      {error && (
+        <div className="error-message">
+          {error}
+          <button className="dismiss-button" onClick={() => setError(null)}>×</button>
         </div>
+      )}
 
-        <div className="content-body">
-          {/* Stats Summary */}
-          <div className="stats-summary">
-            <div className="stat-card">
-              <div className="stat-title">Total Pools</div>
-              <div className="stat-value">{stats.totalPools}</div>
+      <div className="lead-pools-table-container">
+        {leadPools.length > 0 ? (
+          <table className="lead-pools-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Lead Age</th>
+                <th>Criteria</th>
+                <th>Status</th>
+                <th>Lead Count</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leadPools.map(pool => (
+                <tr key={pool.id}>
+                  <td>{pool.name}</td>
+                  <td>{pool.description}</td>
+                  <td>{pool.lead_age_min}-{pool.lead_age_max} days</td>
+                  <td>
+                    {pool.criteria && (
+                      <ul className="criteria-list">
+                        {Object.entries(pool.criteria).map(([key, value]) => (
+                          <li key={key}>{key}: {value}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </td>
+                  <td>
+                    <span className={`status-badge ${pool.status.toLowerCase()}`}>
+                      {pool.status}
+                    </span>
+                  </td>
+                  <td>{pool.lead_count || 0}</td>
+                  <td className="action-buttons">
+                    <button 
+                      className="action-button view-button"
+                      onClick={() => viewLeadPoolDetails(pool.id)}
+                      title="View Details"
+                    >
+                      <i className="fas fa-eye"></i>
+                    </button>
+                    <button 
+                      className="action-button upload-button"
+                      onClick={() => openUploadModal(pool)}
+                      title="Upload Leads"
+                    >
+                      <i className="fas fa-upload"></i>
+                    </button>
+                    <button 
+                      className="action-button delete-button"
+                      onClick={() => handleDeleteLeadPool(pool.id)}
+                      title="Delete"
+                    >
+                      <i className="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="empty-state">
+            <p>No lead pools found. Create your first lead pool to get started.</p>
             </div>
-            <div className="stat-card">
-              <div className="stat-title">Active Pools</div>
-              <div className="stat-value">{stats.activePools}</div>
-              <div className="stat-subtitle">{(stats.activePools / stats.totalPools * 100).toFixed(0)}% of total</div>
+        )}
             </div>
-            <div className="stat-card">
-              <div className="stat-title">Total Leads</div>
-              <div className="stat-value">{stats.totalLeads.toLocaleString()}</div>
+
+      {/* Create Lead Pool Modal */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Create Lead Pool</h2>
+              <button className="close-button" onClick={closeModal}>×</button>
             </div>
-            <div className="stat-card">
-              <div className="stat-title">Avg. Conversion Rate</div>
-              <div className="stat-value">{stats.averageConversion}%</div>
+            <form onSubmit={handleCreateLeadPool}>
+              <div className="form-group">
+                <label htmlFor="name">Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                />
             </div>
+              <div className="form-group">
+                <label htmlFor="description">Description</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows="3"
+                />
           </div>
-
-          {/* Filters */}
-          <div className="filter-row">
-            <div className="filter-group">
-              <label>Brand:</label>
-              <div className="select-wrapper">
+              <div className="form-group">
+                <label htmlFor="brand">Brand</label>
                 <select
+                  id="brand"
                   name="brand"
-                  value={filters.brand}
-                  onChange={handleFilterChange}
+                  value={formData.brand}
+                  onChange={handleInputChange}
+                  required
                 >
-                  {getBrandOptions().map((option) => (
-                    <option key={option} value={option}>
-                      {option === "all" ? "All Brands" : option}
-                    </option>
+                  <option value="">Select Brand</option>
+                  {brands.map(brand => (
+                    <option key={brand.id} value={brand.name}>{brand.name}</option>
                   ))}
                 </select>
               </div>
-            </div>
-            <div className="filter-group">
-              <label>Source:</label>
-              <div className="select-wrapper">
+              <div className="form-group">
+                <label htmlFor="source">Source</label>
                 <select
+                  id="source"
                   name="source"
-                  value={filters.source}
-                  onChange={handleFilterChange}
+                  value={formData.source}
+                  onChange={handleInputChange}
+                  required
                 >
-                  {getSourceOptions().map((option) => (
-                    <option key={option} value={option}>
-                      {option === "all" ? "All Sources" : option}
-                    </option>
+                  <option value="">Select Source</option>
+                  {sources.map(source => (
+                    <option key={source.id} value={source.name}>{source.name}</option>
                   ))}
                 </select>
               </div>
+              <div className="form-section">
+                <h3>Criteria</h3>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="minAge">Min Age</label>
+                    <input
+                      type="number"
+                      id="minAge"
+                      name="criteria.minAge"
+                      value={formData.criteria.minAge}
+                      onChange={handleInputChange}
+                    />
             </div>
-            <div className="filter-group">
-              <label>Lead Age:</label>
-              <div className="select-wrapper">
-                <select
-                  name="leadAge"
-                  value={filters.leadAge}
-                  onChange={handleFilterChange}
-                >
-                  {getLeadAgeOptions().map((option) => (
-                    <option key={option} value={option}>
-                      {option === "all" ? "All Ages" : option}
-                    </option>
-                  ))}
-                </select>
+                  <div className="form-group">
+                    <label htmlFor="maxAge">Max Age</label>
+                    <input
+                      type="number"
+                      id="maxAge"
+                      name="criteria.maxAge"
+                      value={formData.criteria.maxAge}
+                      onChange={handleInputChange}
+                    />
               </div>
             </div>
+                <div className="form-group">
+                  <label htmlFor="location">Location</label>
+                  <input
+                    type="text"
+                    id="location"
+                    name="criteria.location"
+                    value={formData.criteria.location}
+                    onChange={handleInputChange}
+                    placeholder="e.g., California, New York"
+                  />
           </div>
-
-          {/* Lead Pools List */}
-          <div className="items-list">
-            {currentPools.length > 0 ? (
-              currentPools.map((pool) => (
-                <div key={pool.id} className="list-item">
-                  <div className="item-info" onClick={() => handleViewLeadPool(pool.id)}>
-                    <div className="item-name">{pool.title}</div>
-                    <div className="item-description">{pool.description}</div>
-                    <div className="tags-container">
-                      {pool.tags && pool.tags.map(tag => (
-                        <span key={tag} className="tag">{tag}</span>
-                      ))}
-                    </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="income">Income</label>
+                    <input
+                      type="text"
+                      id="income"
+                      name="criteria.income"
+                      value={formData.criteria.income}
+                      onChange={handleInputChange}
+                      placeholder="e.g., >50000"
+                    />
                   </div>
-                  <div className="item-status">
-                    <div className="status-date">
-                      Modified: {new Date(pool.lastModified).toLocaleDateString()}
-                    </div>
-                    <label className="toggle-switch">
+                  <div className="form-group">
+                    <label htmlFor="creditScore">Credit Score</label>
                       <input
-                        type="checkbox"
-                        checked={pool.active}
-                        onChange={() => handleToggleActive(pool.id)}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                    <div className="item-actions">
-                      <button
-                        className="action-button edit-button"
-                        onClick={() => handleEditLeadPool(pool.id)}
-                        title="Edit pool"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                          <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
-                        </svg>
-                      </button>
-                      <button
-                        className="action-button delete-button"
-                        onClick={() => handleDeleteLeadPool(pool.id)}
-                        title="Delete pool"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                          <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z"/>
-                          <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z"/>
-                        </svg>
-                      </button>
-                    </div>
+                      type="text"
+                      id="creditScore"
+                      name="criteria.creditScore"
+                      value={formData.criteria.creditScore}
+                      onChange={handleInputChange}
+                      placeholder="e.g., >650"
+                    />
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="empty-state">
-                <p>No lead pools found matching your criteria</p>
               </div>
-            )}
+              <div className="modal-footer">
+                <button type="button" className="cancel-button" onClick={closeModal}>
+                  Cancel
+              </button>
+                <button type="submit" className="submit-button">
+                  Create Lead Pool
+              </button>
+            </div>
+            </form>
           </div>
-
-          {/* Pagination */}
-          {filteredPools.length > poolsPerPage && (
-            <div className="pagination">
-              <button
-                className="pagination-button"
-                onClick={() => paginate(1)}
-                disabled={currentPage === 1}
-              >
-                First
-              </button>
-              <button
-                className="pagination-button"
-                onClick={() => paginate(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </button>
-              {[...Array(totalPages)].map((_, i) => {
-                // Show current page, first, last, and pages around current
-                if (
-                  i === 0 ||
-                  i === totalPages - 1 ||
-                  (i >= currentPage - 2 && i <= currentPage + 2)
-                ) {
-                  return (
-                    <button
-                      key={i}
-                      className={`pagination-button ${
-                        currentPage === i + 1 ? "active" : ""
-                      }`}
-                      onClick={() => paginate(i + 1)}
-                    >
-                      {i + 1}
-                    </button>
-                  );
-                } else if (
-                  i === currentPage - 3 ||
-                  i === currentPage + 3
-                ) {
-                  return <span key={i}>...</span>;
-                }
-                return null;
-              })}
-              <button
-                className="pagination-button"
-                onClick={() => paginate(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </button>
-              <button
-                className="pagination-button"
-                onClick={() => paginate(totalPages)}
-                disabled={currentPage === totalPages}
-              >
-                Last
-              </button>
-            </div>
-          )}
         </div>
-      </div>
+      )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
+      {/* Upload Leads Modal */}
+      {showUploadModal && (
         <div className="modal-overlay">
-          <div className="modal-container">
+          <div className="modal-content">
             <div className="modal-header">
-              <h3>Confirm Deletion</h3>
-              <button className="modal-close" onClick={() => setShowDeleteModal(false)}>
-                &times;
-              </button>
+              <h2>Upload Leads to {selectedPool?.name}</h2>
+              <button className="close-button" onClick={closeUploadModal}>×</button>
             </div>
-            <div className="modal-body">
-              <p>Are you sure you want to delete this lead pool?</p>
-              <p>This action cannot be undone.</p>
+            <form onSubmit={handleUploadLeads}>
+              <div className="form-group">
+                <label htmlFor="file">CSV File</label>
+                <input
+                  type="file"
+                  id="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  required
+                />
+                <p className="file-help">Upload a CSV file with lead information</p>
+              </div>
+
+              {filePreview && (
+                <div className="file-preview">
+                  <h3>File Preview</h3>
+                  <pre>{filePreview}</pre>
+                </div>
+              )}
+
+              {availableFields.length > 0 && (
+                <div className="field-mapping">
+                  <h3>Field Mapping</h3>
+                  <p className="mapping-help">Map CSV columns to lead fields</p>
+                  <div className="mapping-table">
+                    <div className="mapping-header">
+                      <div className="mapping-cell">CSV Column</div>
+                      <div className="mapping-cell">Lead Field</div>
+                    </div>
+                    {availableFields.map(field => (
+                      <div key={field} className="mapping-row">
+                        <div className="mapping-cell">{field}</div>
+                        <div className="mapping-cell">
+                          <select
+                            value={uploadData.mapping[field] || ''}
+                            onChange={(e) => handleMappingChange(field, e.target.value)}
+                          >
+                            <option value="">-- Select Field --</option>
+                            <option value="first_name">First Name</option>
+                            <option value="last_name">Last Name</option>
+                            <option value="email">Email</option>
+                            <option value="phone">Phone</option>
+                            <option value="address">Address</option>
+                            <option value="city">City</option>
+                            <option value="state">State</option>
+                            <option value="zip">ZIP</option>
+                            <option value="age">Age</option>
+                            <option value="income">Income</option>
+                            <option value="credit_score">Credit Score</option>
+                            <option value="notes">Notes</option>
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="upload-options">
+                <h3>Upload Options</h3>
+                <div className="option-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="skipHeader"
+                      checked={uploadData.options.skipHeader}
+                      onChange={handleOptionChange}
+                    />
+                    Skip header row
+                  </label>
+                </div>
+                <div className="option-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="updateExisting"
+                      checked={uploadData.options.updateExisting}
+                      onChange={handleOptionChange}
+                    />
+                    Update existing leads
+                  </label>
+                </div>
             </div>
+
             <div className="modal-footer">
-              <button
-                className="button-outline"
-                onClick={() => setShowDeleteModal(false)}
-                disabled={isDeleting}
-              >
+                <button type="button" className="cancel-button" onClick={closeUploadModal}>
                 Cancel
               </button>
-              <button
-                className="button-danger"
-                onClick={confirmDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <>
-                    <span className="button-spinner"></span>
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )}
+                <button type="submit" className="submit-button">
+                  Upload Leads
               </button>
             </div>
+            </form>
           </div>
         </div>
       )}

@@ -16,11 +16,14 @@ const QueueStatusControl = () => {
         callAnalyticsService.getTodaySummary()
       ]);
       
-      setLeadsInQueue(queueCounts.totalCount);
-      setLeadsDialed(todayStats.totalCalls);
+      setLeadsInQueue(queueCounts?.totalCount || 0);
+      setLeadsDialed(todayStats?.totalCalls || 0);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error fetching queue data:', error);
+      // Set default values on error
+      setLeadsInQueue(0);
+      setLeadsDialed(0);
     } finally {
       setLoading(false);
     }
@@ -39,6 +42,7 @@ const QueueStatusControl = () => {
 
   // Format numbers with commas
   const formatNumber = (num) => {
+    if (num === undefined || num === null) return '0';
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 

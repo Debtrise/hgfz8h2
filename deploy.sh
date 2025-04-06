@@ -90,7 +90,7 @@ echo "Creating environment files..."
 
 # Frontend .env
 cat > frontend/.env << EOL
-REACT_APP_API_URL=http://localhost:5000/api
+REACT_APP_API_URL=http://35.202.92.164:8080/api
 EOL
 
 # Backend .env
@@ -126,5 +126,5 @@ pm2 save
 pm2 startup
 
 echo "Deployment complete! The application is now running."
-echo "Backend API: http://localhost:5000"
+echo "Backend API: http://35.202.92.164:8080"
 echo "Frontend: http://localhost:3000" 

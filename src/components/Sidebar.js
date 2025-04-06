@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   HomeOutlined,
   FlagOutlined,
@@ -19,15 +19,25 @@ import {
   SafetyOutlined,
   LinkOutlined,
   MailOutlined,
-  MessageOutlined
+  MessageOutlined,
+  DatabaseOutlined,
+  BranchesOutlined
 } from "@ant-design/icons";
+import { useSidebar } from '../context/SidebarContext';
+import './Sidebar.css';
+import { Menu } from 'antd';
 
 const Sidebar = () => {
+  const { isOpen, toggleSidebar } = useSidebar();
+  const location = useLocation();
   const [expandedSections, setExpandedSections] = useState({
+    leads: true,
     callCenter: false,
     resources: false,
-    settings: false
+    settings: false,
+    journeys: false
   });
+  const [activeItem, setActiveItem] = useState('');
 
   const toggleSection = (section) => {
     setExpandedSections({
@@ -36,300 +46,87 @@ const Sidebar = () => {
     });
   };
 
+  const handleItemClick = (item) => {
+    setActiveItem(item);
+  };
+
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
+
+  const isLeadsSectionActive = () => {
+    return location.pathname.startsWith('/leads') || location.pathname.startsWith('/lead-pools');
+  };
+
+  const isJourneysSectionActive = () => {
+    return location.pathname.startsWith('/journeys');
+  };
+
   return (
-    <div className="sidebar">
-      <div className="sidebar-logo">
-        <img src="/logo.png" alt="Logo" className="logo-img" />
+    <div className={`sidebar ${isOpen ? 'open' : ''}`}>
+      <div className="sidebar-header">
+        <h2>Menu</h2>
+        <button className="close-button" onClick={toggleSidebar}>
+          &times;
+        </button>
       </div>
       <nav className="sidebar-nav">
-        {/* Main Navigation */}
-        <NavLink
-          to="/dashboard"
-          className={({ isActive }) =>
-            `sidebar-nav-item ${isActive ? "active" : ""}`
-          }
+        <Menu
+          mode="inline"
+          selectedKeys={[activeItem]}
+          openKeys={expandedSections}
+          onOpenChange={(keys) => setExpandedSections(keys)}
         >
-          <HomeOutlined />
-          <span>Dashboard</span>
-        </NavLink>
+          <Menu.Item key="dashboard">
+            <Link to="/dashboard">Dashboard</Link>
+          </Menu.Item>
 
-        <NavLink
-          to="/campaigns"
-          className={({ isActive }) =>
-            `sidebar-nav-item ${isActive ? "active" : ""}`
-          }
-        >
-          <FlagOutlined />
-          <span>Campaign Management</span>
-        </NavLink>
-
-        <NavLink
-          to="/journeys"
-          className={({ isActive }) =>
-            `sidebar-nav-item ${isActive ? "active" : ""}`
-          }
-        >
-          <CompassOutlined />
-          <span>Journey Management</span>
-        </NavLink>
-
-        <NavLink
-          to="/email-templates"
-          className={({ isActive }) =>
-            `sidebar-nav-item ${isActive ? "active" : ""}`
-          }
-        >
-          <MailOutlined />
-          <span>Email Templates</span>
-        </NavLink>
-        
-        <NavLink
-          to="/sms-messaging"
-          className={({ isActive }) =>
-            `sidebar-nav-item ${isActive ? "active" : ""}`
-          }
-        >
-          <MessageOutlined />
-          <span>SMS Messaging</span>
-        </NavLink>
-
-        {/* Resources Section */}
-        <div className="sidebar-divider"></div>
-        <div className="sidebar-section">
-          <div 
-            className="sidebar-section-header" 
-            onClick={() => toggleSection("resources")}
+          <Menu.SubMenu
+            key="leads"
+            icon={<TeamOutlined />}
+            title="Leads Management"
+            className={isLeadsSectionActive() ? 'active-section' : ''}
           >
-            <TeamOutlined />
-            <span>Resource Management</span>
-            {expandedSections.resources ? <DownOutlined /> : <RightOutlined />}
-          </div>
-          {expandedSections.resources && (
-            <div className="sidebar-section-content">
-              <NavLink
-                to="/leadpools"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <TeamOutlined />
-                <span>Lead Pools</span>
-              </NavLink>
-              
-              <NavLink
-                to="/leads"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <UserOutlined />
-                <span>Leads</span>
-              </NavLink>
-              
-              <NavLink
-                to="/didpools"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <PhoneOutlined />
-                <span>DID Pools</span>
-              </NavLink>
-              
-              <NavLink
-                to="/dids"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <PhoneOutlined />
-                <span>DID Numbers</span>
-              </NavLink>
-            </div>
-          )}
-        </div>
-        
-        {/* Call Center Section */}
-        <div className="sidebar-divider"></div>
-        <div className="sidebar-section">
-          <div 
-            className="sidebar-section-header" 
-            onClick={() => toggleSection("callCenter")}
+            <Menu.Item key="lead-pools">
+              <Link to="/lead-pools">Lead Pools</Link>
+            </Menu.Item>
+            <Menu.Item key="all-leads">
+              <Link to="/leads">All Leads</Link>
+            </Menu.Item>
+            <Menu.Item key="import-leads">
+              <Link to="/leads/import">Import Leads</Link>
+            </Menu.Item>
+            <Menu.Item key="lead-assignments">
+              <Link to="/leads/assignments">Lead Assignments</Link>
+            </Menu.Item>
+          </Menu.SubMenu>
+
+          <Menu.SubMenu
+            key="journeys"
+            icon={<BranchesOutlined />}
+            title="Journeys"
+            className={isJourneysSectionActive() ? 'active-section' : ''}
           >
-            <CustomerServiceOutlined />
-            <span>Call Center</span>
-            {expandedSections.callCenter ? <DownOutlined /> : <RightOutlined />}
-          </div>
-          {expandedSections.callCenter && (
-            <div className="sidebar-section-content">
-              <NavLink
-                to="/call-center"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <HomeOutlined />
-                <span>Call Center Home</span>
-              </NavLink>
-              
-              <NavLink
-                to="/agent-dashboard"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <BarChartOutlined />
-                <span>Real-Time Dashboard</span>
-              </NavLink>
-              
-              <NavLink
-                to="/agent"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <CustomerServiceOutlined />
-                <span>Agent Interface</span>
-              </NavLink>
-              
-              <NavLink
-                to="/admin-dashboard"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <BarChartOutlined />
-                <span>Admin Dashboard</span>
-              </NavLink>
-              
-              <NavLink
-                to="/recordings"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <AudioOutlined />
-                <span>Recordings</span>
-              </NavLink>
-              
-              <NavLink
-                to="/callLogs"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <FileTextOutlined />
-                <span>Call Logs</span>
-              </NavLink>
-              
-              <NavLink
-                to="/tcpa-config"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <SafetyOutlined />
-                <span>TCPA Config</span>
-              </NavLink>
-              
-              <NavLink
-                to="/relationships"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <LinkOutlined />
-                <span>Relationships</span>
-              </NavLink>
-              
-              <NavLink
-                to="/call-config"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <SettingOutlined />
-                <span>Call Config</span>
-              </NavLink>
-              
-              <NavLink
-                to="/flow-inventory"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <ApartmentOutlined />
-                <span>Flow Inventory</span>
-              </NavLink>
-              
-              <NavLink
-                to="/flow-builder"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <ApartmentOutlined />
-                <span>Flow Builder</span>
-              </NavLink>
-            </div>
-          )}
-        </div>
-        
-        {/* Settings */}
-        <div className="sidebar-divider"></div>
-        <div className="sidebar-section">
-          <div 
-            className="sidebar-section-header" 
-            onClick={() => toggleSection("settings")}
-          >
-            <SettingOutlined />
-            <span>Settings</span>
-            {expandedSections.settings ? <DownOutlined /> : <RightOutlined />}
-          </div>
-          {expandedSections.settings && (
-            <div className="sidebar-section-content">
-              <NavLink
-                to="/settings"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <SettingOutlined />
-                <span>General Settings</span>
-              </NavLink>
-              
-              <NavLink
-                to="/profile"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <UserOutlined />
-                <span>User Profile</span>
-              </NavLink>
-              
-              <NavLink
-                to="/user-management"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <TeamOutlined />
-                <span>User Management</span>
-              </NavLink>
-              
-              <NavLink
-                to="/integrations"
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <ApiOutlined />
-                <span>Integrations</span>
-              </NavLink>
-            </div>
-          )}
-        </div>
+            <Menu.Item key="journey-builder">
+              <Link to="/journeys/builder">Journey Builder</Link>
+            </Menu.Item>
+            <Menu.Item key="journey-list">
+              <Link to="/journeys">All Journeys</Link>
+            </Menu.Item>
+          </Menu.SubMenu>
+
+          <Menu.Item key="call-center">
+            <Link to="/call-center">Call Center</Link>
+          </Menu.Item>
+
+          <Menu.Item key="resources">
+            <Link to="/resources">Resources</Link>
+          </Menu.Item>
+
+          <Menu.Item key="settings">
+            <Link to="/settings">Settings</Link>
+          </Menu.Item>
+        </Menu>
       </nav>
     </div>
   );

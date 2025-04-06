@@ -1,104 +1,84 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import apiService from "../services/apiService";
 import "./ListPages.css";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const LeadDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [lead, setLead] = useState(null);
   const [contactHistory, setContactHistory] = useState([]);
 
   // Fetch lead data
   useEffect(() => {
-    // Simulating API call
-    setTimeout(() => {
-      // Sample lead data - in real app, fetch from API
-      const sampleLead = {
-        id: parseInt(id),
-        firstName: "John",
-        lastName: "Doe",
-        email: "john.doe@example.com",
-        phone: "(555) 123-4567",
-        source: "Web Form",
-        brand: "BDS",
-        dateAdded: "2025-01-15",
-        lastContacted: "2025-01-22",
-        status: "Active",
-        leadAge: 9,
-        journey: "New_Webforms_Fresh",
-        address: {
-          street: "123 Main St",
-          city: "Anytown",
-          state: "CA",
-          zipCode: "90210",
-        },
-        notes:
-          "Customer is interested in debt consolidation options. Prefers email communication.",
-      };
+    const fetchLeadData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // Fetch lead details
+        const leadResponse = await apiService.leads.getById(id);
+        setLead(leadResponse.data);
+        
+        // In a real implementation, you would fetch contact history from an API
+        // For now, we'll use mock data
+        const mockContactHistory = [
+          {
+            id: 1,
+            date: new Date().toISOString().split('T')[0],
+            time: "14:30",
+            type: "Call",
+            agent: "Steven Hernandez",
+            duration: "4:25",
+            notes: "Discussed options. Customer requested follow-up with details.",
+            outcome: "Follow-up Required",
+          },
+          {
+            id: 2,
+            date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            time: "11:15",
+            type: "Email",
+            agent: "System",
+            duration: null,
+            notes: "Sent welcome email with initial information package.",
+            outcome: "Delivered",
+          },
+          {
+            id: 3,
+            date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            time: "09:45",
+            type: "SMS",
+            agent: "System",
+            duration: null,
+            notes: "Appointment reminder sent.",
+            outcome: "Delivered",
+          },
+        ];
+        
+        setContactHistory(mockContactHistory);
+      } catch (err) {
+        console.error("Error fetching lead details:", err);
+        setError("Failed to load lead information. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-      // Sample contact history - in real app, fetch from API
-      const sampleContactHistory = [
-        {
-          id: 1,
-          date: "2025-01-22",
-          time: "14:30",
-          type: "Call",
-          agent: "Steven Hernandez",
-          duration: "4:25",
-          notes:
-            "Discussed debt consolidation options. Customer requested email follow-up with details.",
-          outcome: "Follow-up Required",
-        },
-        {
-          id: 2,
-          date: "2025-01-20",
-          time: "11:15",
-          type: "Email",
-          agent: "System",
-          duration: null,
-          notes: "Sent welcome email with initial information package.",
-          outcome: "Delivered",
-        },
-        {
-          id: 3,
-          date: "2025-01-18",
-          time: "09:45",
-          type: "SMS",
-          agent: "System",
-          duration: null,
-          notes: "Appointment reminder sent.",
-          outcome: "Delivered",
-        },
-        {
-          id: 4,
-          date: "2025-01-15",
-          time: "16:00",
-          type: "Call",
-          agent: "Maria Garcia",
-          duration: "2:10",
-          notes:
-            "Initial contact. Customer filled out web form. Scheduled follow-up for Jan 22.",
-          outcome: "Appointment Set",
-        },
-      ];
-
-      setLead(sampleLead);
-      setContactHistory(sampleContactHistory);
-      setIsLoading(false);
-    }, 600);
+    fetchLeadData();
   }, [id]);
 
   const handleBack = () => {
     navigate("/leads");
   };
 
-  // For real app: Function to add a new note
+  // Function to add a new note
   const addNote = () => {
     console.log("Add note functionality would be implemented here");
   };
 
-  // For real app: Function to schedule a call
+  // Function to schedule a call
   const scheduleCall = () => {
     console.log("Schedule call functionality would be implemented here");
   };
@@ -108,8 +88,23 @@ const LeadDetail = () => {
       <div className="page-container">
         <div className="content-container">
           <div className="loading-state">
-            <div className="loading-spinner"></div>
-            <p>Loading lead information...</p>
+            <LoadingSpinner size="large" text="Loading lead information..." />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="page-container">
+        <div className="content-container">
+          <div className="error-state">
+            <h2>Error Loading Lead</h2>
+            <p>{error}</p>
+            <button className="button-blue" onClick={handleBack}>
+              Back to Leads
+            </button>
           </div>
         </div>
       </div>
@@ -145,7 +140,7 @@ const LeadDetail = () => {
               <span>Back to Leads</span>
             </button>
             <h1 className="page-title">
-              {lead.firstName} {lead.lastName}
+              {lead.first_name} {lead.last_name}
             </h1>
           </div>
           <div className="header-actions">
@@ -170,7 +165,7 @@ const LeadDetail = () => {
                   <div className="detail-item">
                     <span className="detail-label">Name:</span>
                     <span className="detail-value">
-                      {lead.firstName} {lead.lastName}
+                      {lead.first_name} {lead.last_name}
                     </span>
                   </div>
                   <div className="detail-item">
@@ -181,15 +176,17 @@ const LeadDetail = () => {
                     <span className="detail-label">Phone:</span>
                     <span className="detail-value">{lead.phone}</span>
                   </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Address:</span>
-                    <span className="detail-value">
-                      {lead.address.street}
-                      <br />
-                      {lead.address.city}, {lead.address.state}{" "}
-                      {lead.address.zipCode}
-                    </span>
-                  </div>
+                  {lead.address && (
+                    <div className="detail-item">
+                      <span className="detail-label">Address:</span>
+                      <span className="detail-value">
+                        {lead.address.street}
+                        <br />
+                        {lead.address.city}, {lead.address.state}{" "}
+                        {lead.address.zip_code}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -197,46 +194,46 @@ const LeadDetail = () => {
                 <h2 className="detail-card-title">Lead Information</h2>
                 <div className="detail-card-content">
                   <div className="detail-item">
-                    <span className="detail-label">Source:</span>
-                    <span className="detail-value">{lead.source}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Brand:</span>
-                    <span className="detail-value">{lead.brand}</span>
+                    <span className="detail-label">Lead Pool:</span>
+                    <span className="detail-value">{lead.lead_pool_name || 'None'}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Date Added:</span>
                     <span className="detail-value">
-                      {new Date(lead.dateAdded).toLocaleDateString()}
+                      {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Lead Age:</span>
-                    <span className="detail-value">{lead.leadAge} days</span>
+                    <span className="detail-value">{lead.lead_age || 0} days</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Status:</span>
                     <span className="detail-value">
                       <span
-                        className={`status-badge ${lead.status.toLowerCase()}`}
+                        className={`status-badge ${lead.status?.toLowerCase() || 'unknown'}`}
                       >
-                        {lead.status}
+                        {lead.status || 'Unknown'}
                       </span>
                     </span>
                   </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Journey:</span>
-                    <span className="detail-value">{lead.journey}</span>
-                  </div>
+                  {lead.agent && (
+                    <div className="detail-item">
+                      <span className="detail-label">Assigned Agent:</span>
+                      <span className="detail-value">{lead.agent.name || 'None'}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="detail-card">
-                <h2 className="detail-card-title">Notes</h2>
-                <div className="detail-card-content">
-                  <p className="lead-notes">{lead.notes}</p>
+              {lead.notes && (
+                <div className="detail-card">
+                  <h2 className="detail-card-title">Notes</h2>
+                  <div className="detail-card-content">
+                    <p className="lead-notes">{lead.notes}</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Right column - Contact history */}

@@ -4,6 +4,8 @@
  * This service handles all API calls to the Forth CRM API.
  */
 
+import apiService from './apiService';
+
 // Base URL for the Forth CRM API
 const API_BASE_URL = process.env.REACT_APP_FORTH_CRM_API_URL || 'https://api.forthcrm.com/v1';
 
@@ -63,7 +65,8 @@ class ForthCRMService {
   getHeaders() {
     return {
       'Content-Type': 'application/json',
-      'Authorization': `Basic ${btoa(`${this.apiKey}:${this.apiSecret}`)}`,
+      'Authorization': `Bearer ${this.apiKey}`,
+      'X-API-Secret': this.apiSecret,
       'X-Source': 'YourAppName'
     };
   }

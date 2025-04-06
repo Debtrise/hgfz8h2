@@ -1,77 +1,60 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Campaigns.css"; // Using the same CSS file
+import apiService from "../services/apiService";
 
 const Campaigns = () => {
   const navigate = useNavigate();
 
-  // Enhanced sample campaigns data with more information
-  const [campaigns, setCampaigns] = useState([
-    {
-      id: 1,
-      name: "BDS_Web",
-      description: "All webform leads, all marketing platforms",
-      active: true,
-      activatedDate: "1/24/25",
-      source: "web",
-      type: "leads",
-      metrics: {
-        contacts: 2547,
-        conversions: 183,
-        conversionRate: 7.2
-      }
-    },
-    {
-      id: 2,
-      name: "Lendvia_Purls",
-      description: "Purls from Lendvia Website",
-      active: true,
-      activatedDate: "1/22/25",
-      source: "web",
-      type: "clients",
-      metrics: {
-        contacts: 1865,
-        conversions: 98,
-        conversionRate: 5.3
-      }
-    },
-    {
-      id: 3,
-      name: "Email_Nurture_Q1",
-      description: "Email nurture campaign for Q1 leads",
-      active: false,
-      activatedDate: "1/15/25",
-      source: "email",
-      type: "leads",
-      metrics: {
-        contacts: 3210,
-        conversions: 142,
-        conversionRate: 4.4
-      }
-    },
-  ]);
+  // State for campaigns data
+  const [campaigns, setCampaigns] = useState([]);
 
   // Enhanced state management
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
+  const [brandFilter, setBrandFilter] = useState("all");
   const [sortOption, setSortOption] = useState("name_asc");
   const [togglingId, setTogglingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState(null);
+  const [error, setError] = useState(null);
+  const [totalPages, setTotalPages] = useState(1);
 
-  // Simulate loading on first render
+  // Fetch campaigns from API
   useEffect(() => {
-    // Simulate API fetch delay
-    const timer = setTimeout(() => {
+    fetchCampaigns();
+  }, [currentPage, itemsPerPage, searchTerm, sourceFilter, brandFilter, sortOption]);
+
+  const fetchCampaigns = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const params = {
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm || undefined,
+        source: sourceFilter !== 'all' ? sourceFilter : undefined,
+        brand: brandFilter !== 'all' ? brandFilter : undefined,
+        sort: sortOption
+      };
+      
+      const response = await apiService.campaigns.getAll(params);
+      setCampaigns(response.data.campaigns || []);
+      
+      // Update total pages from API response
+      if (response.data.total) {
+        setTotalPages(Math.ceil(response.data.total / itemsPerPage));
+      }
+    } catch (err) {
+      console.error("Error fetching campaigns:", err);
+      setError("Failed to load campaigns. Please try again later.");
+    } finally {
       setIsLoading(false);
-    }, 1200);
-    
-    return () => clearTimeout(timer);
-  }, []);
+    }
+  };
 
   // Handle navigation to campaign builder
   const handleCreateCampaign = () => {
@@ -90,27 +73,43 @@ const Campaigns = () => {
   };
 
   // Confirm campaign deletion
-  const confirmDelete = () => {
-    setCampaigns(campaigns.filter(campaign => campaign.id !== campaignToDelete));
-    setShowDeleteModal(false);
-    setCampaignToDelete(null);
+  const confirmDelete = async () => {
+    try {
+      await apiService.campaigns.delete(campaignToDelete);
+      setCampaigns(campaigns.filter(campaign => campaign.id !== campaignToDelete));
+      setShowDeleteModal(false);
+      setCampaignToDelete(null);
+    } catch (err) {
+      console.error("Error deleting campaign:", err);
+      setError("Failed to delete campaign. Please try again later.");
+    }
   };
 
   // Handle toggle campaign active status
-  const handleToggleActive = (id) => {
+  const handleToggleActive = async (id) => {
     setTogglingId(id);
     
-    // Simulate API call with timeout
-    setTimeout(() => {
+    try {
+      const campaign = campaigns.find(c => c.id === id);
+      if (!campaign) return;
+      
+      const updatedCampaign = { 
+        ...campaign, 
+        status: campaign.status === "active" ? "inactive" : "active" 
+      };
+      await apiService.campaigns.update(id, updatedCampaign);
+      
       setCampaigns(
-        campaigns.map((campaign) =>
-          campaign.id === id
-            ? { ...campaign, active: !campaign.active }
-            : campaign
+        campaigns.map((c) =>
+          c.id === id ? updatedCampaign : c
         )
       );
+    } catch (err) {
+      console.error("Error toggling campaign status:", err);
+      setError("Failed to update campaign status. Please try again later.");
+    } finally {
       setTogglingId(null);
-    }, 500);
+    }
   };
 
   // Handle viewing campaign details
@@ -135,10 +134,10 @@ const Campaigns = () => {
       // Filter by source
       const matchesSource = sourceFilter === "all" || campaign.source === sourceFilter;
       
-      // Filter by type
-      const matchesType = typeFilter === "all" || campaign.type === typeFilter;
+      // Filter by brand
+      const matchesBrand = brandFilter === "all" || campaign.brand === brandFilter;
       
-      return matchesSearch && matchesSource && matchesType;
+      return matchesSearch && matchesSource && matchesBrand;
     });
     
     // Then, sort campaigns
@@ -149,24 +148,27 @@ const Campaigns = () => {
         case "name_desc":
           return b.name.localeCompare(a.name);
         case "date_asc":
-          return new Date(a.activatedDate) - new Date(b.activatedDate);
+          return new Date(a.createdAt) - new Date(b.createdAt);
         case "date_desc":
-          return new Date(b.activatedDate) - new Date(a.activatedDate);
+          return new Date(b.createdAt) - new Date(a.createdAt);
         case "conversion_rate":
-          return b.metrics.conversionRate - a.metrics.conversionRate;
+          return b.metrics?.conversionRate - a.metrics?.conversionRate;
         default:
           return 0;
       }
     });
-  }, [campaigns, searchTerm, sourceFilter, typeFilter, sortOption]);
+  }, [campaigns, searchTerm, sourceFilter, brandFilter, sortOption]);
   
   // Get current campaigns for pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentCampaigns = filteredCampaigns.slice(indexOfFirstItem, indexOfLastItem);
   
-  // Calculate total pages
-  const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
+  // Calculate total pages - using the state variable instead of redeclaring
+  // Update the totalPages state when filteredCampaigns changes
+  useEffect(() => {
+    setTotalPages(Math.ceil(filteredCampaigns.length / itemsPerPage));
+  }, [filteredCampaigns, itemsPerPage]);
 
   // Change page
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
@@ -211,6 +213,14 @@ const Campaigns = () => {
         </div>
 
         <div className="content-body">
+          {/* Error message */}
+          {error && (
+            <div className="error-message">
+              {error}
+              <button className="error-dismiss" onClick={() => setError(null)}>×</button>
+            </div>
+          )}
+
           {/* Search and filters section */}
           <div className="search-container">
             <input
@@ -232,24 +242,26 @@ const Campaigns = () => {
                   onChange={(e) => setSourceFilter(e.target.value)}
                 >
                   <option value="all">All Sources</option>
-                  <option value="web">Web</option>
-                  <option value="email">Email</option>
-                  <option value="social">Social Media</option>
+                  <option value="Facebook Ads">Facebook Ads</option>
+                  <option value="Google Ads">Google Ads</option>
+                  <option value="Email Campaign">Email Campaign</option>
+                  <option value="Referral">Referral</option>
                 </select>
               </div>
             </div>
 
             <div className="filter-group">
-              <label htmlFor="type">Type:</label>
+              <label htmlFor="brand">Brand:</label>
               <div className="select-wrapper">
                 <select 
-                  id="type" 
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
+                  id="brand" 
+                  value={brandFilter}
+                  onChange={(e) => setBrandFilter(e.target.value)}
                 >
-                  <option value="all">All Types</option>
-                  <option value="leads">Leads</option>
-                  <option value="clients">Clients</option>
+                  <option value="all">All Brands</option>
+                  <option value="Tax Relief Solutions">Tax Relief Solutions</option>
+                  <option value="Debt Consolidation">Debt Consolidation</option>
+                  <option value="Credit Repair">Credit Repair</option>
                 </select>
               </div>
             </div>
@@ -277,19 +289,21 @@ const Campaigns = () => {
             <div className="stat-card">
               <div className="stat-title">Total Campaigns</div>
               <div className="stat-value">{campaigns.length}</div>
-              <div className="stat-subtitle">{campaigns.filter(c => c.active).length} active</div>
+              <div className="stat-subtitle">{campaigns.filter(c => c.status === "active").length} active</div>
             </div>
             <div className="stat-card">
               <div className="stat-title">Total Contacts</div>
               <div className="stat-value">
-                {campaigns.reduce((sum, campaign) => sum + campaign.metrics.contacts, 0).toLocaleString()}
+                {campaigns.reduce((sum, campaign) => sum + (campaign.metrics?.contacts || 0), 0).toLocaleString()}
               </div>
               <div className="stat-subtitle">Across all campaigns</div>
             </div>
             <div className="stat-card">
               <div className="stat-title">Average Conversion</div>
               <div className="stat-value">
-                {(campaigns.reduce((sum, campaign) => sum + campaign.metrics.conversionRate, 0) / campaigns.length).toFixed(1)}%
+                {campaigns.length > 0 
+                  ? (campaigns.reduce((sum, campaign) => sum + (campaign.metrics?.conversionRate || 0), 0) / campaigns.length).toFixed(1)
+                  : '0.0'}%
               </div>
               <div className="stat-subtitle">All campaigns</div>
             </div>
@@ -304,21 +318,21 @@ const Campaigns = () => {
                     <h2 className="campaign-name">{campaign.name}</h2>
                     <p className="campaign-description">{campaign.description}</p>
                     <div className="campaign-tags">
+                      <span className="campaign-tag">{campaign.brand}</span>
                       <span className="campaign-tag">{campaign.source}</span>
-                      <span className="campaign-tag">{campaign.type}</span>
                       <span className="campaign-tag">
-                        {campaign.metrics.conversionRate}% conv.
+                        {campaign.metrics?.conversionRate || 0}% conv.
                       </span>
                     </div>
                   </div>
                   <div className="campaign-status">
                     <div className="status-date">
-                      {campaign.active ? 'Active since' : 'Inactive since'}: {campaign.activatedDate}
+                      {campaign.status === "active" ? 'Active since' : 'Inactive since'}: {new Date(campaign.createdAt).toLocaleDateString()}
                     </div>
-                    <label className="toggle-switch" title={campaign.active ? "Deactivate campaign" : "Activate campaign"}>
+                    <label className="toggle-switch" title={campaign.status === "active" ? "Deactivate campaign" : "Activate campaign"}>
                       <input
                         type="checkbox"
-                        checked={campaign.active}
+                        checked={campaign.status === "active"}
                         onChange={() => handleToggleActive(campaign.id)}
                         disabled={togglingId === campaign.id}
                       />

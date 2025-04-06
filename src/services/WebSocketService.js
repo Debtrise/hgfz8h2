@@ -7,8 +7,9 @@ class WebSocketService {
   }
 
   connect() {
-    // In production, replace with your actual WebSocket server URL
-    this.ws = new WebSocket('ws://localhost:8080');
+    // Use the backend IP address for WebSocket connection
+    const wsUrl = process.env.REACT_APP_WS_URL || 'ws://35.202.92.164:8080/ws';
+    this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
       console.log('WebSocket Connected');

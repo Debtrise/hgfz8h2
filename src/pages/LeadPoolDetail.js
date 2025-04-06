@@ -1,687 +1,614 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import "./ListPages.css";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import apiService from '../services/apiService';
+import './LeadPoolDetail.css';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const LeadPoolDetail = () => {
-  const navigate = useNavigate();
   const { id } = useParams();
-  const poolId = parseInt(id);
-  
+  const navigate = useNavigate();
+  const [leadPool, setLeadPool] = useState(null);
+  const [leads, setLeads] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState("dateAdded");
-  const [sortDirection, setSortDirection] = useState("desc");
+  const [error, setError] = useState(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadData, setUploadData] = useState({
+    file: null,
+    mapping: {},
+    options: {
+      skipHeader: true,
+      updateExisting: false
+    }
+  });
+  const [availableFields, setAvailableFields] = useState([]);
+  const [filePreview, setFilePreview] = useState(null);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalLeads: 0,
+    leadsPerPage: 20
+  });
   const [filters, setFilters] = useState({
-    status: "all",
-    journey: "all"
+    status: 'all',
+    source: 'all',
+    dateRange: 'all'
   });
 
-  // Sample lead pool data
-  const [pool, setPool] = useState(null);
-  
-  // Sample leads data
-  const [leads, setLeads] = useState([]);
-  
-  // Sample campaigns data
-  const [assignedCampaigns, setAssignedCampaigns] = useState([]);
-
-  // Fetch pool data
   useEffect(() => {
-    // Simulate API call to fetch pool details
+    fetchLeadPool();
+    fetchLeads();
+  }, [id, pagination.currentPage, filters]);
+
+  const fetchLeadPool = async () => {
     setIsLoading(true);
-    
-    setTimeout(() => {
-      // Sample pool data
-      const poolData = {
-        id: poolId,
-        title: "New Leads - Web",
-        description: "All web leads aged 0-15 days from all marketing platforms",
-        leadAge: "0-15",
-        brand: "BDS",
-        source: "Web Forms, Fb, TikTok",
-        tags: ["Fresh", "High Intent", "Web"],
-        active: true,
-        lastModified: "2025-01-24",
-        createdDate: "2025-01-10",
-        stats: {
-          totalLeads: 1245,
-          activeDays: 31,
-          conversionRate: 8.4,
-          responseRate: 14.2,
-          callbackRate: 6.7,
-          avgLeadAge: 7.3
-        }
-      };
-
-      // Sample leads for this pool
-      const poolLeads = [
-        {
-          id: 101,
-          firstName: "John",
-          lastName: "Doe",
-          email: "john.doe@example.com",
-          phone: "(555) 123-4567",
-          source: "Web Form",
-          brand: "BDS",
-          dateAdded: "2025-01-15",
-          lastContacted: "2025-01-22",
-          status: "Active",
-          leadAge: 9,
-          journey: "New_Webforms_Fresh",
-          metrics: {
-            contactAttempts: 3,
-            responseRate: 33,
-            lastActivity: "Call - No Answer"
-          }
-        },
-        {
-          id: 102,
-          firstName: "Jane",
-          lastName: "Smith",
-          email: "jane.smith@example.com",
-          phone: "(555) 987-6543",
-          source: "Facebook Ad",
-          brand: "BDS",
-          dateAdded: "2025-01-12",
-          lastContacted: "2025-01-20",
-          status: "Active",
-          leadAge: 12,
-          journey: "BDS_Webforms_Fresh",
-          metrics: {
-            contactAttempts: 2,
-            responseRate: 50,
-            lastActivity: "Email - Opened"
-          }
-        },
-        {
-          id: 103,
-          firstName: "Robert",
-          lastName: "Johnson",
-          email: "robert.j@example.com",
-          phone: "(555) 234-5678",
-          source: "TikTok Ad",
-          brand: "BDS",
-          dateAdded: "2025-01-18",
-          lastContacted: "2025-01-23",
-          status: "Active",
-          leadAge: 6,
-          journey: "New_Webforms_Fresh",
-          metrics: {
-            contactAttempts: 1,
-            responseRate: 100,
-            lastActivity: "Call - Connected"
-          }
-        },
-        {
-          id: 104,
-          firstName: "Emily",
-          lastName: "Davis",
-          email: "emily.d@example.com",
-          phone: "(555) 345-6789",
-          source: "Web Form",
-          brand: "BDS",
-          dateAdded: "2025-01-14",
-          lastContacted: "2025-01-19",
-          status: "Inactive",
-          leadAge: 10,
-          journey: "None",
-          metrics: {
-            contactAttempts: 4,
-            responseRate: 0,
-            lastActivity: "SMS - No Response"
-          }
-        },
-        {
-          id: 105,
-          firstName: "Michael",
-          lastName: "Wilson",
-          email: "michael.w@example.com",
-          phone: "(555) 456-7890",
-          source: "Web Form",
-          brand: "BDS",
-          dateAdded: "2025-01-16",
-          lastContacted: "2025-01-21",
-          status: "Active",
-          leadAge: 8,
-          journey: "BDS_Webforms_Fresh",
-          metrics: {
-            contactAttempts: 2,
-            responseRate: 50,
-            lastActivity: "Email - Clicked"
-          }
-        }
-      ];
-
-      // Sample assigned campaigns
-      const campaigns = [
-        {
-          id: 201,
-          name: "Web Form Nurture",
-          status: "Active",
-          conversionRate: 7.8,
-          leadsCount: 876,
-          startDate: "2025-01-12"
-        },
-        {
-          id: 202,
-          name: "Facebook Remarketing",
-          status: "Active",
-          conversionRate: 9.2,
-          leadsCount: 369,
-          startDate: "2025-01-15"
-        }
-      ];
-
-      setPool(poolData);
-      setLeads(poolLeads);
-      setAssignedCampaigns(campaigns);
+    setError(null);
+    try {
+      const response = await apiService.leadPools.getById(id);
+      setLeadPool(response.data);
+    } catch (err) {
+      console.error('Error fetching lead pool:', err);
+      setError('Failed to load lead pool details. Please try again later.');
+    } finally {
       setIsLoading(false);
-    }, 800);
-  }, [poolId]);
-
-  // Filter and sort leads
-  const filteredAndSortedLeads = useMemo(() => {
-    if (!leads.length) return [];
-    
-    // First filter leads based on search term and filters
-    let filtered = [...leads];
-    
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (lead) =>
-          `${lead.firstName} ${lead.lastName}`.toLowerCase().includes(searchLower) ||
-          lead.email.toLowerCase().includes(searchLower) ||
-          lead.phone.includes(searchTerm)
-      );
     }
-    
-    // Apply filters
-    if (filters.status !== "all") {
-      filtered = filtered.filter((lead) => lead.status === filters.status);
-    }
-    if (filters.journey !== "all") {
-      filtered = filtered.filter((lead) => lead.journey === filters.journey);
-    }
-    
-    // Sort the filtered leads
-    filtered.sort((a, b) => {
-      let comparison = 0;
-      
-      // Handle different fields differently
-      if (sortField === "name") {
-        const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
-        const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
-        comparison = nameA.localeCompare(nameB);
-      } else if (sortField === "dateAdded" || sortField === "lastContacted") {
-        const dateA = new Date(a[sortField]);
-        const dateB = new Date(b[sortField]);
-        comparison = dateA - dateB;
-      } else if (sortField === "leadAge") {
-        comparison = a.leadAge - b.leadAge;
-      } else {
-        comparison = String(a[sortField]).localeCompare(String(b[sortField]));
-      }
-      
-      // Apply sort direction
-      return sortDirection === "asc" ? comparison : -comparison;
-    });
-    
-    return filtered;
-  }, [leads, searchTerm, filters, sortField, sortDirection]);
-
-  // Pagination
-  const leadsPerPage = 10;
-  const indexOfLastLead = currentPage * leadsPerPage;
-  const indexOfFirstLead = indexOfLastLead - leadsPerPage;
-  const currentLeads = filteredAndSortedLeads.slice(indexOfFirstLead, indexOfLastLead);
-  const totalPages = Math.ceil(filteredAndSortedLeads.length / leadsPerPage);
-
-  // Event handlers
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
   };
 
-  const handleSortChange = (field) => {
-    if (field === sortField) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
+  const fetchLeads = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Use the getByLeadPool method with the correct parameters
+      const response = await apiService.leads.getByLeadPool(id, {
+        page: pagination.currentPage,
+        limit: pagination.leadsPerPage,
+        status: filters.status !== 'all' ? filters.status : undefined,
+        source: filters.source !== 'all' ? filters.source : undefined,
+        dateRange: filters.dateRange !== 'all' ? filters.dateRange : undefined
+      });
+      
+      // Ensure leads is always an array
+      const poolLeads = Array.isArray(response.data) ? response.data : 
+                        (response.data && Array.isArray(response.data.leads)) ? response.data.leads : 
+                        [];
+      
+      // Calculate pagination
+      const totalLeads = response.meta?.total || poolLeads.length;
+      const totalPages = Math.ceil(totalLeads / pagination.leadsPerPage);
+      
+      // Update pagination state
+      setPagination(prev => ({
+        ...prev,
+        totalPages,
+        totalLeads
+      }));
+      
+      // Set the leads
+      setLeads(poolLeads);
+    } catch (err) {
+      console.error('Error fetching leads:', err);
+      setError('Failed to load leads. Please try again later.');
+      setLeads([]); // Set empty array on error
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setUploadData(prev => ({ ...prev, file }));
+      
+      // Preview the file
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const csvContent = event.target.result;
+        const lines = csvContent.split('\n').slice(0, 5); // Get first 5 lines for preview
+        setFilePreview(lines.join('\n'));
+        
+        // Extract headers from the first line
+        if (lines.length > 0) {
+          const headers = lines[0].split(',').map(header => header.trim());
+          setAvailableFields(headers);
+          
+          // Set default mapping
+          const defaultMapping = {};
+          headers.forEach(header => {
+            defaultMapping[header] = header.toLowerCase().replace(/\s+/g, '_');
+          });
+          setUploadData(prev => ({
+            ...prev,
+            mapping: defaultMapping
+          }));
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleMappingChange = (header, field) => {
+    setUploadData(prev => ({
+      ...prev,
+      mapping: {
+        ...prev.mapping,
+        [header]: field
+      }
+    }));
+  };
+
+  const handleOptionChange = (e) => {
+    const { name, checked } = e.target;
+    setUploadData(prev => ({
+      ...prev,
+      options: {
+        ...prev.options,
+        [name]: checked
+      }
+    }));
+  };
+
+  const handleUploadLeads = async (e) => {
+    e.preventDefault();
+    if (!uploadData.file) return;
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadData.file);
+      formData.append('mapping', JSON.stringify(uploadData.mapping));
+      formData.append('options', JSON.stringify(uploadData.options));
+      
+      await apiService.leads.import({
+        leadPoolId: id,
+        formData
+      });
+      
+      setShowUploadModal(false);
+      setUploadData({
+        file: null,
+        mapping: {},
+        options: {
+          skipHeader: true,
+          updateExisting: false
+        }
+      });
+      setFilePreview(null);
+      
+      // Refresh leads
+      fetchLeads();
+      
+      // Show success message
+      alert('Leads uploaded successfully!');
+    } catch (err) {
+      console.error('Error uploading leads:', err);
+      setError('Failed to upload leads. Please try again.');
     }
   };
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters({
-      ...filters,
-      [name]: value,
-    });
-    setCurrentPage(1);
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setPagination(prev => ({
+      ...prev,
+      currentPage: 1 // Reset to first page when filters change
+    }));
   };
 
   const handlePageChange = (page) => {
-    setCurrentPage(page);
-    // Scroll to top of leads list
-    const leadsList = document.querySelector('.table-container');
-    if (leadsList) {
-      leadsList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setPagination(prev => ({
+      ...prev,
+      currentPage: page
+    }));
+  };
+
+  const handleEditLeadPool = () => {
+    navigate(`/lead-pools/${id}`);
+  };
+
+  const handleDeleteLeadPool = async () => {
+    if (window.confirm('Are you sure you want to delete this lead pool? This action cannot be undone.')) {
+      try {
+        await apiService.leadPools.delete(id);
+        navigate('/lead-pools');
+      } catch (err) {
+        console.error('Error deleting lead pool:', err);
+        setError('Failed to delete lead pool. Please try again.');
+      }
     }
   };
 
-  const handleBack = () => {
-    navigate('/lead-pools');
-  };
-
-  const viewLeadDetails = (leadId) => {
+  const handleViewLead = (leadId) => {
     navigate(`/leads/${leadId}`);
   };
 
-  const viewCampaignDetails = (campaignId) => {
-    navigate(`/campaigns/${campaignId}`);
+  const closeUploadModal = () => {
+    setShowUploadModal(false);
+    setUploadData({
+      file: null,
+      mapping: {},
+      options: {
+        skipHeader: true,
+        updateExisting: false
+      }
+    });
+    setFilePreview(null);
   };
 
-  // Helper functions for options
-  const getStatusOptions = () => {
-    if (!leads.length) return ["all"];
-    const statuses = [...new Set(leads.map((lead) => lead.status))];
-    return ["all", ...statuses];
-  };
-
-  const getJourneyOptions = () => {
-    if (!leads.length) return ["all"];
-    const journeys = [...new Set(leads.map((lead) => lead.journey))];
-    return ["all", ...journeys];
-  };
-
-  if (isLoading) {
+  if (isLoading && !leadPool) {
     return (
-      <div className="page-container">
-        <div className="content-container">
-          <div className="loading-state">
-            <div className="loading-spinner"></div>
-            <p>Loading pool details...</p>
-          </div>
-        </div>
+      <div className="lead-pool-detail-container">
+        <LoadingSpinner size="large" text="Loading lead pool details..." />
       </div>
     );
   }
 
-  if (!pool) {
+  if (error && !leadPool) {
     return (
-      <div className="page-container">
-        <div className="content-container">
-          <div className="error-state">
-            <h2>Lead Pool Not Found</h2>
-            <p>The lead pool you're looking for doesn't exist or has been removed.</p>
-            <button className="button-blue" onClick={handleBack}>
-              Back to Lead Pools
-            </button>
-          </div>
+      <div className="lead-pool-detail-container">
+        <div className="error-message">
+          {error}
+          <button className="dismiss-button" onClick={() => setError(null)}>×</button>
         </div>
+        <button className="back-button" onClick={() => navigate('/lead-pools')}>
+          Back to Lead Pools
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="page-container">
-      <div className="content-container">
-        <div className="content-header header-with-back">
-          <button className="back-button" onClick={handleBack}>
-            <span className="back-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path fillRule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
-              </svg>
-            </span>
-            Back to Lead Pools
+    <div className="lead-pool-detail-container">
+      <div className="page-header">
+        <div className="header-left">
+          <button className="back-button" onClick={() => navigate('/lead-pools')}>
+            <i className="fas fa-arrow-left"></i> Back
           </button>
-          <div className="header-actions">
-            <div className="search-container">
-              <input
-                type="text"
-                className="search-input"
-                placeholder="Search leads..."
-                value={searchTerm}
-                onChange={handleSearch}
-              />
+          <h1>{leadPool?.name || 'Lead Pool Details'}</h1>
+        </div>
+        <div className="header-actions">
+          <button className="action-button edit-button" onClick={handleEditLeadPool}>
+            <i className="fas fa-edit"></i> Edit
+          </button>
+          <button className="action-button upload-button" onClick={() => setShowUploadModal(true)}>
+            <i className="fas fa-upload"></i> Upload Leads
+          </button>
+          <button className="action-button delete-button" onClick={handleDeleteLeadPool}>
+            <i className="fas fa-trash"></i> Delete
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="error-message">
+          {error}
+          <button className="dismiss-button" onClick={() => setError(null)}>×</button>
+        </div>
+      )}
+
+      <div className="lead-pool-info">
+        <div className="info-card">
+          <h3>Lead Pool Information</h3>
+          <div className="info-row">
+            <div className="info-label">Name:</div>
+            <div className="info-value">{leadPool?.name}</div>
+          </div>
+          <div className="info-row">
+            <div className="info-label">Description:</div>
+            <div className="info-value">{leadPool?.description || 'No description provided'}</div>
+          </div>
+          <div className="info-row">
+            <div className="info-label">Brand:</div>
+            <div className="info-value">{leadPool?.brand}</div>
+          </div>
+          <div className="info-row">
+            <div className="info-label">Source:</div>
+            <div className="info-value">{leadPool?.source}</div>
+          </div>
+          <div className="info-row">
+            <div className="info-label">Total Leads:</div>
+            <div className="info-value">{pagination.totalLeads}</div>
+          </div>
+        </div>
+
+        <div className="info-card">
+          <h3>Criteria</h3>
+          <div className="info-row">
+            <div className="info-label">Age Range:</div>
+            <div className="info-value">
+              {leadPool?.criteria?.minAge && leadPool?.criteria?.maxAge
+                ? `${leadPool.criteria.minAge} - ${leadPool.criteria.maxAge}`
+                : 'Any age'}
+            </div>
+          </div>
+          <div className="info-row">
+            <div className="info-label">Location:</div>
+            <div className="info-value">{leadPool?.criteria?.location || 'Any location'}</div>
+          </div>
+          <div className="info-row">
+            <div className="info-label">Income:</div>
+            <div className="info-value">{leadPool?.criteria?.income || 'Any income'}</div>
+          </div>
+          <div className="info-row">
+            <div className="info-label">Credit Score:</div>
+            <div className="info-value">{leadPool?.criteria?.creditScore || 'Any credit score'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="leads-section">
+        <div className="section-header">
+          <h2>Leads</h2>
+          <div className="filters">
+            <div className="filter-group">
+              <label htmlFor="status">Status:</label>
+              <select
+                id="status"
+                name="status"
+                value={filters.status}
+                onChange={handleFilterChange}
+              >
+                <option value="all">All Statuses</option>
+                <option value="new">New</option>
+                <option value="contacted">Contacted</option>
+                <option value="qualified">Qualified</option>
+                <option value="converted">Converted</option>
+                <option value="unqualified">Unqualified</option>
+              </select>
+            </div>
+            <div className="filter-group">
+              <label htmlFor="source">Source:</label>
+              <select
+                id="source"
+                name="source"
+                value={filters.source}
+                onChange={handleFilterChange}
+              >
+                <option value="all">All Sources</option>
+                <option value="web">Web</option>
+                <option value="phone">Phone</option>
+                <option value="email">Email</option>
+                <option value="referral">Referral</option>
+              </select>
+            </div>
+            <div className="filter-group">
+              <label htmlFor="dateRange">Date Range:</label>
+              <select
+                id="dateRange"
+                name="dateRange"
+                value={filters.dateRange}
+                onChange={handleFilterChange}
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="week">Last 7 Days</option>
+                <option value="month">Last 30 Days</option>
+                <option value="year">Last Year</option>
+              </select>
             </div>
           </div>
         </div>
 
-        <div className="content-body">
-          {/* Pool Overview */}
-          <div className="detail-card">
-            <h2 className="detail-card-title">{pool.title}</h2>
-            <div className="detail-card-content">
-              <p className="item-description">{pool.description}</p>
-              <div className="tags-container">
-                {pool.tags && pool.tags.map(tag => (
-                  <span key={tag} className="tag">{tag}</span>
-                ))}
-              </div>
-              <div className="detail-info-grid">
-                <div className="detail-item">
-                  <div className="detail-label">Brand</div>
-                  <div className="detail-value">{pool.brand}</div>
-                </div>
-                <div className="detail-item">
-                  <div className="detail-label">Source</div>
-                  <div className="detail-value">{pool.source}</div>
-                </div>
-                <div className="detail-item">
-                  <div className="detail-label">Lead Age Range</div>
-                  <div className="detail-value">{pool.leadAge} days</div>
-                </div>
-                <div className="detail-item">
-                  <div className="detail-label">Status</div>
-                  <div className="detail-value">
-                    <span className={`status-badge ${pool.active ? 'active' : 'inactive'}`}>
-                      {pool.active ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                </div>
-                <div className="detail-item">
-                  <div className="detail-label">Created</div>
-                  <div className="detail-value">{new Date(pool.createdDate).toLocaleDateString()}</div>
-                </div>
-                <div className="detail-item">
-                  <div className="detail-label">Last Modified</div>
-                  <div className="detail-value">{new Date(pool.lastModified).toLocaleDateString()}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Statistics Summary */}
-          <div className="stats-summary">
-            <div className="stat-card">
-              <div className="stat-title">Total Leads</div>
-              <div className="stat-value">{pool.stats.totalLeads.toLocaleString()}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-title">Conversion Rate</div>
-              <div className="stat-value">{pool.stats.conversionRate}%</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-title">Response Rate</div>
-              <div className="stat-value">{pool.stats.responseRate}%</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-title">Avg. Lead Age</div>
-              <div className="stat-value">{pool.stats.avgLeadAge} days</div>
-            </div>
-          </div>
-
-          {/* Assigned Campaigns */}
-          <div className="detail-card">
-            <h3 className="detail-card-title">Assigned Campaigns</h3>
-            <div className="detail-card-content">
-              {assignedCampaigns.length > 0 ? (
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Campaign Name</th>
-                      <th>Status</th>
-                      <th>Conversion Rate</th>
-                      <th>Leads Count</th>
-                      <th>Start Date</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {assignedCampaigns.map(campaign => (
-                      <tr key={campaign.id} onClick={() => viewCampaignDetails(campaign.id)}>
-                        <td><strong>{campaign.name}</strong></td>
-                        <td>
-                          <span className={`status-badge ${campaign.status.toLowerCase()}`}>
-                            {campaign.status}
-                          </span>
-                        </td>
-                        <td>{campaign.conversionRate}%</td>
-                        <td>{campaign.leadsCount.toLocaleString()}</td>
-                        <td>{new Date(campaign.startDate).toLocaleDateString()}</td>
-                        <td>
-                          <div className="item-actions" onClick={(e) => e.stopPropagation()}>
-                            <button 
-                              className="action-button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                viewCampaignDetails(campaign.id);
-                              }}
-                              title="View campaign details"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
-                                <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="empty-state">
-                  <p>This lead pool is not assigned to any campaigns</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Leads Filter */}
-          <div className="detail-card">
-            <h3 className="detail-card-title">Leads in this Pool</h3>
-            <div className="filter-row">
-              <div className="filter-group">
-                <label>Status:</label>
-                <div className="select-wrapper">
-                  <select
-                    name="status"
-                    value={filters.status}
-                    onChange={handleFilterChange}
-                  >
-                    {getStatusOptions().map((option) => (
-                      <option key={option} value={option}>
-                        {option === "all" ? "All Statuses" : option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="filter-group">
-                <label>Journey:</label>
-                <div className="select-wrapper">
-                  <select
-                    name="journey"
-                    value={filters.journey}
-                    onChange={handleFilterChange}
-                  >
-                    {getJourneyOptions().map((option) => (
-                      <option key={option} value={option}>
-                        {option === "all" ? "All Journeys" : option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Leads Table */}
-            <div className="table-container">
-              <table className="data-table">
+        {isLoading ? (
+          <div className="loading-spinner">Loading leads...</div>
+        ) : leads.length > 0 ? (
+          <>
+            <div className="leads-table-container">
+              <table className="leads-table">
                 <thead>
                   <tr>
-                    <th
-                      className="sortable"
-                      onClick={() => handleSortChange("name")}
-                    >
-                      <span>Name</span>
-                      {sortField === "name" && (
-                        <span className={`sort-icon ${sortDirection}`}></span>
-                      )}
-                    </th>
-                    <th>Contact</th>
-                    <th
-                      className="sortable"
-                      onClick={() => handleSortChange("source")}
-                    >
-                      <span>Source</span>
-                      {sortField === "source" && (
-                        <span className={`sort-icon ${sortDirection}`}></span>
-                      )}
-                    </th>
-                    <th
-                      className="sortable"
-                      onClick={() => handleSortChange("dateAdded")}
-                    >
-                      <span>Added</span>
-                      {sortField === "dateAdded" && (
-                        <span className={`sort-icon ${sortDirection}`}></span>
-                      )}
-                    </th>
-                    <th
-                      className="sortable"
-                      onClick={() => handleSortChange("lastContacted")}
-                    >
-                      <span>Last Contact</span>
-                      {sortField === "lastContacted" && (
-                        <span className={`sort-icon ${sortDirection}`}></span>
-                      )}
-                    </th>
-                    <th
-                      className="sortable"
-                      onClick={() => handleSortChange("journey")}
-                    >
-                      <span>Journey</span>
-                      {sortField === "journey" && (
-                        <span className={`sort-icon ${sortDirection}`}></span>
-                      )}
-                    </th>
-                    <th
-                      className="sortable"
-                      onClick={() => handleSortChange("status")}
-                    >
-                      <span>Status</span>
-                      {sortField === "status" && (
-                        <span className={`sort-icon ${sortDirection}`}></span>
-                      )}
-                    </th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th>Source</th>
+                    <th>Created</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {currentLeads.length > 0 ? (
-                    currentLeads.map((lead) => (
-                      <tr key={lead.id} onClick={() => viewLeadDetails(lead.id)}>
-                        <td>
-                          <strong>{`${lead.firstName} ${lead.lastName}`}</strong>
-                        </td>
-                        <td>
-                          <div>{lead.email}</div>
-                          <div>{lead.phone}</div>
-                        </td>
-                        <td>{lead.source}</td>
-                        <td>{new Date(lead.dateAdded).toLocaleDateString()}</td>
-                        <td>{new Date(lead.lastContacted).toLocaleDateString()}</td>
-                        <td>{lead.journey}</td>
-                        <td>
-                          <span className={`status-badge ${lead.status.toLowerCase()}`}>
-                            {lead.status}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="item-actions" onClick={(e) => e.stopPropagation()}>
-                            <button 
-                              className="action-button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                viewLeadDetails(lead.id);
-                              }}
-                              title="View lead details"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
-                                <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="8" className="empty-state">
-                        <p>No leads match your search criteria</p>
+                  {leads.map(lead => (
+                    <tr key={lead.id}>
+                      <td>{`${lead.firstName} ${lead.lastName}`}</td>
+                      <td>{lead.email}</td>
+                      <td>{lead.phone}</td>
+                      <td>
+                        <span className={`status-badge ${lead.status}`}>
+                          {lead.status}
+                        </span>
+                      </td>
+                      <td>{lead.source}</td>
+                      <td>{new Date(lead.createdAt).toLocaleDateString()}</td>
+                      <td className="action-buttons">
+                        <button 
+                          className="action-button view-button"
+                          onClick={() => handleViewLead(lead.id)}
+                          title="View Details"
+                        >
+                          <i className="fas fa-eye"></i>
+                        </button>
                       </td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination */}
-            {filteredAndSortedLeads.length > leadsPerPage && (
+            {pagination.totalPages > 1 && (
               <div className="pagination">
-                <button
+                <button 
                   className="pagination-button"
                   onClick={() => handlePageChange(1)}
-                  disabled={currentPage === 1}
+                  disabled={pagination.currentPage === 1}
                 >
                   First
                 </button>
-                <button
+                <button 
                   className="pagination-button"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(pagination.currentPage - 1)}
+                  disabled={pagination.currentPage === 1}
                 >
                   Previous
                 </button>
-                {[...Array(totalPages)].map((_, i) => {
+                
+                {[...Array(pagination.totalPages)].map((_, i) => {
                   // Show current page, first, last, and pages around current
                   if (
                     i === 0 ||
-                    i === totalPages - 1 ||
-                    (i >= currentPage - 2 && i <= currentPage + 2)
+                    i === pagination.totalPages - 1 ||
+                    (i >= pagination.currentPage - 2 && i <= pagination.currentPage + 2)
                   ) {
                     return (
                       <button
                         key={i}
-                        className={`pagination-button ${currentPage === i + 1 ? "active" : ""}`}
+                        className={`pagination-button ${
+                          pagination.currentPage === i + 1 ? "active" : ""
+                        }`}
                         onClick={() => handlePageChange(i + 1)}
                       >
                         {i + 1}
                       </button>
                     );
                   } else if (
-                    i === currentPage - 3 ||
-                    i === currentPage + 3
+                    i === pagination.currentPage - 3 ||
+                    i === pagination.currentPage + 3
                   ) {
                     return <span key={i}>...</span>;
                   }
                   return null;
                 })}
-                <button
+                
+                <button 
                   className="pagination-button"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(pagination.currentPage + 1)}
+                  disabled={pagination.currentPage === pagination.totalPages}
                 >
                   Next
                 </button>
-                <button
+                <button 
                   className="pagination-button"
-                  onClick={() => handlePageChange(totalPages)}
-                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(pagination.totalPages)}
+                  disabled={pagination.currentPage === pagination.totalPages}
                 >
                   Last
                 </button>
               </div>
             )}
+          </>
+        ) : (
+          <div className="empty-state">
+            <p>No leads found in this lead pool.</p>
+            <button className="upload-button" onClick={() => setShowUploadModal(true)}>
+              Upload Leads
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Upload Leads Modal */}
+      {showUploadModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Upload Leads to {leadPool?.name}</h2>
+              <button className="close-button" onClick={closeUploadModal}>×</button>
+            </div>
+            <form onSubmit={handleUploadLeads}>
+              <div className="form-group">
+                <label htmlFor="file">CSV File</label>
+                <input
+                  type="file"
+                  id="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  required
+                />
+                <p className="file-help">Upload a CSV file with lead information</p>
+              </div>
+
+              {filePreview && (
+                <div className="file-preview">
+                  <h3>File Preview</h3>
+                  <pre>{filePreview}</pre>
+                </div>
+              )}
+
+              {availableFields.length > 0 && (
+                <div className="field-mapping">
+                  <h3>Field Mapping</h3>
+                  <p className="mapping-help">Map CSV columns to lead fields</p>
+                  <div className="mapping-table">
+                    <div className="mapping-header">
+                      <div className="mapping-cell">CSV Column</div>
+                      <div className="mapping-cell">Lead Field</div>
+                    </div>
+                    {availableFields.map(field => (
+                      <div key={field} className="mapping-row">
+                        <div className="mapping-cell">{field}</div>
+                        <div className="mapping-cell">
+                          <select
+                            value={uploadData.mapping[field] || ''}
+                            onChange={(e) => handleMappingChange(field, e.target.value)}
+                          >
+                            <option value="">-- Select Field --</option>
+                            <option value="first_name">First Name</option>
+                            <option value="last_name">Last Name</option>
+                            <option value="email">Email</option>
+                            <option value="phone">Phone</option>
+                            <option value="address">Address</option>
+                            <option value="city">City</option>
+                            <option value="state">State</option>
+                            <option value="zip">ZIP</option>
+                            <option value="age">Age</option>
+                            <option value="income">Income</option>
+                            <option value="credit_score">Credit Score</option>
+                            <option value="notes">Notes</option>
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="upload-options">
+                <h3>Upload Options</h3>
+                <div className="option-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="skipHeader"
+                      checked={uploadData.options.skipHeader}
+                      onChange={handleOptionChange}
+                    />
+                    Skip header row
+                  </label>
+                </div>
+                <div className="option-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="updateExisting"
+                      checked={uploadData.options.updateExisting}
+                      onChange={handleOptionChange}
+                    />
+                    Update existing leads
+                  </label>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="cancel-button" onClick={closeUploadModal}>
+                  Cancel
+                </button>
+                <button type="submit" className="submit-button">
+                  Upload Leads
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -10,7 +10,6 @@ import {
   Space,
   Typography,
   Alert,
-  Spin,
   Card,
   Statistic,
   Row,
@@ -34,6 +33,7 @@ import {
   Bar
 } from 'recharts';
 import '../styles/SMSBlaster.css';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const { Title } = Typography;
 const { TabPane } = Tabs;
@@ -224,7 +224,7 @@ const SMSBlaster = () => {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-        <Spin size="large" />
+        <LoadingSpinner size="large" text="Loading campaigns..." />
       </div>
     );
   }

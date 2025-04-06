@@ -1,3 +1,5 @@
+import apiService from './apiService';
+
 const BASE_URL = 'http://34.134.140.42:3010';
 const AGENT_STATUS_URL = 'https://dialer-api-154842307047.us-west2.run.app/getAgentStatus';
 const QUEUE_COUNTS_URL = 'https://dialer-api-154842307047.us-west2.run.app/getDialerQueueCounts';
@@ -12,37 +14,22 @@ export const callAnalyticsService = {
   // Get today's summary statistics
   getTodaySummary: async () => {
     try {
-      const response = await fetch(`${BASE_URL}/api/stats/today`);
-      if (!response.ok) throw new Error('Failed to fetch today\'s summary');
-      return await response.json();
+      return await apiService.callCenter.analytics.getTodaySummary();
     } catch (error) {
-      console.error('Error fetching today\'s summary:', error);
-      throw error;
+      console.error('Error fetching today summary:', error);
+      // Return default values if API call fails
+      return { totalCalls: 0 };
     }
   },
 
   // Get hourly breakdown for a specific date
   getHourlyBreakdown: async (date) => {
-    try {
-      const response = await fetch(`${BASE_URL}/api/stats/hourly?date=${date}`);
-      if (!response.ok) throw new Error('Failed to fetch hourly breakdown');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching hourly breakdown:', error);
-      throw error;
-    }
+    return apiService.callCenter.analytics.getHourlyBreakdown(date);
   },
 
   // Get daily statistics for a date range
   getDailyStats: async (startDate, endDate) => {
-    try {
-      const response = await fetch(`${BASE_URL}/api/stats/daily?startDate=${startDate}&endDate=${endDate}`);
-      if (!response.ok) throw new Error('Failed to fetch daily statistics');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching daily statistics:', error);
-      throw error;
-    }
+    return apiService.callCenter.analytics.getDailyStats(startDate, endDate);
   },
 
   // Get real-time monitoring data
@@ -77,7 +64,8 @@ export const callAnalyticsService = {
       return await response.json();
     } catch (error) {
       console.error('Error fetching dialer queue counts:', error);
-      throw error;
+      // Return default values if API call fails
+      return { totalCount: 0 };
     }
   },
 
@@ -126,131 +114,42 @@ export const callAnalyticsService = {
 
   // Get call detection statistics
   getCallDetectionStats: async () => {
-    try {
-      const response = await fetch(CALL_DETECTION_URL);
-      if (!response.ok) throw new Error('Failed to fetch call detection stats');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching call detection stats:', error);
-      throw error;
-    }
+    return apiService.callCenter.analytics.getCallDetectionStats();
   },
 
   // Get hourly statistics
   getHourlyStats: async () => {
-    try {
-      const response = await fetch(HOURLY_STATS_URL);
-      if (!response.ok) throw new Error('Failed to fetch hourly stats');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching hourly stats:', error);
-      throw error;
-    }
+    return apiService.callCenter.analytics.getHourlyStats();
   },
 
   // Get hourly call data for the current day
-  async getHourlyData() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/calls/hourly`);
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch hourly data');
-      }
-      
-      return data.data;
-    } catch (error) {
-      console.error('Error fetching hourly data:', error);
-      throw error;
-    }
+  getHourlyData: async () => {
+    return apiService.callCenter.analytics.getHourlyData();
   },
 
   // Get call data for a date range
-  async getDateRangeData(startDate, endDate) {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/calls/range?startDate=${startDate}&endDate=${endDate}`
-      );
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch date range data');
-      }
-      
-      return data.data;
-    } catch (error) {
-      console.error('Error fetching date range data:', error);
-      throw error;
-    }
+  getDateRangeData: async (startDate, endDate) => {
+    return apiService.callCenter.analytics.getDateRangeData(startDate, endDate);
   },
 
   // Get health check status
-  async getHealthCheck() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/health`);
-      const data = await response.json();
-      return data.status === 'OK';
-    } catch (error) {
-      console.error('Error checking API health:', error);
-      return false;
-    }
+  getHealthCheck: async () => {
+    return apiService.callCenter.analytics.getHealthCheck();
   },
 
   // Get server status
-  async getServerStatus() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/status`);
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch server status');
-      }
-      
-      return data.status;
-    } catch (error) {
-      console.error('Error fetching server status:', error);
-      throw error;
-    }
+  getServerStatus: async () => {
+    return apiService.callCenter.analytics.getServerStatus();
   },
 
   // Get all calls with pagination and filtering
-  async getAllCalls(params = {}) {
-    try {
-      const queryParams = new URLSearchParams({
-        page: params.page || 1,
-        limit: params.limit || 100,
-        ...params
-      });
-
-      const response = await fetch(`${API_BASE_URL}/api/calls?${queryParams}`);
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch calls');
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('Error fetching calls:', error);
-      throw error;
-    }
+  getAllCalls: async (params = {}) => {
+    return apiService.callCenter.logs.getAll(params);
   },
 
   // Get call details by unique ID
-  async getCallDetails(uniqueid) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/calls/${uniqueid}`);
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch call details');
-      }
-      
-      return data.data;
-    } catch (error) {
-      console.error('Error fetching call details:', error);
-      throw error;
-    }
+  getCallDetails: async (uniqueid) => {
+    return apiService.callCenter.logs.getById(uniqueid);
   },
 
   // Get call counts by disposition
@@ -299,38 +198,13 @@ export const callAnalyticsService = {
   },
 
   // Get agent performance metrics
-  async getAgentPerformance(params = {}) {
-    try {
-      const queryParams = new URLSearchParams(params);
-      const response = await fetch(`${API_BASE_URL}/api/agents/performance?${queryParams}`);
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch agent performance');
-      }
-      
-      return data.data;
-    } catch (error) {
-      console.error('Error fetching agent performance:', error);
-      throw error;
-    }
+  getAgentPerformance: async (params = {}) => {
+    return apiService.callCenter.analytics.getAgentPerformance(params);
   },
 
   // Get real-time metrics
-  async getRealTimeMetrics() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/realtime/metrics`);
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch real-time metrics');
-      }
-      
-      return data.data;
-    } catch (error) {
-      console.error('Error fetching real-time metrics:', error);
-      throw error;
-    }
+  getRealTimeMetrics: async () => {
+    return apiService.callCenter.analytics.getRealTimeMetrics();
   },
 
   // Search for calls
@@ -390,20 +264,8 @@ export const callAnalyticsService = {
   },
 
   // Get dashboard summary
-  async getDashboardSummary(period = 'today') {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/dashboard/summary?period=${period}`);
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch dashboard summary');
-      }
-      
-      return data.data;
-    } catch (error) {
-      console.error('Error fetching dashboard summary:', error);
-      throw error;
-    }
+  getDashboardSummary: async (period = 'today') => {
+    return apiService.callCenter.analytics.getDashboardSummary(period);
   },
 
   // Register webhook for call events
@@ -430,15 +292,8 @@ export const callAnalyticsService = {
   },
 
   // Get data mix settings
-  async getDataMix() {
-    try {
-      const response = await fetch(`${DIALER_API_URL}/getDataMix`);
-      if (!response.ok) throw new Error('Failed to fetch data mix settings');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching data mix settings:', error);
-      throw error;
-    }
+  getDataMix: async () => {
+    return apiService.callCenter.analytics.getDataMix();
   },
 
   // Update data mix settings

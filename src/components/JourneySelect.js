@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./JourneySelect.css";
+import apiService from "../services/apiService";
 
 const JourneySelect = ({
   campaignData = null,
@@ -48,6 +49,8 @@ const JourneySelect = ({
   const [showNewJourneyModal, setShowNewJourneyModal] = useState(false);
   const [newJourneyName, setNewJourneyName] = useState("");
   const [newJourneyDescription, setNewJourneyDescription] = useState("");
+  const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Update parent component when journeys change
   useEffect(() => {
@@ -78,42 +81,110 @@ const JourneySelect = ({
     );
   };
 
-  // Add new journey
-  const addNewJourney = () => {
-    if (newJourneyName.trim() === "") {
-      alert("Please enter a journey name");
+  // Handle preview button click
+  const handlePreview = () => {
+    if (journeys.length === 0) {
+      setError("Please select at least one journey before previewing");
       return;
     }
+    
+    // Validate journey mappings
+    const sortedJourneys = [...journeys].sort((a, b) => a.startDay - b.startDay);
+    
+    // Check for overlapping day ranges
+    for (let i = 1; i < sortedJourneys.length; i++) {
+      const prevJourney = sortedJourneys[i - 1];
+      const currentJourney = sortedJourneys[i];
+      
+      if (prevJourney.endDay >= currentJourney.startDay) {
+        setError("Journey day ranges cannot overlap");
+        return;
+      }
+    }
+    
+    // If validation passes, call the onPreview callback
+    if (onPreview) {
+      onPreview(journeys);
+    }
+  };
 
-    // Find next available start day based on existing journeys
-    const lastJourney = [...journeys].sort((a, b) => b.endDay - a.endDay)[0];
-    const newStartDay = lastJourney ? lastJourney.endDay + 1 : 0;
-    const newEndDay = newStartDay + 5;
+  // Handle cancel button click
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    }
+  };
 
-    const newJourney = {
-      id: Date.now(),
-      name: newJourneyName,
-      description: newJourneyDescription || "New journey",
-      startDay: newStartDay,
-      endDay: newEndDay,
-      dateAdded: new Date().toLocaleDateString("en-US", {
-        month: "numeric",
-        day: "numeric",
-        year: "2-digit",
-      }),
-      favorite: false,
-    };
-
-    setJourneys([...journeys, newJourney]);
-    setNewJourneyName("");
-    setNewJourneyDescription("");
-    setShowNewJourneyModal(false);
+  // Add a new journey
+  const addNewJourney = async () => {
+    if (!newJourneyName.trim()) {
+      setError("Journey name is required");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      // Create a new journey
+      const response = await apiService.journeys.create({
+        name: newJourneyName,
+        description: newJourneyDescription
+      });
+      
+      // Add the new journey to the list
+      const newJourney = {
+        id: response.data.id,
+        name: newJourneyName,
+        description: newJourneyDescription,
+        startDay: 1,
+        endDay: 14,
+        favorite: false
+      };
+      
+      setJourneys(prev => [...prev, newJourney]);
+      setNewJourneyName("");
+      setNewJourneyDescription("");
+      setShowNewJourneyModal(false);
+      
+      // Update the parent component
+      if (updateJourneys) {
+        updateJourneys([...journeys, newJourney]);
+      }
+    } catch (err) {
+      console.error("Error creating journey:", err);
+      setError("Failed to create journey. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Delete a journey
-  const deleteJourney = (id) => {
-    if (window.confirm("Are you sure you want to remove this journey?")) {
-      setJourneys(journeys.filter((journey) => journey.id !== id));
+  const deleteJourney = async (journeyId) => {
+    if (!window.confirm("Are you sure you want to delete this journey?")) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      // Delete the journey from the API
+      await apiService.journeys.delete(journeyId);
+      
+      // Remove the journey from the list
+      const updatedJourneys = journeys.filter(journey => journey.id !== journeyId);
+      setJourneys(updatedJourneys);
+      
+      // Update the parent component
+      if (updateJourneys) {
+        updateJourneys(updatedJourneys);
+      }
+    } catch (err) {
+      console.error("Error deleting journey:", err);
+      setError("Failed to delete journey. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -142,30 +213,6 @@ const JourneySelect = ({
     }
 
     return true;
-  };
-
-  // Preview the campaign with selected journeys
-  const handlePreview = () => {
-    if (!validateJourneys()) return;
-
-    if (isEmbedded && onPreview) {
-      onPreview();
-    } else {
-      navigate(`/campaigns/${id}/preview`);
-    }
-  };
-
-  // Cancel and go back
-  const handleCancel = () => {
-    if (isEmbedded && onCancel) {
-      onCancel();
-    } else if (
-      window.confirm(
-        "Are you sure you want to cancel? Any unsaved changes will be lost."
-      )
-    ) {
-      navigate("/campaigns");
-    }
   };
 
   // If embedded, we don't need to wrap in a full content container

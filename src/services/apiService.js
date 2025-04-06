@@ -1,0 +1,627 @@
+import axios from 'axios';
+
+// Utility function to get tenant ID
+const getTenantId = () => {
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  return currentUser.tenantId || 1;
+};
+
+// Create axios instance with base URL
+const api = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://35.202.92.164:8080/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add request interceptor to add auth token and tenant ID
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // Add tenant_id to all requests except auth endpoints and leads endpoints
+    if (!config.url.startsWith('/auth') && !config.url.startsWith('/leads')) {
+      config.params = {
+        ...config.params,
+        tenant_id: getTenantId()
+      };
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle errors
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  async (error) => {
+    // Handle 401 Unauthorized errors
+    if (error.response && error.response.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// API service object
+const apiService = {
+  // Auth endpoints
+  auth: {
+    login: async (credentials) => {
+      const response = await api.post('/auth/login', credentials);
+      const { token, user } = response.data;
+      
+      // Store the token and user info
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      return response;
+    },
+    logout: () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return Promise.resolve();
+    },
+    refreshToken: () => api.post('/auth/refresh-token'),
+    register: (userData) => api.post('/auth/register', userData),
+    forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+    resetPassword: (token, password) => api.post('/auth/reset-password', { token, password }),
+    verifyEmail: (token) => api.post('/auth/verify-email', { token }),
+    getCurrentUser: () => api.get('/auth/me'),
+  },
+
+  // Campaign endpoints
+  campaigns: {
+    getAll: (params) => api.get(`/campaigns`, { params }),
+    getById: (id) => api.get(`/campaigns/${id}`),
+    create: (data) => api.post(`/campaigns`, data),
+    update: (id, data) => api.put(`/campaigns/${id}`, data),
+    delete: (id) => api.delete(`/campaigns/${id}`),
+    
+    // Journey mappings
+    getJourneyMappings: (id) => api.get(`/campaigns/${id}/journey-mappings`),
+    addJourneyMapping: (id, data) => api.post(`/campaigns/${id}/journey-mappings`, data),
+    updateJourneyMapping: (id, mappingId, data) => api.put(`/campaigns/${id}/journey-mappings/${mappingId}`, data),
+    deleteJourneyMapping: (id, mappingId) => api.delete(`/campaigns/${id}/journey-mappings/${mappingId}`),
+    
+    // Campaign status management
+    start: (id) => api.post(`/campaigns/${id}/start`),
+    pause: (id) => api.post(`/campaigns/${id}/pause`),
+    complete: (id) => api.post(`/campaigns/${id}/complete`),
+    
+    // Campaign metrics
+    getMetrics: (id, timeRange) => api.get(`/campaigns/${id}/metrics`, { params: { timeRange } }),
+  },
+
+  // Lead pool endpoints
+  leadPools: {
+    getAll: async () => {
+      const response = await api.get('/lead-pools');
+      return response;
+    },
+    getById: (id) => api.get(`/lead-pools/${id}`),
+    create: (data) => {
+      // Transform the data to match the API's expected format
+      const poolData = {
+        name: data.name,
+        description: data.description || null,
+        lead_age_min: data.leadAgeMin || 0,
+        lead_age_max: data.leadAgeMax || 30,
+        criteria: data.criteria || null,
+        status: data.status || 'active'
+      };
+      return api.post('/lead-pools', poolData);
+    },
+    update: (id, data) => {
+      // Transform the data to match the API's expected format
+      const poolData = {
+        name: data.name,
+        description: data.description || null,
+        lead_age_min: data.leadAgeMin || 0,
+        lead_age_max: data.leadAgeMax || 30,
+        criteria: data.criteria || null,
+        status: data.status || 'active'
+      };
+      return api.put(`/lead-pools/${id}`, poolData);
+    },
+    delete: (id) => api.delete(`/lead-pools/${id}`),
+    getLeads: (id, params = {}) => {
+      // Convert all parameters to query string format
+      const queryParams = new URLSearchParams();
+      
+      // Add all parameters to the query string
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value);
+        }
+      });
+      
+      // Make the request with all parameters in the query string
+      return api.get(`/lead-pools/${id}/leads?${queryParams.toString()}`);
+    },
+    importLeads: async (poolId, formData) => {
+      try {
+        const response = await api.post(`/lead-pools/${poolId}/import`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        return response.data;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+  },
+
+  // Lead endpoints
+  leads: {
+    getAll: async (params = {}) => {
+      try {
+        // Convert params to URLSearchParams to properly format query parameters
+        const queryParams = new URLSearchParams();
+        
+        // Add all parameters to the query string
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            queryParams.append(key, value);
+          }
+        });
+        
+        // Make the request with the formatted query string
+        const response = await api.get(`/leads?${queryParams.toString()}`);
+        return response.data;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    getById: async (id) => {
+      try {
+        const response = await api.get(`/leads/${id}`);
+        return response.data;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    create: async (leadData) => {
+      try {
+        // Format the data according to the new API requirements
+        const formattedData = {
+          phone: leadData.phone,
+          firstName: leadData.firstName,
+          lastName: leadData.lastName,
+          email: leadData.email,
+          leadAge: leadData.leadAge || 0,
+          brand: leadData.brand,
+          source: leadData.source,
+          status: leadData.status || "new",
+          additionalData: leadData.additionalData || {},
+          poolIds: leadData.poolIds || []
+        };
+        
+        const response = await api.post('/leads', formattedData);
+        return response.data;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    update: async (id, leadData) => {
+      try {
+        // Format the data according to the new API requirements
+        const formattedData = {
+          phone: leadData.phone,
+          firstName: leadData.firstName,
+          lastName: leadData.lastName,
+          email: leadData.email,
+          leadAge: leadData.leadAge,
+          brand: leadData.brand,
+          source: leadData.source,
+          status: leadData.status,
+          additionalData: leadData.additionalData || {},
+          poolIds: leadData.poolIds || []
+        };
+        
+        const response = await api.put(`/leads/${id}`, formattedData);
+        return response.data;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    delete: async (id) => {
+      try {
+        const response = await api.delete(`/leads/${id}`);
+        return response.data;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    import: async (data) => {
+      try {
+        // Format the data according to the new API requirements
+        const formattedData = {
+          leads: data.leads.map(lead => ({
+            phone: lead.phone,
+            firstName: lead.firstName,
+            lastName: lead.lastName,
+            email: lead.email,
+            leadAge: lead.leadAge || 0,
+            brand: lead.brand,
+            source: lead.source
+          })),
+          defaultPoolId: data.defaultPoolId
+        };
+        
+        const response = await api.post('/leads/import', formattedData);
+        return response.data;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    getByLeadPool: (leadPoolId, params = {}) => {
+      // Convert all parameters to query string format
+      const queryParams = new URLSearchParams();
+      
+      // Add all parameters to the query string
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value);
+        }
+      });
+      
+      // Make the request with all parameters in the query string
+      return api.get(`/leads/pool/${leadPoolId}?${queryParams.toString()}`);
+    },
+    importToLeadPool: (leadPoolId, formData) => api.post(`/leads/pool/${leadPoolId}/import`, formData),
+    updateStatus: (id, status) => api.put(`/leads/${id}/status`, { status }),
+    assignToAgent: (id, agentId) => api.put(`/leads/${id}/assign`, { agentId }),
+    assignLeads: async ({ leadIds, agentId }) => {
+      try {
+        const response = await api.post('/leads/assign', {
+          lead_ids: leadIds,
+          agent_id: agentId
+        });
+        return response.data;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    unassignLeads: async (leadIds) => {
+      try {
+        const response = await api.post('/leads/unassign', {
+          lead_ids: leadIds
+        });
+        return response.data;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    getAssignmentHistory: async (params = {}) => {
+      try {
+        const response = await api.get('/leads/assignment-history', { params });
+        return response.data;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    }
+  },
+
+  // DID Pool endpoints
+  didPools: {
+    getAll: async () => {
+      try {
+        const response = await api.get('/did-pools');
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    getById: async (id) => {
+      try {
+        const response = await api.get(`/did-pools/${id}`);
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    create: async (data) => {
+      try {
+        const response = await api.post('/did-pools', data);
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    update: async (id, data) => {
+      try {
+        const response = await api.put(`/did-pools/${id}`, data);
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    delete: async (id) => {
+      try {
+        const response = await api.delete(`/did-pools/${id}`);
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    getDids: async (id, params = {}) => {
+      try {
+        // Convert params to URLSearchParams to properly format query parameters
+        const queryParams = new URLSearchParams();
+        
+        // Add all parameters to the query string
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            queryParams.append(key, value);
+          }
+        });
+        
+        // Make the request with the formatted query string
+        const response = await api.get(`/did-pools/${id}/dids?${queryParams.toString()}`);
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    addDidToPool: async (id, data) => {
+      try {
+        const response = await api.post(`/did-pools/${id}/dids`, data);
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    }
+  },
+
+  // DID endpoints
+  dids: {
+    getAll: async (params = {}) => {
+      try {
+        // Convert params to URLSearchParams to properly format query parameters
+        const queryParams = new URLSearchParams();
+        
+        // Add all parameters to the query string
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            queryParams.append(key, value);
+          }
+        });
+        
+        // Make the request with the formatted query string
+        const response = await api.get(`/dids?${queryParams.toString()}`);
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    getById: async (id) => {
+      try {
+        const response = await api.get(`/dids/${id}`);
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    create: async (data) => {
+      try {
+        const response = await api.post('/dids', data);
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    update: async (id, data) => {
+      try {
+        const response = await api.put(`/dids/${id}`, data);
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    delete: async (id) => {
+      try {
+        const response = await api.delete(`/dids/${id}`);
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    importDids: async (data) => {
+      try {
+        const response = await api.post('/dids/import', data);
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    importToLeadPool: async (poolId, formData) => {
+      try {
+        const response = await api.post(`/dids/pool/${poolId}/import`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    }
+  },
+
+  // Brand endpoints
+  brands: {
+    getAll: async () => {
+      const response = await api.get('/brands');
+      // Transform the response to match the expected format
+      const transformedData = response.data.map(item => ({
+        id: item.brand,
+        name: item.brand,
+        lead_count: item.lead_count
+      }));
+      return { ...response, data: transformedData };
+    },
+    getById: (brandName) => api.get(`/brands/${encodeURIComponent(brandName)}`),
+    create: (data) => {
+      // Ensure data is properly formatted as JSON
+      const brandData = {
+        brands: [{
+          name: data.name,
+          description: data.description || null,
+          logo: data.logo || null,
+          color: data.color || '#007bff'
+        }]
+      };
+      return api.post('/brands', brandData);
+    },
+    update: (brandName, data) => {
+      // Ensure data is properly formatted as JSON
+      const brandData = {
+        brands: [{
+          name: brandName,
+          description: data.description || null,
+          logo: data.logo || null,
+          color: data.color || '#007bff'
+        }]
+      };
+      return api.post('/brands', brandData);
+    },
+    delete: (brandName) => api.delete(`/brands/${encodeURIComponent(brandName)}`)
+  },
+
+  // Source endpoints
+  sources: {
+    getAll: async () => {
+      const response = await api.get('/sources');
+      // Transform the response to match the expected format
+      const transformedData = response.data.map(item => ({
+        id: item.source,
+        name: item.source,
+        lead_count: item.lead_count
+      }));
+      return { ...response, data: transformedData };
+    },
+    getById: (sourceName) => api.get(`/sources/${encodeURIComponent(sourceName)}`),
+    create: (data) => {
+      // Ensure data is properly formatted as JSON
+      const sourceData = {
+        sources: [{
+          name: data.name,
+          description: data.description || null,
+          category: data.category || 'Other',
+          cost_per_lead: data.cost_per_lead || 0
+        }]
+      };
+      return api.post('/sources', sourceData);
+    },
+    update: (sourceName, data) => {
+      // Ensure data is properly formatted as JSON
+      const sourceData = {
+        sources: [{
+          name: sourceName,
+          description: data.description || null,
+          category: data.category || 'Other',
+          cost_per_lead: data.cost_per_lead || 0
+        }]
+      };
+      return api.post('/sources', sourceData);
+    },
+    delete: (sourceName) => api.delete(`/sources/${encodeURIComponent(sourceName)}`)
+  },
+
+  // Journey endpoints
+  journeys: {
+    getAll: () => api.get('/journeys'),
+    getById: (id) => api.get(`/journeys/${id}`),
+    create: (data) => api.post('/journeys', { ...data, tenant_id: getTenantId() }),
+    update: (id, data) => api.put(`/journeys/${id}`, { ...data, tenant_id: getTenantId() }),
+    delete: (id) => api.delete(`/journeys/${id}`),
+  },
+
+  // Call center endpoints
+  callCenter: {
+    // Analytics
+    analytics: {
+      getCampaignMetrics: (campaignId, timeRange) => 
+        api.get(`/call-center/analytics/campaigns/${campaignId}`, { params: { timeRange } }),
+      getAgentMetrics: (agentId, timeRange) => 
+        api.get(`/call-center/analytics/agents/${agentId}`, { params: { timeRange } }),
+      getHourlyData: (timeRange) => 
+        api.get('/call-center/analytics/hourly', { params: { timeRange } }),
+    },
+    
+    // Agents
+    agents: {
+      getAll: () => api.get('/call-center/agents'),
+      getById: (id) => api.get(`/call-center/agents/${id}`),
+      create: (data) => api.post('/call-center/agents', { ...data, tenant_id: getTenantId() }),
+      update: (id, data) => api.put(`/call-center/agents/${id}`, { ...data, tenant_id: getTenantId() }),
+      delete: (id) => api.delete(`/call-center/agents/${id}`),
+    },
+    
+    // Calls
+    calls: {
+      getAll: () => api.get('/call-center/calls'),
+      getById: (id) => api.get(`/call-center/calls/${id}`),
+      create: (data) => api.post('/call-center/calls', { ...data, tenant_id: getTenantId() }),
+      update: (id, data) => api.put(`/call-center/calls/${id}`, { ...data, tenant_id: getTenantId() }),
+      delete: (id) => api.delete(`/call-center/calls/${id}`),
+    },
+  },
+
+  // User endpoints
+  users: {
+    getAll: async (params = {}) => {
+      try {
+        const response = await api.get('/users', { params });
+        return response.data;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    getById: (id) => api.get(`/users/${id}`),
+    create: (data) => api.post('/users', { ...data, tenant_id: getTenantId() }),
+    update: (id, data) => api.put(`/users/${id}`, { ...data, tenant_id: getTenantId() }),
+    delete: (id) => api.delete(`/users/${id}`),
+    toggleStatus: (id, status) => api.patch(`/users/${id}/status`, { status }),
+    changePassword: (id, data) => api.post(`/users/${id}/change-password`, data),
+  },
+};
+
+export default apiService;

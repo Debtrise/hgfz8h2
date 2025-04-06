@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import {
   UserOutlined,
   SolutionOutlined,
@@ -13,6 +13,8 @@ import {
 import "../styles/new/settings.css";
 import Integrations from "./Integrations";
 import UserManagement from "./UserManagement";
+import { FaUser, FaShieldAlt, FaBell, FaUsers, FaBuilding, FaCog, FaChartLine, FaPhone, FaHeadset, FaTag, FaFilter } from 'react-icons/fa';
+import BrandSourceManagement from './BrandSourceManagement';
 
 const Settings = () => {
   const location = useLocation();
@@ -20,13 +22,9 @@ const Settings = () => {
   const path = location.pathname;
 
   const renderBackButton = () => (
-    <button 
-      className="button-secondary" 
-      onClick={() => navigate('/settings')}
-      style={{ marginBottom: 'var(--space-md)' }}
-    >
-      Back to Settings
-    </button>
+    <Link to="/settings" className="back-button">
+      <FaArrowLeft /> Back to Settings
+    </Link>
   );
 
   // Render specific section based on the route
@@ -178,6 +176,8 @@ const Settings = () => {
         return <Integrations />;
       case '/settings/users':
         return <UserManagement />;
+      case '/settings/brands-sources':
+        return <BrandSourceManagement />;
       default:
         return (
           <div className="settings-page">
@@ -278,6 +278,19 @@ const Settings = () => {
                   Manage security settings and access controls.
                 </p>
                 <button className="button-blue">Configure</button>
+              </div>
+
+              <div className="settings-card">
+                <div className="settings-card-title">
+                  <FaTag className="icon" />
+                  Brands & Sources
+                </div>
+                <p className="settings-card-description">
+                  Manage your brands and lead sources to better organize and track your campaigns.
+                </p>
+                <Link to="/settings/brands-sources" className="button-secondary">
+                  Configure
+                </Link>
               </div>
             </div>
           </div>

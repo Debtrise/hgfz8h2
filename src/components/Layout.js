@@ -43,7 +43,8 @@ const Layout = () => {
     callCenter: location.pathname.includes('/call-center'),
     settings: location.pathname.includes('/settings'),
     emailTemplates: location.pathname.includes('/email-templates'),
-    smsMessaging: location.pathname.includes('/sms-messaging')
+    smsMessaging: location.pathname.includes('/sms-messaging'),
+    didManagement: false
   });
   
   const [sidebarVisible, setSidebarVisible] = useState(false);
@@ -66,22 +67,22 @@ const Layout = () => {
   };
 
   const renderFullSidebar = () => (
-    <aside className={`sidebar ${sidebarVisible ? 'active' : ''}`}>
-      <div className="sidebar-logo">
-        <img src="/logo.png" alt="Logo" className="logo-img" />
+    <div className="sidebar">
+      <div className="sidebar-header">
+        <img src="/logo.png" alt="Logo" className="sidebar-logo" />
+        <SidebarToggle />
       </div>
 
-      <nav className="sidebar-nav">
+      <div className="sidebar-content">
         <NavLink to="/dashboard" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
           <DashboardOutlined />
           <span>Dashboard</span>
         </NavLink>
 
-        {/* Campaign Management Section */}
         <div className="sidebar-category-header" onClick={() => toggleSection('campaigns')}>
           <div className="category-header-left">
             <FlagOutlined />
-            <span>Campaign Management</span>
+            <span>Campaigns</span>
           </div>
           {expandedSections.campaigns ? <CaretDownOutlined /> : <CaretRightOutlined />}
         </div>
@@ -90,27 +91,14 @@ const Layout = () => {
           <div className="sidebar-category-content">
             <NavLink to="/campaigns" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <FlagOutlined />
-              <span>Campaigns</span>
-            </NavLink>
-
-            <NavLink to="/journeys" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-              <CompassOutlined />
-              <span>Journeys</span>
-            </NavLink>
-
-            <NavLink to="/forms" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-              <FormOutlined />
-              <span>Forms</span>
+              <span>All Campaigns</span>
             </NavLink>
           </div>
         )}
 
-        <div className="sidebar-divider"></div>
-
-        {/* Resource Management Section */}
         <div className="sidebar-category-header" onClick={() => toggleSection('resources')}>
           <div className="category-header-left">
-            <DatabaseOutlined />
+            <TeamOutlined />
             <span>Resource Management</span>
           </div>
           {expandedSections.resources ? <CaretDownOutlined /> : <CaretRightOutlined />}
@@ -128,6 +116,23 @@ const Layout = () => {
               <span>Leads List</span>
             </NavLink>
 
+            <NavLink to="/lead-management" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <FormOutlined />
+              <span>Lead Management</span>
+            </NavLink>
+          </div>
+        )}
+
+        <div className="sidebar-category-header" onClick={() => toggleSection('didManagement')}>
+          <div className="category-header-left">
+            <PhoneOutlined />
+            <span>DID Management</span>
+          </div>
+          {expandedSections.didManagement ? <CaretDownOutlined /> : <CaretRightOutlined />}
+        </div>
+        
+        {expandedSections.didManagement && (
+          <div className="sidebar-category-content">
             <NavLink to="/did-pools" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <PhoneOutlined />
               <span>DID Pools</span>
@@ -135,34 +140,11 @@ const Layout = () => {
 
             <NavLink to="/dids" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <PhoneOutlined />
-              <span>DIDs List</span>
-            </NavLink>
-
-            <NavLink to="/email-templates" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-              <MailOutlined />
-              <span>Email Templates</span>
-            </NavLink>
-
-            <NavLink to="/sms-messaging" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-              <MessageOutlined />
-              <span>SMS Messaging</span>
-            </NavLink>
-
-            <NavLink to="/sms-blaster" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-              <MessageOutlined />
-              <span>SMS Blaster</span>
-            </NavLink>
-
-            <NavLink to="/text-to-speech" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-              <AudioOutlined />
-              <span>Text to Speech</span>
+              <span>DID Details</span>
             </NavLink>
           </div>
         )}
 
-        <div className="sidebar-divider"></div>
-        
-        {/* Call Center Section */}
         <div className="sidebar-category-header" onClick={() => toggleSection('callCenter')}>
           <div className="category-header-left">
             <PhoneOutlined />
@@ -173,75 +155,43 @@ const Layout = () => {
         
         {expandedSections.callCenter && (
           <div className="sidebar-category-content">
-            <NavLink 
-              to="/call-center/real-time-dashboard" 
-              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-            >
-              <BarChartOutlined />
-              <span>Real-Time Dashboard</span>
-            </NavLink>
-
-            <NavLink 
-              to="/call-center/agent" 
-              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-            >
+            <NavLink to="/call-center/agent" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <CustomerServiceOutlined />
               <span>Agent Interface</span>
             </NavLink>
 
-            <NavLink 
-              to="/call-center/admin" 
-              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-            >
-              <SafetyOutlined />
+            <NavLink to="/call-center/admin" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <BarChartOutlined />
               <span>Admin Dashboard</span>
             </NavLink>
 
-            <NavLink 
-              to="/call-center/FlowInventory" 
-              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-            >
-              <ApiOutlined />
-              <span>Flow Inventory</span>
+            <NavLink to="/call-center/real-time-dashboard" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <BarChartOutlined />
+              <span>Real-Time Dashboard</span>
             </NavLink>
 
-            <NavLink 
-              to="/call-center/recordings" 
-              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-            >
+            <NavLink to="/call-center/FlowInventory" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <PhoneOutlined />
+              <span>Call Flows</span>
+            </NavLink>
+
+            <NavLink to="/call-center/recordings" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <AudioOutlined />
               <span>Recordings</span>
             </NavLink>
 
-            <NavLink 
-              to="/call-center/call-logs" 
-              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-            >
-              <FileTextOutlined />
+            <NavLink to="/call-center/call-logs" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <BarChartOutlined />
               <span>Call Logs</span>
             </NavLink>
 
-            <NavLink 
-              to="/call-center/call-config" 
-              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-            >
+            <NavLink to="/call-center/call-config" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <SettingOutlined />
               <span>Call Config</span>
-            </NavLink>
-
-            <NavLink 
-              to="/queue-builder" 
-              className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}
-            >
-              <TeamOutlined />
-              <span>Queue Builder</span>
             </NavLink>
           </div>
         )}
 
-        <div className="sidebar-divider"></div>
-        
-        {/* Settings Section */}
         <div className="sidebar-category-header" onClick={() => toggleSection('settings')}>
           <div className="category-header-left">
             <SettingOutlined />
@@ -252,68 +202,34 @@ const Layout = () => {
         
         {expandedSections.settings && (
           <div className="sidebar-category-content">
-            <NavLink to="/settings" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-              <SettingOutlined />
-              <span>General Settings</span>
-            </NavLink>
-            
-            <NavLink to="/settings/profile" className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}>
+            <NavLink to="/settings/profile" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <UserOutlined />
-              <span>User Profile</span>
+              <span>Profile</span>
             </NavLink>
-            
-            <NavLink to="/settings/users" className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}>
-              <TeamOutlined />
-              <span>User Management</span>
-            </NavLink>
-            
-            <NavLink to="/settings/integrations" className={({ isActive }) => `sidebar-nav-item submenu-item ${isActive ? "active" : ""}`}>
-              <ApiOutlined />
-              <span>Integrations</span>
+
+            <NavLink to="/settings/users" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <UserOutlined />
+              <span>Users</span>
             </NavLink>
           </div>
         )}
 
-        <div className="sidebar-nav-item signout" onClick={handleSignOut}>
-          <LogoutOutlined />
-          <span>Sign Out</span>
+        <div className="sidebar-footer">
+          <button className="sidebar-nav-item logout-button" onClick={handleSignOut}>
+            <LogoutOutlined />
+            <span>Sign Out</span>
+          </button>
         </div>
-      </nav>
-    </aside>
+      </div>
+    </div>
   );
 
   return (
-    <div className="app-layout">
+    <div className="layout">
       {isDemoMode ? <DemoSidebar /> : renderFullSidebar()}
-      <main className="main-content">
-        <div className="header">
-          <div className="header-left">
-            {/* Mobile menu trigger */}
-            <button className="menu-trigger" onClick={toggleSidebar}>
-              <MenuOutlined />
-            </button>
-            {/* Hide the page title in the header for the Dashboard page */}
-            {location.pathname !== '/dashboard' && (
-              <h1 className="page-title">{getPageTitle(location.pathname)}</h1>
-            )}
-          </div>
-          <div className="header-right">
-            <span className="user-name">Steven Hernandez</span>
-            <button className="sign-out-btn" onClick={handleSignOut}>
-              Sign out
-            </button>
-          </div>
-        </div>
-
-        <div className="content">
-          <Outlet />
-        </div>
-      </main>
-      <SidebarToggle />
-      {/* Add an overlay for mobile sidebar */}
-      {sidebarVisible && (
-        <div className="sidebar-overlay" onClick={toggleSidebar}></div>
-      )}
+      <div className="main-content">
+        <Outlet />
+      </div>
     </div>
   );
 };

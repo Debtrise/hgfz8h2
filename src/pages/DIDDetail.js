@@ -1,158 +1,86 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import apiService from "../services/apiService";
 import "./ListPages.css";
 
 const DIDDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const [did, setDID] = useState(null);
+  const [did, setDid] = useState(null);
   const [usageStats, setUsageStats] = useState([]);
   const [callHistory, setCallHistory] = useState([]);
+  const [error, setError] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [formData, setFormData] = useState({
+    phoneNumber: '',
+    status: '',
+    source: '',
+    notes: ''
+  });
 
-  // Fetch DID data
   useEffect(() => {
-    // Simulating API call
-    setTimeout(() => {
-      // Sample DID data - in real app, fetch from API
-      const sampleDID = {
-        id: parseInt(id),
-        number: "(800) 555-0100",
-        pool: "Main Sales DIDs",
-        brand: "BDS",
-        source: "Outbound Sales",
-        ingroups: ["Sales", "Support"],
-        usageCount: 1284,
-        callsToday: 52,
-        status: "Active",
-        dialRatio: 1.5,
-        lastUsed: "2025-01-24T14:30:00",
-        dateAdded: "2024-10-15",
-        provider: "Twilio",
-        costPerMinute: 0.015,
-        monthlyFee: 1.0,
-        notes:
-          "Primary sales number for outbound campaigns. High performance DID with good connection rates.",
-      };
-
-      // Sample usage statistics
-      const sampleUsageStats = [
-        {
-          date: "2025-01-24",
-          calls: 52,
-          connectedCalls: 32,
-          totalDuration: 138,
-          connectionRate: 61.5,
-        },
-        {
-          date: "2025-01-23",
-          calls: 48,
-          connectedCalls: 29,
-          totalDuration: 124,
-          connectionRate: 60.4,
-        },
-        {
-          date: "2025-01-22",
-          calls: 55,
-          connectedCalls: 35,
-          totalDuration: 149,
-          connectionRate: 63.6,
-        },
-        {
-          date: "2025-01-21",
-          calls: 49,
-          connectedCalls: 31,
-          totalDuration: 133,
-          connectionRate: 63.3,
-        },
-        {
-          date: "2025-01-20",
-          calls: 51,
-          connectedCalls: 33,
-          totalDuration: 140,
-          connectionRate: 64.7,
-        },
-        {
-          date: "2025-01-19",
-          calls: 38,
-          connectedCalls: 25,
-          totalDuration: 107,
-          connectionRate: 65.8,
-        },
-        {
-          date: "2025-01-18",
-          calls: 37,
-          connectedCalls: 24,
-          totalDuration: 103,
-          connectionRate: 64.9,
-        },
-      ];
-
-      // Sample call history
-      const sampleCallHistory = [
-        {
-          id: 1,
-          date: "2025-01-24",
-          time: "14:30:22",
-          leadId: 1042,
-          leadName: "John Doe",
-          agent: "Steven Hernandez",
-          duration: "4:12",
-          outcome: "Connected",
-          callType: "Outbound",
-        },
-        {
-          id: 2,
-          date: "2025-01-24",
-          time: "14:15:45",
-          leadId: 1053,
-          leadName: "Emily Williams",
-          agent: "Maria Garcia",
-          duration: "2:45",
-          outcome: "Connected",
-          callType: "Outbound",
-        },
-        {
-          id: 3,
-          date: "2025-01-24",
-          time: "13:52:30",
-          leadId: 1061,
-          leadName: "Michael Brown",
-          agent: "Steven Hernandez",
-          duration: "0:00",
-          outcome: "No Answer",
-          callType: "Outbound",
-        },
-        {
-          id: 4,
-          date: "2025-01-24",
-          time: "13:40:12",
-          leadId: 1038,
-          leadName: "Sarah Johnson",
-          agent: "Maria Garcia",
-          duration: "3:22",
-          outcome: "Connected",
-          callType: "Outbound",
-        },
-        {
-          id: 5,
-          date: "2025-01-24",
-          time: "13:25:05",
-          leadId: 1044,
-          leadName: "David Martinez",
-          agent: "Steven Hernandez",
-          duration: "1:47",
-          outcome: "Connected",
-          callType: "Outbound",
-        },
-      ];
-
-      setDID(sampleDID);
-      setUsageStats(sampleUsageStats);
-      setCallHistory(sampleCallHistory);
-      setIsLoading(false);
-    }, 600);
+    fetchDID();
   }, [id]);
+
+  const fetchDID = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.dids.getById(id);
+      setDid(response.data);
+      setFormData({
+        phoneNumber: response.data.phoneNumber,
+        status: response.data.status,
+        source: response.data.source,
+        notes: response.data.notes
+      });
+      // Fetch usage statistics and call history
+      const usageResponse = await apiService.usageStats.getByDID(id);
+      const callHistoryResponse = await apiService.callHistory.getByDID(id);
+      setUsageStats(usageResponse.data);
+      setCallHistory(callHistoryResponse.data);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch DID details');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleUpdateDID = async (e) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
+      await apiService.dids.update(id, formData);
+      await fetchDID();
+      setShowEditModal(false);
+    } catch (err) {
+      setError(err.message || 'Failed to update DID');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteDID = async () => {
+    if (window.confirm('Are you sure you want to delete this DID?')) {
+      try {
+        setIsLoading(true);
+        await apiService.dids.delete(id);
+        navigate('/dids');
+      } catch (err) {
+        setError(err.message || 'Failed to delete DID');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   const handleBack = () => {
     navigate("/dids");
@@ -169,6 +97,22 @@ const DIDDetail = () => {
           <div className="loading-state">
             <div className="loading-spinner"></div>
             <p>Loading DID information...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="page-container">
+        <div className="content-container">
+          <div className="error-state">
+            <h2>Error</h2>
+            <p>{error}</p>
+            <button className="button-blue" onClick={handleBack}>
+              Back to DIDs
+            </button>
           </div>
         </div>
       </div>
@@ -203,11 +147,20 @@ const DIDDetail = () => {
               <i className="back-icon"></i>
               <span>Back to DIDs</span>
             </button>
-            <h1 className="page-title">{did.number}</h1>
+            <h1 className="page-title">{did.phoneNumber}</h1>
           </div>
           <div className="header-actions">
-            <button className="button-blue" onClick={handleUpdate}>
-              Update DID
+            <button 
+              className="button-blue"
+              onClick={() => setShowEditModal(true)}
+            >
+              Edit
+            </button>
+            <button 
+              className="button-blue"
+              onClick={handleDeleteDID}
+            >
+              Delete
             </button>
           </div>
         </div>
@@ -220,26 +173,8 @@ const DIDDetail = () => {
                 <h2 className="detail-card-title">DID Information</h2>
                 <div className="detail-card-content">
                   <div className="detail-item">
-                    <span className="detail-label">Number:</span>
-                    <span className="detail-value">{did.number}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Pool:</span>
-                    <span className="detail-value">{did.pool}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Brand:</span>
-                    <span className="detail-value">{did.brand}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Source:</span>
-                    <span className="detail-value">{did.source}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Ingroups:</span>
-                    <span className="detail-value">
-                      {did.ingroups.join(", ")}
-                    </span>
+                    <span className="detail-label">Phone Number:</span>
+                    <span className="detail-value">{did.phoneNumber}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Status:</span>
@@ -252,44 +187,38 @@ const DIDDetail = () => {
                     </span>
                   </div>
                   <div className="detail-item">
-                    <span className="detail-label">Date Added:</span>
-                    <span className="detail-value">
-                      {new Date(did.dateAdded).toLocaleDateString()}
-                    </span>
+                    <span className="detail-label">Source:</span>
+                    <span className="detail-value">{did.source}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Notes:</span>
+                    <span className="detail-value">{did.notes}</span>
                   </div>
                 </div>
               </div>
 
               <div className="detail-card">
-                <h2 className="detail-card-title">Configuration</h2>
+                <h2 className="detail-card-title">Usage Information</h2>
                 <div className="detail-card-content">
                   <div className="detail-item">
-                    <span className="detail-label">Provider:</span>
-                    <span className="detail-value">{did.provider}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Dial Ratio:</span>
-                    <span className="detail-value">{did.dialRatio}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Cost per Minute:</span>
+                    <span className="detail-label">Last Used:</span>
                     <span className="detail-value">
-                      ${did.costPerMinute.toFixed(3)}
+                      {new Date(did.lastUsed).toLocaleString()}
                     </span>
                   </div>
                   <div className="detail-item">
-                    <span className="detail-label">Monthly Fee:</span>
-                    <span className="detail-value">
-                      ${did.monthlyFee.toFixed(2)}
-                    </span>
+                    <span className="detail-label">Total Calls:</span>
+                    <span className="detail-value">{did.totalCalls}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Success Rate:</span>
+                    <span className="detail-value">{did.successRate}%</span>
                   </div>
                 </div>
               </div>
 
               <div className="detail-card">
-                <h2 className="detail-card-title">
-                  Usage Statistics (Last 7 Days)
-                </h2>
+                <h2 className="detail-card-title">Usage Statistics (Last 7 Days)</h2>
                 <div className="detail-card-content">
                   <table className="stats-table">
                     <thead>
@@ -318,13 +247,6 @@ const DIDDetail = () => {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              </div>
-
-              <div className="detail-card">
-                <h2 className="detail-card-title">Notes</h2>
-                <div className="detail-card-content">
-                  <p className="did-notes">{did.notes}</p>
                 </div>
               </div>
             </div>
@@ -401,6 +323,70 @@ const DIDDetail = () => {
           </div>
         </div>
       </div>
+
+      {showEditModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Edit DID</h2>
+            <form onSubmit={handleUpdateDID}>
+              <div className="form-group">
+                <label>Phone Number:</label>
+                <input
+                  type="text"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Status:</label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  required
+                >
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="BLOCKED">Blocked</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Source:</label>
+                <input
+                  type="text"
+                  name="source"
+                  value={formData.source}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Notes:</label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="submit" className="save-button">
+                  Save Changes
+                </button>
+                <button 
+                  type="button" 
+                  className="cancel-button"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

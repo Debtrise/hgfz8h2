@@ -1,3 +1,5 @@
+import apiService from './apiService';
+
 class CallRoutingService {
   constructor() {
     this.agents = new Map();
@@ -6,68 +8,118 @@ class CallRoutingService {
   }
 
   // Register an agent with their skills
-  registerAgent(agentId, skills, maxConcurrentCalls = 1) {
+  async registerAgent(agentId, skills, maxConcurrentCalls = 1) {
     console.log(`Registering agent ${agentId} with skills: ${skills.join(', ')}`);
-    this.agents.set(agentId, {
-      id: agentId,
-      skills,
-      currentCalls: 0,
-      maxConcurrentCalls,
-      status: 'available',
-      lastCallEndTime: null,
-      successRate: 0,
-      totalCalls: 0,
-      successfulCalls: 0,
-    });
+    
+    try {
+      // Update agent in the backend
+      await apiService.callCenter.agents.update(agentId, {
+        skills,
+        maxConcurrentCalls,
+        status: 'available'
+      });
+      
+      // Update local state
+      this.agents.set(agentId, {
+        id: agentId,
+        skills,
+        currentCalls: 0,
+        maxConcurrentCalls,
+        status: 'available',
+        lastCallEndTime: null,
+        successRate: 0,
+        totalCalls: 0,
+        successfulCalls: 0,
+      });
 
-    // Update skill matrix
-    skills.forEach(skill => {
-      if (!this.skillMatrix.has(skill)) {
-        this.skillMatrix.set(skill, new Set());
-      }
-      this.skillMatrix.get(skill).add(agentId);
-    });
+      // Update skill matrix
+      skills.forEach(skill => {
+        if (!this.skillMatrix.has(skill)) {
+          this.skillMatrix.set(skill, new Set());
+        }
+        this.skillMatrix.get(skill).add(agentId);
+      });
+    } catch (error) {
+      console.error('Error registering agent:', error);
+      throw error;
+    }
   }
 
   // Update agent status
-  updateAgentStatus(agentId, status) {
+  async updateAgentStatus(agentId, status) {
     console.log(`Updating status for agent ${agentId} to ${status}`);
-    if (this.agents.has(agentId)) {
-      const agent = this.agents.get(agentId);
-      agent.status = status;
-      this.agents.set(agentId, agent);
+    
+    try {
+      // Update agent status in the backend
+      await apiService.callCenter.agents.updateStatus(agentId, status);
+      
+      // Update local state
+      if (this.agents.has(agentId)) {
+        const agent = this.agents.get(agentId);
+        agent.status = status;
+        this.agents.set(agentId, agent);
+      }
+    } catch (error) {
+      console.error('Error updating agent status:', error);
+      throw error;
     }
   }
 
   // Update agent metrics after call
-  updateAgentMetrics(agentId, callSuccess) {
+  async updateAgentMetrics(agentId, callSuccess) {
     console.log(`Updating metrics for agent ${agentId}, call success: ${callSuccess}`);
-    if (this.agents.has(agentId)) {
-      const agent = this.agents.get(agentId);
-      agent.totalCalls++;
-      if (callSuccess) agent.successfulCalls++;
-      agent.successRate = (agent.successfulCalls / agent.totalCalls) * 100;
-      agent.lastCallEndTime = Date.now();
-      agent.currentCalls = Math.max(0, agent.currentCalls - 1);
-      this.agents.set(agentId, agent);
+    
+    try {
+      // Update agent metrics in the backend
+      await apiService.callCenter.agents.updateMetrics(agentId, {
+        callSuccess,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Update local state
+      if (this.agents.has(agentId)) {
+        const agent = this.agents.get(agentId);
+        agent.totalCalls++;
+        if (callSuccess) agent.successfulCalls++;
+        agent.successRate = (agent.successfulCalls / agent.totalCalls) * 100;
+        agent.lastCallEndTime = Date.now();
+        agent.currentCalls = Math.max(0, agent.currentCalls - 1);
+        this.agents.set(agentId, agent);
+      }
+    } catch (error) {
+      console.error('Error updating agent metrics:', error);
+      throw error;
     }
   }
 
   // Find best agent for a call based on required skills
-  findBestAgent(requiredSkills = [], callPriority = 'normal') {
-    const agent = this._getQualifiedAgents(requiredSkills);
-    console.log(`Finding best agent for skills: ${requiredSkills.join(', ')} with priority: ${callPriority}`);
-    if (agent.length === 0) return null;
+  async findBestAgent(requiredSkills = [], callPriority = 'normal') {
+    try {
+      // Get best agent from the backend
+      const response = await apiService.callCenter.routing.findBestAgent({
+        requiredSkills,
+        callPriority
+      });
+      
+      return response.agent;
+    } catch (error) {
+      console.error('Error finding best agent:', error);
+      
+      // Fallback to local logic if backend fails
+      const agent = this._getQualifiedAgents(requiredSkills);
+      console.log(`Finding best agent for skills: ${requiredSkills.join(', ')} with priority: ${callPriority}`);
+      if (agent.length === 0) return null;
 
-    // Score each qualified agent
-    const scoredAgents = agent.map(agent => ({
-      agent,
-      score: this._calculateAgentScore(agent, callPriority)
-    }));
+      // Score each qualified agent
+      const scoredAgents = agent.map(agent => ({
+        agent,
+        score: this._calculateAgentScore(agent, callPriority)
+      }));
 
-    // Sort by score (highest first)
-    scoredAgents.sort((a, b) => b.score - a.score);
-    return scoredAgents[0].agent;
+      // Sort by score (highest first)
+      scoredAgents.sort((a, b) => b.score - a.score);
+      return scoredAgents[0].agent;
+    }
   }
 
   // Get all agents qualified for the required skills
@@ -108,40 +160,60 @@ class CallRoutingService {
   }
 
   // Queue a call if no agents are available
-  queueCall(callData) {
+  async queueCall(callData) {
     console.log(`Queuing call with data: ${JSON.stringify(callData)}`);
-    this.routingQueue.push({
-      ...callData,
-      timestamp: Date.now()
-    });
+    
+    try {
+      // Queue call in the backend
+      await apiService.callCenter.routing.queueCall(callData);
+      
+      // Update local state
+      this.routingQueue.push({
+        ...callData,
+        timestamp: Date.now()
+      });
+    } catch (error) {
+      console.error('Error queuing call:', error);
+      throw error;
+    }
   }
 
   // Process queued calls
-  processQueue() {
+  async processQueue() {
     console.log('Processing call queue');
-    const processedCalls = [];
     
-    this.routingQueue.sort((a, b) => {
-      // Sort by priority first, then by timestamp
-      if (a.priority !== b.priority) {
-        return a.priority === 'high' ? -1 : 1;
-      }
-      return a.timestamp - b.timestamp;
-    });
+    try {
+      // Process queue in the backend
+      const response = await apiService.callCenter.routing.processQueue();
+      return response.processedCalls;
+    } catch (error) {
+      console.error('Error processing queue:', error);
+      
+      // Fallback to local logic if backend fails
+      const processedCalls = [];
+      
+      this.routingQueue.sort((a, b) => {
+        // Sort by priority first, then by timestamp
+        if (a.priority !== b.priority) {
+          return a.priority === 'high' ? -1 : 1;
+        }
+        return a.timestamp - b.timestamp;
+      });
 
-    for (const call of this.routingQueue) {
-      const agent = this.findBestAgent(call.requiredSkills, call.priority);
-      if (agent) {
-        processedCalls.push({ call, agent });
+      for (const call of this.routingQueue) {
+        const agent = this.findBestAgent(call.requiredSkills, call.priority);
+        if (agent) {
+          processedCalls.push({ call, agent });
+        }
       }
+
+      // Remove processed calls from queue
+      this.routingQueue = this.routingQueue.filter(
+        call => !processedCalls.find(pc => pc.call === call)
+      );
+
+      return processedCalls;
     }
-
-    // Remove processed calls from queue
-    this.routingQueue = this.routingQueue.filter(
-      call => !processedCalls.find(pc => pc.call === call)
-    );
-
-    return processedCalls;
   }
 }
 

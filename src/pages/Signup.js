@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./AuthPages.css";
+import apiService from "../services/apiService";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -84,14 +85,15 @@ const Signup = () => {
     setIsSubmitting(true);
 
     try {
-      // In a real app, this would be an API call to your registration endpoint
-      console.log("Signup data submitted:", formData);
+      // Use apiService to register the user
+      await apiService.auth.register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password
+      });
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // For demo purposes, just navigate to login
-      // In a real app, you would check the API response and handle errors
+      // Navigate to login with success message
       navigate("/login", {
         state: {
           message:
@@ -101,7 +103,7 @@ const Signup = () => {
     } catch (error) {
       console.error("Signup error:", error);
       setErrors({
-        form: "Failed to create account. Please try again.",
+        form: error.response?.data?.message || "Failed to create account. Please try again.",
       });
     } finally {
       setIsSubmitting(false);

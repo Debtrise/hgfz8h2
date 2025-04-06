@@ -1,8 +1,8 @@
-import axios from "axios";
+import apiService from './apiService';
 import { getEndpoints } from "./callCenterConfig";
 
 // Create base axios instance
-const api = axios.create({
+const api = apiService.create({
   timeout: 30000, // 30 seconds timeout
   headers: {
     "Content-Type": "application/json",
@@ -53,50 +53,27 @@ const callCenterService = {
   // Recordings API methods
   recordings: {
     getAll: async (filters = {}) => {
-      const endpoints = getEndpoints("recordings");
-      const response = await api.get(endpoints.base, { params: filters });
-      return response.data;
+      return apiService.callCenter.recordings.getAll(filters);
     },
 
     getIVRs: async (filters = {}) => {
-      const endpoints = getEndpoints("recordings");
-      const response = await api.get(endpoints.ivrs, { params: filters });
-      return response.data;
+      return apiService.callCenter.recordings.getIVRs(filters);
     },
 
     getVoicemails: async (filters = {}) => {
-      const endpoints = getEndpoints("recordings");
-      const response = await api.get(endpoints.voicemails, { params: filters });
-      return response.data;
+      return apiService.callCenter.recordings.getVoicemails(filters);
     },
 
     uploadFile: async (file, type, metadata = {}) => {
-      const endpoints = getEndpoints("recordings");
       const formData = new FormData();
       formData.append("file", file);
       formData.append("type", type);
       formData.append("metadata", JSON.stringify(metadata));
-
-      const response = await api.post(endpoints.upload, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      return response.data;
+      return apiService.callCenter.recordings.upload(formData);
     },
 
     deleteRecording: async (id, type = "recording") => {
-      const endpoints = getEndpoints("recordings");
-      const endpoint =
-        type === "ivr"
-          ? endpoints.ivrs
-          : type === "voicemail"
-          ? endpoints.voicemails
-          : endpoints.base;
-
-      const response = await api.delete(`${endpoint}/${id}`);
-      return response.data;
+      return apiService.callCenter.recordings.delete(id, type);
     },
   },
 
@@ -338,60 +315,42 @@ const callCenterService = {
   // Admin dashboard API methods
   admin: {
     getStats: async (filters = {}) => {
-      const endpoints = getEndpoints("admin");
-      const response = await api.get(endpoints.stats, { params: filters });
-      return response.data;
+      return apiService.callCenter.admin.getStats(filters);
     },
 
     getAgents: async () => {
-      const endpoints = getEndpoints("admin");
-      const response = await api.get(endpoints.agents);
-      return response.data;
+      return apiService.callCenter.admin.getAgents();
     },
 
     getAgentDetails: async (id) => {
-      const endpoints = getEndpoints("admin");
-      const response = await api.get(`${endpoints.agents}/${id}`);
-      return response.data;
+      return apiService.callCenter.admin.getAgentDetails(id);
     },
 
     getQueues: async () => {
-      const endpoints = getEndpoints("admin");
-      const response = await api.get(endpoints.queues);
-      return response.data;
+      return apiService.callCenter.queues.getAll();
     },
 
     getQueueDetails: async (id) => {
-      const endpoints = getEndpoints("admin");
-      const response = await api.get(`${endpoints.queues}/${id}`);
-      return response.data;
+      return apiService.callCenter.queues.getById(id);
     },
   },
 
   // Call logs API methods
   callLogs: {
     getLogs: async (filters = {}) => {
-      const endpoints = getEndpoints("callLogs");
-      const response = await api.get(endpoints.list, { params: filters });
-      return response.data;
+      return apiService.callCenter.logs.getAll(filters);
     },
 
     getCallDetails: async (id) => {
-      const endpoints = getEndpoints("callLogs");
-      const response = await api.get(`${endpoints.details}/${id}`);
-      return response.data;
+      return apiService.callCenter.logs.getById(id);
     },
 
     getCallEvents: async (callId) => {
-      const endpoints = getEndpoints("callLogs");
-      const response = await api.get(`${endpoints.events}/${callId}`);
-      return response.data;
+      return apiService.callCenter.logs.getEvents(callId);
     },
 
     getTranscription: async (callId) => {
-      const endpoints = getEndpoints("callLogs");
-      const response = await api.get(`${endpoints.transcriptions}/${callId}`);
-      return response.data;
+      return apiService.callCenter.logs.getTranscription(callId);
     },
   },
 };

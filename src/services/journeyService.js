@@ -1,102 +1,110 @@
-import { MarkerType } from "reactflow";
+import axios from 'axios';
 
-export const saveJourney = async (journeyData) => {
+const API_BASE_URL = '/api';
+
+/**
+ * Get all journeys for the current tenant
+ * @returns {Promise<Array>} List of journeys
+ */
+export const getAllJourneys = async () => {
   try {
-    // In a real application, this would be an API call
-    console.log("Saving journey data to API:", journeyData);
-
-    // Simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          id: journeyData.id || "new-journey-" + Date.now(),
-        });
-      }, 500);
-    });
+    const response = await axios.get(`${API_BASE_URL}/journeys`);
+    return response.data;
   } catch (error) {
-    console.error("Error saving journey:", error);
+    console.error('Error fetching journeys:', error);
     throw error;
   }
 };
 
-export const loadJourney = async (journeyId) => {
+/**
+ * Get a specific journey by ID
+ * @param {number} journeyId - The ID of the journey to fetch
+ * @returns {Promise<Object>} Journey details with steps and metrics
+ */
+export const getJourneyById = async (journeyId) => {
   try {
-    // In a real application, this would be an API call
-    console.log("Loading journey data for ID:", journeyId);
-
-    // Simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          id: journeyId,
-          nodes: [
-            {
-              id: "trigger-1",
-              type: "triggerNode",
-              position: { x: 100, y: 50 },
-              data: {},
-            },
-            {
-              id: "call-1",
-              type: "callNode",
-              position: { x: 100, y: 150 },
-              data: { vm: "default_vm", ivr: "standard_ivr", callTime: "business_hours" },
-            },
-            {
-              id: "email-1",
-              type: "emailNode",
-              position: { x: 100, y: 300 },
-              data: { template: "welcome_email", subject: "Welcome to our service", sendTime: "immediate" },
-            },
-            {
-              id: "text-1",
-              type: "textNode",
-              position: { x: 300, y: 150 },
-              data: { template: "greeting_sms", content: "Welcome to our service! Let us know if you have any questions." },
-            },
-            {
-              id: "end-1",
-              type: "endNode",
-              position: { x: 300, y: 450 },
-              data: {},
-            },
-          ],
-          edges: [
-            {
-              id: "e-trigger-1-call-1",
-              source: "trigger-1",
-              target: "call-1",
-              type: "smoothstep",
-              markerEnd: { type: MarkerType.ArrowClosed },
-            },
-            {
-              id: "e-call-1-email-1",
-              source: "call-1",
-              target: "email-1",
-              type: "smoothstep",
-              markerEnd: { type: MarkerType.ArrowClosed },
-            },
-            {
-              id: "e-trigger-1-text-1",
-              source: "trigger-1",
-              target: "text-1",
-              type: "smoothstep",
-              markerEnd: { type: MarkerType.ArrowClosed },
-            },
-            {
-              id: "e-email-1-end-1",
-              source: "email-1",
-              target: "end-1",
-              type: "smoothstep",
-              markerEnd: { type: MarkerType.ArrowClosed },
-            },
-          ],
-        });
-      }, 500);
-    });
+    const response = await axios.get(`${API_BASE_URL}/journeys/${journeyId}`);
+    return response.data;
   } catch (error) {
-    console.error("Error loading journey:", error);
+    console.error(`Error fetching journey ${journeyId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new journey
+ * @param {Object} journeyData - Journey data including name, description, status, and steps
+ * @returns {Promise<Object>} Created journey details
+ */
+export const createJourney = async (journeyData) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/journeys`, journeyData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating journey:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update journey details (not steps)
+ * @param {number} journeyId - The ID of the journey to update
+ * @param {Object} journeyData - Updated journey data (name, description, status)
+ * @returns {Promise<Object>} Updated journey details
+ */
+export const updateJourney = async (journeyId, journeyData) => {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/journeys/${journeyId}`, journeyData);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating journey ${journeyId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Update journey steps
+ * @param {number} journeyId - The ID of the journey to update
+ * @param {Array} steps - Array of step objects
+ * @returns {Promise<Object>} Response with message and step count
+ */
+export const updateJourneySteps = async (journeyId, steps) => {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/journeys/${journeyId}/steps`, { steps });
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating journey steps for ${journeyId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a journey
+ * @param {number} journeyId - The ID of the journey to delete
+ * @returns {Promise<Object>} Response with message
+ */
+export const deleteJourney = async (journeyId) => {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/journeys/${journeyId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting journey ${journeyId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Map a journey to a campaign
+ * @param {number} campaignId - The ID of the campaign
+ * @param {Object} mappingData - Mapping data including journeyId, leadAgeMin, leadAgeMax, durationDays
+ * @returns {Promise<Object>} Created mapping details
+ */
+export const mapJourneyToCampaign = async (campaignId, mappingData) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/campaigns/${campaignId}/journey-mappings`, mappingData);
+    return response.data;
+  } catch (error) {
+    console.error(`Error mapping journey to campaign ${campaignId}:`, error);
     throw error;
   }
 };

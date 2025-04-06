@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import "./AuthPages.css";
+import apiService from "../services/apiService";
 
 const ForgotPassword = () => {
   const [formData, setFormData] = useState({
@@ -50,18 +51,15 @@ const ForgotPassword = () => {
     setIsSubmitting(true);
 
     try {
-      // In a real app, this would be an API call to your password reset endpoint
-      console.log("Password reset requested for:", formData.email);
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Use apiService to request password reset
+      await apiService.auth.forgotPassword(formData.email);
 
       // Show success message
       setIsSubmitted(true);
     } catch (error) {
       console.error("Password reset request error:", error);
       setErrors({
-        form: "Failed to process your request. Please try again.",
+        form: error.response?.data?.message || "Failed to process your request. Please try again.",
       });
     } finally {
       setIsSubmitting(false);

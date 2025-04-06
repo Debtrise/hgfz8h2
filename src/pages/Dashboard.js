@@ -75,14 +75,21 @@ const Dashboard = () => {
         }));
       } else {
         data = await callAnalyticsService.getHourlyData();
+        // Ensure data is an array before setting it
+        const hourlyData = Array.isArray(data) ? data : [];
         setDashboardData(prev => ({
           ...prev,
-          hourlyData: data
+          hourlyData
         }));
       }
     } catch (error) {
       message.error('Failed to fetch dashboard data');
       console.error('Error fetching dashboard data:', error);
+      // Set empty array for hourlyData on error
+      setDashboardData(prev => ({
+        ...prev,
+        hourlyData: []
+      }));
     } finally {
       setLoading(false);
     }
@@ -111,7 +118,9 @@ const Dashboard = () => {
   const stats = [
     {
       title: 'Total Calls',
-      value: dashboardData.hourlyData?.find(h => h.hour_of_day_pdt === 'Total')?.total_outbound_attempts || '0',
+      value: Array.isArray(dashboardData.hourlyData) && dashboardData.hourlyData.length > 0
+        ? dashboardData.hourlyData.find(h => h.hour_of_day_pdt === 'Total')?.total_outbound_attempts || '0'
+        : '0',
       icon: <PhoneOutlined />,
       trend: 'Today',
       trendUp: true,
@@ -119,7 +128,9 @@ const Dashboard = () => {
     },
     {
       title: 'Answered Calls',
-      value: dashboardData.hourlyData?.find(h => h.hour_of_day_pdt === 'Total')?.answered_calls || '0',
+      value: Array.isArray(dashboardData.hourlyData) && dashboardData.hourlyData.length > 0
+        ? dashboardData.hourlyData.find(h => h.hour_of_day_pdt === 'Total')?.answered_calls || '0'
+        : '0',
       icon: <UserOutlined />,
       trend: 'Today',
       trendUp: true,
@@ -127,7 +138,9 @@ const Dashboard = () => {
     },
     {
       title: 'Calls Over 5 Min',
-      value: dashboardData.hourlyData?.find(h => h.hour_of_day_pdt === 'Total')?.calls_over_5min || '0',
+      value: Array.isArray(dashboardData.hourlyData) && dashboardData.hourlyData.length > 0
+        ? dashboardData.hourlyData.find(h => h.hour_of_day_pdt === 'Total')?.calls_over_5min || '0'
+        : '0',
       icon: <ClockCircleOutlined />,
       trend: 'Today',
       trendUp: true,
@@ -135,7 +148,9 @@ const Dashboard = () => {
     },
     {
       title: 'Total Transfers',
-      value: dashboardData.hourlyData?.find(h => h.hour_of_day_pdt === 'Total')?.total_transfers || '0',
+      value: Array.isArray(dashboardData.hourlyData) && dashboardData.hourlyData.length > 0
+        ? dashboardData.hourlyData.find(h => h.hour_of_day_pdt === 'Total')?.total_transfers || '0'
+        : '0',
       icon: <CheckCircleOutlined />,
       trend: 'Today',
       trendUp: true,

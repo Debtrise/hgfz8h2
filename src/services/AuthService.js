@@ -1,4 +1,5 @@
 import { message } from 'antd';
+import apiService from './apiService';
 
 // User Roles
 export const ROLES = {
@@ -19,7 +20,6 @@ export const PERMISSIONS = {
     canAccessLogs: true,
     canAccessRecordings: true,
     canManageCampaigns: true,
-    canManageRelationships: true,
   },
   [ROLES.SUPERVISOR]: {
     canAccessAdmin: false,
@@ -31,7 +31,6 @@ export const PERMISSIONS = {
     canAccessLogs: true,
     canAccessRecordings: true,
     canManageCampaigns: true,
-    canManageRelationships: true,
   },
   [ROLES.AGENT]: {
     canAccessAdmin: false,
@@ -43,7 +42,6 @@ export const PERMISSIONS = {
     canAccessLogs: false,
     canAccessRecordings: false,
     canManageCampaigns: false,
-    canManageRelationships: false,
   },
 };
 
@@ -55,48 +53,21 @@ class AuthService {
 
   async login(username, password) {
     try {
-      // In a real app, this would be an API call
-      // Simulated authentication
-      if (username === 'admin' && password === 'admin') {
-        const user = {
-          id: '1',
-          username: 'admin',
-          role: ROLES.ADMIN,
-          name: 'Admin User',
-        };
-        this.setSession(user);
-        return user;
-      } else if (username === 'supervisor' && password === 'supervisor') {
-        const user = {
-          id: '2',
-          username: 'supervisor',
-          role: ROLES.SUPERVISOR,
-          name: 'Supervisor User',
-        };
-        this.setSession(user);
-        return user;
-      } else if (username === 'agent' && password === 'agent') {
-        const user = {
-          id: '3',
-          username: 'agent',
-          role: ROLES.AGENT,
-          name: 'Agent User',
-        };
-        this.setSession(user);
-        return user;
-      }
-      throw new Error('Invalid credentials');
+      const response = await apiService.auth.login({ email: username, password });
+      const user = response.user;
+      this.setSession(user, response.token);
+      return user;
     } catch (error) {
-      message.error(error.message);
+      message.error(error.response?.data?.message || 'Login failed. Please check your credentials.');
       throw error;
     }
   }
 
-  setSession(user) {
+  setSession(user, token) {
     if (user) {
-      localStorage.setItem('authToken', 'dummy-jwt-token');
+      localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(user));
-      this.token = 'dummy-jwt-token';
+      this.token = token;
       this.user = user;
     } else {
       localStorage.removeItem('authToken');
@@ -106,8 +77,14 @@ class AuthService {
     }
   }
 
-  logout() {
-    this.setSession(null);
+  async logout() {
+    try {
+      await apiService.auth.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      this.setSession(null, null);
+    }
   }
 
   isAuthenticated() {
