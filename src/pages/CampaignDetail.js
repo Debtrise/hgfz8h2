@@ -16,6 +16,7 @@ const CampaignDetail = () => {
   const [timeRange, setTimeRange] = useState('7d');
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [metricsHistory, setMetricsHistory] = useState([]);
   
   // Tabs for different sections
   const [activeTab, setActiveTab] = useState('overview');
@@ -38,6 +39,17 @@ const CampaignDetail = () => {
         // Fetch metrics using the new endpoint
         const metricsResponse = await apiService.campaigns.getMetrics(campaignId, timeRange);
         setMetrics(metricsResponse.data || {});
+        
+        // Fetch metrics history for different time ranges
+        const timeRanges = ['24h', '7d', '30d'];
+        const historyPromises = timeRanges.map(range => 
+          apiService.campaigns.getMetrics(campaignId, range)
+        );
+        const historyResponses = await Promise.all(historyPromises);
+        setMetricsHistory(historyResponses.map((response, index) => ({
+          timeRange: timeRanges[index],
+          data: response.data
+        })));
       } catch (err) {
         console.error("Error fetching campaign data:", err);
         setError("Failed to load campaign details. Please try again later.");
@@ -47,6 +59,18 @@ const CampaignDetail = () => {
     };
     
     fetchCampaignData();
+    
+    // Set up polling for real-time metrics updates
+    const metricsInterval = setInterval(async () => {
+      try {
+        const metricsResponse = await apiService.campaigns.getMetrics(campaignId, timeRange);
+        setMetrics(metricsResponse.data || {});
+      } catch (err) {
+        console.error("Error updating metrics:", err);
+      }
+    }, 30000); // Update every 30 seconds
+    
+    return () => clearInterval(metricsInterval);
   }, [campaignId, timeRange]);
 
   // Handle back navigation
@@ -201,18 +225,46 @@ const CampaignDetail = () => {
               <div className="stat-title">Total Leads</div>
               <div className="stat-value">{formatNumber(metrics.overview?.totalLeads || 0)}</div>
               <div className="stat-subtitle">{formatNumber(metrics.overview?.activeLeads || 0)} active</div>
+              <div className="stat-trend">
+                {metricsHistory.length > 0 && (
+                  <span className={`trend-indicator ${metrics.overview?.totalLeads > metricsHistory[0].data.overview?.totalLeads ? 'positive' : 'negative'}`}>
+                    {((metrics.overview?.totalLeads - metricsHistory[0].data.overview?.totalLeads) / metricsHistory[0].data.overview?.totalLeads * 100).toFixed(1)}%
+                  </span>
+                )}
+              </div>
             </div>
             <div className="stat-card">
               <div className="stat-title">Conversion Rate</div>
               <div className="stat-value">{metrics.overview?.conversionRate || 0}%</div>
+              <div className="stat-trend">
+                {metricsHistory.length > 0 && (
+                  <span className={`trend-indicator ${metrics.overview?.conversionRate > metricsHistory[0].data.overview?.conversionRate ? 'positive' : 'negative'}`}>
+                    {((metrics.overview?.conversionRate - metricsHistory[0].data.overview?.conversionRate)).toFixed(1)}%
+                  </span>
+                )}
+              </div>
             </div>
             <div className="stat-card">
               <div className="stat-title">Total Calls</div>
               <div className="stat-value">{formatNumber(metrics.overview?.totalCalls || 0)}</div>
+              <div className="stat-trend">
+                {metricsHistory.length > 0 && (
+                  <span className={`trend-indicator ${metrics.overview?.totalCalls > metricsHistory[0].data.overview?.totalCalls ? 'positive' : 'negative'}`}>
+                    {((metrics.overview?.totalCalls - metricsHistory[0].data.overview?.totalCalls) / metricsHistory[0].data.overview?.totalCalls * 100).toFixed(1)}%
+                  </span>
+                )}
+              </div>
             </div>
             <div className="stat-card">
               <div className="stat-title">Avg. Call Duration</div>
               <div className="stat-value">{metrics.overview?.averageCallDuration || '0:00'}</div>
+              <div className="stat-trend">
+                {metricsHistory.length > 0 && (
+                  <span className={`trend-indicator ${metrics.overview?.averageCallDuration > metricsHistory[0].data.overview?.averageCallDuration ? 'positive' : 'negative'}`}>
+                    {((metrics.overview?.averageCallDuration - metricsHistory[0].data.overview?.averageCallDuration) / metricsHistory[0].data.overview?.averageCallDuration * 100).toFixed(1)}%
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

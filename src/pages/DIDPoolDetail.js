@@ -42,6 +42,11 @@ const DIDPoolDetail = () => {
     setIsLoading(true);
     setError(null);
     try {
+      if (!id) {
+        setError('Invalid DID pool ID');
+        setIsLoading(false);
+        return;
+      }
       const response = await apiService.didPools.getById(id);
       setDIDPool(response.data);
     } catch (err) {
@@ -56,6 +61,11 @@ const DIDPoolDetail = () => {
     setIsLoading(true);
     setError(null);
     try {
+      if (!id) {
+        setError('Invalid DID pool ID');
+        setIsLoading(false);
+        return;
+      }
       const response = await apiService.didPools.getDids(id);
       const allDIDs = response.data || [];
       

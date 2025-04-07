@@ -26,10 +26,12 @@ const DIDPools = () => {
     setError(null);
     try {
       const response = await apiService.didPools.getAll();
-      setDidPools(response.data || []);
+      // Ensure we're using the data array from the response
+      setDidPools(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error('Error fetching DID pools:', err);
       setError('Failed to load DID pools. Please try again later.');
+      setDidPools([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +113,7 @@ const DIDPools = () => {
         )}
 
         <div className="content-body">
-          {didPools.length > 0 ? (
+          {didPools && didPools.length > 0 ? (
             <div className="table-container">
               <table className="data-table">
                 <thead>

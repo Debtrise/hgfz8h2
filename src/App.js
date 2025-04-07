@@ -29,6 +29,7 @@ import LeadsList from "./pages/LeadsList";
 import LeadDetail from "./pages/LeadDetail";
 import Settings from "./pages/Settings";
 import LeadManagement from "./pages/LeadManagement";
+import Features from "./pages/Features";
 
 // Import Journey components
 import JourneyBuilderList from "./components/JourneyBuilderList";
@@ -96,6 +97,9 @@ function App() {
                 {/* Dashboard */}
                 <Route index element={<Navigate to="/dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
+                
+                {/* Features route */}
+                <Route path="features" element={<Features />} />
 
                 {/* Campaign routes */}
                 <Route path="campaigns" element={<Campaigns />} />

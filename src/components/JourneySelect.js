@@ -2,11 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./JourneySelect.css";
 import apiService from "../services/apiService";
-import { Select, Button, Modal, Form, Input, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import { getAllJourneys, createJourney } from '../services/journeyService';
+import { Select, Button, Modal, Form, Input, message, Space, Typography } from 'antd';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { getAllJourneys, createJourney, deleteJourney } from '../services/journeyService';
 
 const { Option } = Select;
+const { TextArea } = Input;
+const { Title } = Typography;
 
 const JourneySelect = ({
   campaignData = null,
@@ -17,6 +19,12 @@ const JourneySelect = ({
   value,
   onChange,
   disabled,
+  placeholder = 'Select a journey',
+  allowClear = true,
+  style,
+  showCreate = true,
+  showDelete = false,
+  allowBulkSelect = false
 }) => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -43,6 +51,7 @@ const JourneySelect = ({
   const [newJourneyDescription, setNewJourneyDescription] = useState("");
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedJourneys, setSelectedJourneys] = useState([]);
 
   // Update parent component when journeys change
   useEffect(() => {
@@ -124,6 +133,16 @@ const JourneySelect = ({
     }
   };
 
+  // Handle journey selection
+  const handleJourneySelect = (selectedValue) => {
+    if (allowBulkSelect) {
+      setSelectedJourneys(selectedValue);
+      onChange(selectedValue);
+    } else {
+      onChange(selectedValue);
+    }
+  };
+
   // Add a new journey
   const handleCreateJourney = async () => {
     try {
@@ -154,33 +173,46 @@ const JourneySelect = ({
     }
   };
 
-  // Delete a journey
-  const deleteJourney = async (journeyId) => {
-    if (!window.confirm("Are you sure you want to delete this journey?")) {
+  // Delete selected journeys
+  const handleDeleteJourneys = async () => {
+    if (!selectedJourneys.length) {
+      message.warning('Please select journeys to delete');
       return;
     }
     
+    Modal.confirm({
+      title: 'Delete Journeys',
+      content: `Are you sure you want to delete ${selectedJourneys.length} journey(s)?`,
+      okText: 'Yes',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk: async () => {
     setIsSubmitting(true);
     setError(null);
     
     try {
-      // Delete the journey from the API
-      await apiService.journeys.delete(journeyId);
+          // Delete all selected journeys
+          await Promise.all(selectedJourneys.map(id => apiService.journeys.delete(id)));
       
-      // Remove the journey from the list
-      const updatedJourneys = journeys.filter(journey => journey.id !== journeyId);
+          // Remove deleted journeys from the list
+          const updatedJourneys = journeys.filter(journey => !selectedJourneys.includes(journey.id));
       setJourneys(updatedJourneys);
+          setSelectedJourneys([]);
       
       // Update the parent component
       if (updateJourneys) {
         updateJourneys(updatedJourneys);
       }
+          
+          message.success('Journeys deleted successfully');
     } catch (err) {
-      console.error("Error deleting journey:", err);
-      setError("Failed to delete journey. Please try again later.");
+          console.error("Error deleting journeys:", err);
+          setError("Failed to delete journeys. Please try again later.");
     } finally {
       setIsSubmitting(false);
     }
+      }
+    });
   };
 
   // Validate the journey day ranges
@@ -354,6 +386,7 @@ const JourneySelect = ({
           setModalVisible(false);
           form.resetFields();
         }}
+        confirmLoading={isSubmitting}
       >
         <Form
           form={form}

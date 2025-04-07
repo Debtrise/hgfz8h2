@@ -1,37 +1,145 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Campaigns.css"; // Using the same CSS file
+import "./Campaigns.css";
 import apiService from "../services/apiService";
+
+// Mock data for testing if API is not available
+const getMockCampaigns = () => {
+  return {
+    data: {
+      campaigns: [
+        {
+          id: 1,
+          name: "Summer Promotion",
+          brand: "Acme",
+          source: "Email",
+          description: "A campaign to promote summer products",
+          status: "active",
+          createdAt: "2023-06-01T00:00:00Z",
+          metrics: {
+            contacts: 1200,
+            conversionRate: 15.5
+          }
+        },
+        {
+          id: 2,
+          name: "Fall Collection",
+          brand: "Tax Relief Solutions",
+          source: "Facebook Ads",
+          description: "Promoting our fall collection",
+          status: "inactive",
+          createdAt: "2023-09-01T00:00:00Z",
+          metrics: {
+            contacts: 800,
+            conversionRate: 12.3
+          }
+        },
+        {
+          id: 3,
+          name: "Holiday Special",
+          brand: "Debt Consolidation",
+          source: "Google Ads",
+          description: "Holiday special offers",
+          status: "active",
+          createdAt: "2023-12-01T00:00:00Z",
+          metrics: {
+            contacts: 1500,
+            conversionRate: 18.7
+          }
+        }
+      ],
+      total: 3
+    }
+  };
+};
 
 const Campaigns = () => {
   const navigate = useNavigate();
 
   // State for campaigns data
   const [campaigns, setCampaigns] = useState([]);
-
-  // Enhanced state management
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  
+  // Filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [brandFilter, setBrandFilter] = useState("all");
   const [sortOption, setSortOption] = useState("name_asc");
-  const [togglingId, setTogglingId] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Dropdown options from API
+  const [brandOptions, setBrandOptions] = useState([]);
+  const [sourceOptions, setSourceOptions] = useState([]);
+  
+  // UI state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState(null);
-  const [error, setError] = useState(null);
-  const [totalPages, setTotalPages] = useState(1);
+  const [togglingId, setTogglingId] = useState(null);
+  
+  // Flag to use mock data if API fails
+  const [useMockData, setUseMockData] = useState(false);
 
   // Fetch campaigns from API
   useEffect(() => {
     fetchCampaigns();
   }, [currentPage, itemsPerPage, searchTerm, sourceFilter, brandFilter, sortOption]);
 
+  // Fetch dropdown options when component mounts
+  useEffect(() => {
+    fetchDropdownOptions();
+  }, []);
+
+  // Fetch dropdown options from API
+  const fetchDropdownOptions = async () => {
+    try {
+      console.log('Fetching dropdown options...');
+      
+      let response;
+      if (useMockData) {
+        response = getMockCampaigns();
+      } else {
+        // Fetch campaigns to extract unique brands and sources
+        response = await apiService.campaigns.getAll({ limit: 100 });
+      }
+      
+      console.log('Dropdown options API response:', response);
+      
+      if (response && response.data) {
+        // Extract unique brands and sources from the transformed data
+        const brands = [...new Set(response.data.map(campaign => campaign.brand))].filter(Boolean);
+        const sources = [...new Set(response.data.map(campaign => campaign.source))].filter(Boolean);
+        
+        console.log('Extracted brands:', brands);
+        console.log('Extracted sources:', sources);
+        
+        setBrandOptions(brands);
+        setSourceOptions(sources);
+      } else {
+        console.warn('Unexpected API response format for dropdown options:', response);
+      }
+    } catch (err) {
+      console.error("Error fetching dropdown options:", err);
+      // Fall back to mock data if API fails
+      setUseMockData(true);
+      const mockResponse = getMockCampaigns();
+      const brands = [...new Set(mockResponse.data.campaigns.map(campaign => campaign.brand))].filter(Boolean);
+      const sources = [...new Set(mockResponse.data.campaigns.map(campaign => campaign.source))].filter(Boolean);
+      setBrandOptions(brands);
+      setSourceOptions(sources);
+    }
+  };
+
   const fetchCampaigns = async () => {
     setIsLoading(true);
     setError(null);
     try {
+      // Prepare query parameters based on filters
       const params = {
         page: currentPage,
         limit: itemsPerPage,
@@ -41,16 +149,56 @@ const Campaigns = () => {
         sort: sortOption
       };
       
-      const response = await apiService.campaigns.getAll(params);
-      setCampaigns(response.data.campaigns || []);
+      console.log('Fetching campaigns with params:', params);
       
-      // Update total pages from API response
-      if (response.data.total) {
-        setTotalPages(Math.ceil(response.data.total / itemsPerPage));
+      let response;
+      if (useMockData) {
+        response = getMockCampaigns();
+      } else {
+        response = await apiService.campaigns.getAll(params);
+      }
+      
+      console.log('API response:', response);
+      
+      // Check if response has the expected structure
+      if (response && response.data) {
+        // Transform the data to match our component's expected format
+        const transformedCampaigns = response.data.map(campaign => ({
+          id: campaign.id,
+          name: campaign.name,
+          description: campaign.description,
+          brand: campaign.brand,
+          source: campaign.source,
+          status: campaign.status,
+          createdAt: campaign.created_at,
+          leadPoolId: campaign.lead_pool_id,
+          didPoolId: campaign.did_pool_id,
+          leadPoolName: campaign.lead_pool_name,
+          didPoolName: campaign.did_pool_name,
+          journeyCount: campaign.journey_count
+        }));
+        
+        // Set campaigns data
+        setCampaigns(transformedCampaigns);
+        
+        // Update pagination data
+        setTotalItems(response.data.length);
+        setTotalPages(Math.ceil(response.data.length / itemsPerPage));
+      } else {
+        console.warn('Unexpected API response format:', response);
+        setCampaigns([]);
+        setTotalItems(0);
+        setTotalPages(1);
       }
     } catch (err) {
       console.error("Error fetching campaigns:", err);
       setError("Failed to load campaigns. Please try again later.");
+      // Fall back to mock data if API fails
+      setUseMockData(true);
+      const mockResponse = getMockCampaigns();
+      setCampaigns(mockResponse.data.campaigns);
+      setTotalItems(mockResponse.data.total);
+      setTotalPages(Math.ceil(mockResponse.data.total / itemsPerPage));
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +224,8 @@ const Campaigns = () => {
   const confirmDelete = async () => {
     try {
       await apiService.campaigns.delete(campaignToDelete);
-      setCampaigns(campaigns.filter(campaign => campaign.id !== campaignToDelete));
+      // Refresh the campaigns list after deletion
+      fetchCampaigns();
       setShowDeleteModal(false);
       setCampaignToDelete(null);
     } catch (err) {
@@ -93,17 +242,17 @@ const Campaigns = () => {
       const campaign = campaigns.find(c => c.id === id);
       if (!campaign) return;
       
-      const updatedCampaign = { 
-        ...campaign, 
-        status: campaign.status === "active" ? "inactive" : "active" 
-      };
-      await apiService.campaigns.update(id, updatedCampaign);
+      const newStatus = campaign.status === "active" ? "inactive" : "active";
       
-      setCampaigns(
-        campaigns.map((c) =>
-          c.id === id ? updatedCampaign : c
-        )
-      );
+      // Use the appropriate API method based on status
+      if (newStatus === "active") {
+        await apiService.campaigns.start(id);
+      } else {
+        await apiService.campaigns.pause(id);
+      }
+      
+      // Refresh the campaigns list to get updated data
+      fetchCampaigns();
     } catch (err) {
       console.error("Error toggling campaign status:", err);
       setError("Failed to update campaign status. Please try again later.");
@@ -120,56 +269,9 @@ const Campaigns = () => {
   // Handle sort change
   const handleSortChange = (e) => {
     setSortOption(e.target.value);
+    setCurrentPage(1); // Reset to first page when sort changes
   };
   
-  // Filter & sort campaigns with useMemo to optimize performance
-  const filteredCampaigns = useMemo(() => {
-    // First, filter campaigns
-    let result = campaigns.filter(campaign => {
-      // Filter by search term
-      const matchesSearch = searchTerm === "" || 
-        campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        campaign.description.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      // Filter by source
-      const matchesSource = sourceFilter === "all" || campaign.source === sourceFilter;
-      
-      // Filter by brand
-      const matchesBrand = brandFilter === "all" || campaign.brand === brandFilter;
-      
-      return matchesSearch && matchesSource && matchesBrand;
-    });
-    
-    // Then, sort campaigns
-    return result.sort((a, b) => {
-      switch (sortOption) {
-        case "name_asc":
-          return a.name.localeCompare(b.name);
-        case "name_desc":
-          return b.name.localeCompare(a.name);
-        case "date_asc":
-          return new Date(a.createdAt) - new Date(b.createdAt);
-        case "date_desc":
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        case "conversion_rate":
-          return b.metrics?.conversionRate - a.metrics?.conversionRate;
-        default:
-          return 0;
-      }
-    });
-  }, [campaigns, searchTerm, sourceFilter, brandFilter, sortOption]);
-  
-  // Get current campaigns for pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentCampaigns = filteredCampaigns.slice(indexOfFirstItem, indexOfLastItem);
-  
-  // Calculate total pages - using the state variable instead of redeclaring
-  // Update the totalPages state when filteredCampaigns changes
-  useEffect(() => {
-    setTotalPages(Math.ceil(filteredCampaigns.length / itemsPerPage));
-  }, [filteredCampaigns, itemsPerPage]);
-
   // Change page
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
@@ -228,7 +330,10 @@ const Campaigns = () => {
               className="search-input"
               placeholder="Search campaigns..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1); // Reset to first page when search changes
+              }}
             />
           </div>
 
@@ -239,13 +344,15 @@ const Campaigns = () => {
                 <select 
                   id="source" 
                   value={sourceFilter}
-                  onChange={(e) => setSourceFilter(e.target.value)}
+                  onChange={(e) => {
+                    setSourceFilter(e.target.value);
+                    setCurrentPage(1); // Reset to first page when filter changes
+                  }}
                 >
                   <option value="all">All Sources</option>
-                  <option value="Facebook Ads">Facebook Ads</option>
-                  <option value="Google Ads">Google Ads</option>
-                  <option value="Email Campaign">Email Campaign</option>
-                  <option value="Referral">Referral</option>
+                  {sourceOptions.map((source, index) => (
+                    <option key={index} value={source}>{source}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -256,12 +363,15 @@ const Campaigns = () => {
                 <select 
                   id="brand" 
                   value={brandFilter}
-                  onChange={(e) => setBrandFilter(e.target.value)}
+                  onChange={(e) => {
+                    setBrandFilter(e.target.value);
+                    setCurrentPage(1); // Reset to first page when filter changes
+                  }}
                 >
                   <option value="all">All Brands</option>
-                  <option value="Tax Relief Solutions">Tax Relief Solutions</option>
-                  <option value="Debt Consolidation">Debt Consolidation</option>
-                  <option value="Credit Repair">Credit Repair</option>
+                  {brandOptions.map((brand, index) => (
+                    <option key={index} value={brand}>{brand}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -288,7 +398,7 @@ const Campaigns = () => {
           <div className="stats-summary">
             <div className="stat-card">
               <div className="stat-title">Total Campaigns</div>
-              <div className="stat-value">{campaigns.length}</div>
+              <div className="stat-value">{totalItems}</div>
               <div className="stat-subtitle">{campaigns.filter(c => c.status === "active").length} active</div>
             </div>
             <div className="stat-card">
@@ -311,12 +421,12 @@ const Campaigns = () => {
 
           {/* Campaigns list */}
           <div className="campaigns-list">
-            {currentCampaigns.length > 0 ? (
-              currentCampaigns.map((campaign) => (
+            {campaigns.length > 0 ? (
+              campaigns.map((campaign) => (
                 <div className="campaign-item" key={campaign.id}>
                   <div className="campaign-info" onClick={() => handleViewCampaign(campaign.id)}>
                     <h2 className="campaign-name">{campaign.name}</h2>
-                    <p className="campaign-description">{campaign.description}</p>
+                    <p className="campaign-description">{campaign.description || 'No description'}</p>
                     <div className="campaign-tags">
                       <span className="campaign-tag">{campaign.brand}</span>
                       <span className="campaign-tag">{campaign.source}</span>
@@ -381,7 +491,7 @@ const Campaigns = () => {
           </div>
 
           {/* Pagination */}
-          {filteredCampaigns.length > itemsPerPage && (
+          {totalPages > 1 && (
             <div className="pagination">
               <button 
                 className="pagination-button"

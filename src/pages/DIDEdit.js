@@ -27,6 +27,11 @@ const DIDEdit = () => {
     setIsLoading(true);
     setError(null);
     try {
+      if (!id) {
+        setError('Invalid DID ID');
+        setIsLoading(false);
+        return;
+      }
       const response = await apiService.dids.getById(id);
       setDid(response.data);
       setFormData({

@@ -26,6 +26,11 @@ const DIDDetail = () => {
   const fetchDID = async () => {
     try {
       setIsLoading(true);
+      if (!id) {
+        setError('Invalid DID ID');
+        setIsLoading(false);
+        return;
+      }
       const response = await apiService.dids.getById(id);
       setDid(response.data);
       setFormData({

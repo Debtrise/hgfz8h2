@@ -36,6 +36,11 @@ const LeadPools = () => {
   const [sources, setSources] = useState([]);
   const [availableFields, setAvailableFields] = useState([]);
   const [filePreview, setFilePreview] = useState(null);
+  const [stats, setStats] = useState({
+    totalLeads: 0,
+    activePools: 0,
+    averageLeadsPerPool: 0
+  });
 
   // Fetch lead pools, brands, and sources on component mount
   useEffect(() => {
@@ -49,11 +54,21 @@ const LeadPools = () => {
     setError(null);
     try {
       const response = await apiService.leadPools.getAll();
-      setLeadPools(response.data || []);
+      const pools = response.data || [];
+      setLeadPools(pools);
+      
+      // Calculate stats
+      const totalLeads = pools.reduce((sum, pool) => sum + (pool.lead_count || 0), 0);
+      const activePools = pools.filter(pool => pool.status === 'active').length;
+      setStats({
+        totalLeads,
+        activePools,
+        averageLeadsPerPool: pools.length ? Math.round(totalLeads / pools.length) : 0
+      });
     } catch (err) {
       console.error('Error fetching lead pools:', err);
       setError('Failed to load lead pools. Please try again later.');
-      setLeadPools([]); // Set empty array on error
+      setLeadPools([]);
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +80,7 @@ const LeadPools = () => {
       setBrands(response.data || []);
     } catch (err) {
       console.error('Error fetching brands:', err);
-      }
+    }
   };
 
   const fetchSources = async () => {
@@ -206,173 +221,124 @@ const LeadPools = () => {
       });
       setFilePreview(null);
       setSelectedPool(null);
-      
-      // Show success message
-      alert('Leads uploaded successfully!');
-      fetchLeadPools(); // Refresh the list to show updated lead counts
+      fetchLeadPools();
     } catch (err) {
       console.error('Error uploading leads:', err);
       setError('Failed to upload leads. Please try again.');
     }
   };
 
-  const handleDeleteLeadPool = async (id) => {
-    if (window.confirm('Are you sure you want to delete this lead pool? This action cannot be undone.')) {
-      try {
-        await apiService.leadPools.delete(id);
-        fetchLeadPools();
-      } catch (err) {
-        console.error('Error deleting lead pool:', err);
-        setError('Failed to delete lead pool. Please try again.');
-      }
+  const handleDeleteLeadPool = async (pool) => {
+    if (!window.confirm(`Are you sure you want to delete ${pool.name}?`)) return;
+    
+    try {
+      await apiService.leadPools.delete(pool.id);
+      fetchLeadPools();
+    } catch (err) {
+      console.error('Error deleting lead pool:', err);
+      setError('Failed to delete lead pool. Please try again.');
     }
   };
 
-  const openUploadModal = (pool) => {
-    setSelectedPool(pool);
-    setShowUploadModal(true);
-  };
-
-  const openCreateModal = () => {
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setFormData({
-      name: '',
-      description: '',
-      brand: '',
-      source: '',
-      criteria: {
-        minAge: '',
-        maxAge: '',
-        location: '',
-        income: '',
-        creditScore: ''
-      }
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
-  };
-
-  const closeUploadModal = () => {
-    setShowUploadModal(false);
-    setUploadData({
-      file: null,
-      mapping: {},
-      options: {
-        skipHeader: true,
-        updateExisting: false
-      }
-    });
-    setFilePreview(null);
-    setSelectedPool(null);
-  };
-
-  const viewLeadPoolDetails = (id) => {
-    navigate(`/lead-pools/${id}`);
   };
 
   if (isLoading) {
     return (
-      <div className="lead-pools-container">
-        <div className="loading-spinner">Loading...</div>
+      <div className="loading-spinner">
+        <div className="spinner" />
       </div>
     );
   }
 
   return (
     <div className="lead-pools-container">
-      <div className="page-header">
+      <div className="lead-pools-header">
         <h1>Lead Pools</h1>
-        <button className="create-button" onClick={openCreateModal}>
-              Create Lead Pool
-            </button>
-          </div>
+        <button 
+          className="action-button primary-button"
+          onClick={() => setShowModal(true)}
+        >
+          Create Lead Pool
+        </button>
+      </div>
 
-      {error && (
-        <div className="error-message">
-          {error}
-          <button className="dismiss-button" onClick={() => setError(null)}>×</button>
+      <div className="lead-pools-stats">
+        <div className="stat-card">
+          <h3>Total Leads</h3>
+          <div className="value">{stats.totalLeads.toLocaleString()}</div>
         </div>
-      )}
+        <div className="stat-card">
+          <h3>Active Pools</h3>
+          <div className="value">{stats.activePools}</div>
+        </div>
+        <div className="stat-card">
+          <h3>Avg. Leads per Pool</h3>
+          <div className="value">{stats.averageLeadsPerPool.toLocaleString()}</div>
+        </div>
+      </div>
 
-      <div className="lead-pools-table-container">
-        {leadPools.length > 0 ? (
-          <table className="lead-pools-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Lead Age</th>
-                <th>Criteria</th>
-                <th>Status</th>
-                <th>Lead Count</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leadPools.map(pool => (
-                <tr key={pool.id}>
-                  <td>{pool.name}</td>
-                  <td>{pool.description}</td>
-                  <td>{pool.lead_age_min}-{pool.lead_age_max} days</td>
-                  <td>
-                    {pool.criteria && (
-                      <ul className="criteria-list">
-                        {Object.entries(pool.criteria).map(([key, value]) => (
-                          <li key={key}>{key}: {value}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </td>
-                  <td>
-                    <span className={`status-badge ${pool.status.toLowerCase()}`}>
-                      {pool.status}
-                    </span>
-                  </td>
-                  <td>{pool.lead_count || 0}</td>
-                  <td className="action-buttons">
-                    <button 
-                      className="action-button view-button"
-                      onClick={() => viewLeadPoolDetails(pool.id)}
-                      title="View Details"
-                    >
-                      <i className="fas fa-eye"></i>
-                    </button>
-                    <button 
-                      className="action-button upload-button"
-                      onClick={() => openUploadModal(pool)}
-                      title="Upload Leads"
-                    >
-                      <i className="fas fa-upload"></i>
-                    </button>
-                    <button 
-                      className="action-button delete-button"
-                      onClick={() => handleDeleteLeadPool(pool.id)}
-                      title="Delete"
-                    >
-                      <i className="fas fa-trash"></i>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div className="empty-state">
-            <p>No lead pools found. Create your first lead pool to get started.</p>
+      <div className="lead-pools-grid">
+        {leadPools.map(pool => (
+          <div key={pool.id} className="lead-pool-card">
+            <h3>{pool.name}</h3>
+            <p>{pool.description || 'No description provided.'}</p>
+            
+            <div className="lead-pool-meta">
+              <div className="meta-item">
+                {pool.lead_count?.toLocaleString() || 0} leads
+              </div>
+              <div className="meta-item">
+                Created {formatDate(pool.created_at)}
+              </div>
+              <div className="meta-item">
+                Age {pool.lead_age_min}-{pool.lead_age_max} days
+              </div>
             </div>
-        )}
+            
+            <div className="lead-pool-actions">
+              <button 
+                className="action-button secondary-button"
+                onClick={() => navigate(`/lead-pools/${pool.id}`)}
+              >
+                View Details
+              </button>
+              <button 
+                className="action-button secondary-button"
+                onClick={() => {
+                  setSelectedPool(pool);
+                  setShowUploadModal(true);
+                }}
+              >
+                Import Leads
+              </button>
+              <button 
+                className="action-button danger-button"
+                onClick={() => handleDeleteLeadPool(pool)}
+              >
+                Delete
+              </button>
             </div>
+          </div>
+        ))}
+      </div>
 
       {/* Create Lead Pool Modal */}
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Create Lead Pool</h2>
-              <button className="close-button" onClick={closeModal}>×</button>
+              <button className="close-button" onClick={() => setShowModal(false)}>
+                <i className="fas fa-times" />
+              </button>
             </div>
+            
             <form onSubmit={handleCreateLeadPool}>
               <div className="form-group">
                 <label htmlFor="name">Name</label>
@@ -380,119 +346,109 @@ const LeadPools = () => {
                   type="text"
                   id="name"
                   name="name"
+                  className="form-control"
                   value={formData.name}
                   onChange={handleInputChange}
                   required
+                  placeholder="Enter lead pool name"
                 />
-            </div>
+              </div>
+              
               <div className="form-group">
                 <label htmlFor="description">Description</label>
                 <textarea
                   id="description"
                   name="description"
+                  className="form-control"
                   value={formData.description}
                   onChange={handleInputChange}
-                  rows="3"
+                  rows={3}
+                  placeholder="Describe the purpose of this lead pool"
                 />
-          </div>
+              </div>
+              
               <div className="form-group">
-                <label htmlFor="brand">Brand</label>
-                <select
-                  id="brand"
-                  name="brand"
-                  value={formData.brand}
+                <label htmlFor="criteria.minAge">Minimum Lead Age (days)</label>
+                <input
+                  type="number"
+                  id="criteria.minAge"
+                  name="criteria.minAge"
+                  className="form-control"
+                  value={formData.criteria.minAge}
                   onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Select Brand</option>
-                  {brands.map(brand => (
-                    <option key={brand.id} value={brand.name}>{brand.name}</option>
-                  ))}
-                </select>
+                  min="0"
+                  placeholder="e.g., 0"
+                />
               </div>
+              
               <div className="form-group">
-                <label htmlFor="source">Source</label>
-                <select
-                  id="source"
-                  name="source"
-                  value={formData.source}
+                <label htmlFor="criteria.maxAge">Maximum Lead Age (days)</label>
+                <input
+                  type="number"
+                  id="criteria.maxAge"
+                  name="criteria.maxAge"
+                  className="form-control"
+                  value={formData.criteria.maxAge}
                   onChange={handleInputChange}
-                  required
+                  min="0"
+                  placeholder="e.g., 30"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="criteria.location">Location</label>
+                <input
+                  type="text"
+                  id="criteria.location"
+                  name="criteria.location"
+                  className="form-control"
+                  value={formData.criteria.location}
+                  onChange={handleInputChange}
+                  placeholder="e.g., California, New York"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="criteria.income">Income Range</label>
+                <input
+                  type="text"
+                  id="criteria.income"
+                  name="criteria.income"
+                  className="form-control"
+                  value={formData.criteria.income}
+                  onChange={handleInputChange}
+                  placeholder="e.g., $50,000-$100,000"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="criteria.creditScore">Credit Score Range</label>
+                <input
+                  type="text"
+                  id="criteria.creditScore"
+                  name="criteria.creditScore"
+                  className="form-control"
+                  value={formData.criteria.creditScore}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 650-750"
+                />
+              </div>
+              
+              <div className="lead-pool-actions">
+                <button 
+                  type="button" 
+                  className="action-button secondary-button"
+                  onClick={() => setShowModal(false)}
                 >
-                  <option value="">Select Source</option>
-                  {sources.map(source => (
-                    <option key={source.id} value={source.name}>{source.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-section">
-                <h3>Criteria</h3>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="minAge">Min Age</label>
-                    <input
-                      type="number"
-                      id="minAge"
-                      name="criteria.minAge"
-                      value={formData.criteria.minAge}
-                      onChange={handleInputChange}
-                    />
-            </div>
-                  <div className="form-group">
-                    <label htmlFor="maxAge">Max Age</label>
-                    <input
-                      type="number"
-                      id="maxAge"
-                      name="criteria.maxAge"
-                      value={formData.criteria.maxAge}
-                      onChange={handleInputChange}
-                    />
-              </div>
-            </div>
-                <div className="form-group">
-                  <label htmlFor="location">Location</label>
-                  <input
-                    type="text"
-                    id="location"
-                    name="criteria.location"
-                    value={formData.criteria.location}
-                    onChange={handleInputChange}
-                    placeholder="e.g., California, New York"
-                  />
-          </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="income">Income</label>
-                    <input
-                      type="text"
-                      id="income"
-                      name="criteria.income"
-                      value={formData.criteria.income}
-                      onChange={handleInputChange}
-                      placeholder="e.g., >50000"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="creditScore">Credit Score</label>
-                      <input
-                      type="text"
-                      id="creditScore"
-                      name="criteria.creditScore"
-                      value={formData.criteria.creditScore}
-                      onChange={handleInputChange}
-                      placeholder="e.g., >650"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="cancel-button" onClick={closeModal}>
                   Cancel
-              </button>
-                <button type="submit" className="submit-button">
+                </button>
+                <button 
+                  type="submit" 
+                  className="action-button primary-button"
+                >
                   Create Lead Pool
-              </button>
-            </div>
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -500,12 +456,15 @@ const LeadPools = () => {
 
       {/* Upload Leads Modal */}
       {showUploadModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Upload Leads to {selectedPool?.name}</h2>
-              <button className="close-button" onClick={closeUploadModal}>×</button>
+              <h2>Import Leads to {selectedPool?.name}</h2>
+              <button className="close-button" onClick={() => setShowUploadModal(false)}>
+                <i className="fas fa-times" />
+              </button>
             </div>
+            
             <form onSubmit={handleUploadLeads}>
               <div className="form-group">
                 <label htmlFor="file">CSV File</label>
@@ -514,48 +473,49 @@ const LeadPools = () => {
                   id="file"
                   accept=".csv"
                   onChange={handleFileChange}
+                  className="form-control"
                   required
                 />
-                <p className="file-help">Upload a CSV file with lead information</p>
+                <small style={{ color: '#666', marginTop: '0.5rem', display: 'block' }}>
+                  Upload a CSV file containing lead information
+                </small>
               </div>
-
+              
               {filePreview && (
-                <div className="file-preview">
-                  <h3>File Preview</h3>
-                  <pre>{filePreview}</pre>
+                <div className="form-group">
+                  <label>File Preview</label>
+                  <pre className="form-control" style={{ maxHeight: '200px', overflow: 'auto' }}>{filePreview}</pre>
                 </div>
               )}
-
+              
               {availableFields.length > 0 && (
-                <div className="field-mapping">
-                  <h3>Field Mapping</h3>
-                  <p className="mapping-help">Map CSV columns to lead fields</p>
+                <div className="form-group">
+                  <label>Field Mapping</label>
+                  <small style={{ color: '#666', marginTop: '0.5rem', display: 'block', marginBottom: '1rem' }}>
+                    Map CSV columns to lead fields
+                  </small>
                   <div className="mapping-table">
                     <div className="mapping-header">
-                      <div className="mapping-cell">CSV Column</div>
+                      <div className="mapping-cell">CSV Header</div>
                       <div className="mapping-cell">Lead Field</div>
                     </div>
-                    {availableFields.map(field => (
-                      <div key={field} className="mapping-row">
-                        <div className="mapping-cell">{field}</div>
+                    {availableFields.map(header => (
+                      <div key={header} className="mapping-row">
+                        <div className="mapping-cell">{header}</div>
                         <div className="mapping-cell">
                           <select
-                            value={uploadData.mapping[field] || ''}
-                            onChange={(e) => handleMappingChange(field, e.target.value)}
+                            value={uploadData.mapping[header] || ''}
+                            onChange={e => handleMappingChange(header, e.target.value)}
+                            className="form-control"
                           >
-                            <option value="">-- Select Field --</option>
+                            <option value="">Select Field</option>
+                            <option value="phone">Phone</option>
                             <option value="first_name">First Name</option>
                             <option value="last_name">Last Name</option>
                             <option value="email">Email</option>
-                            <option value="phone">Phone</option>
-                            <option value="address">Address</option>
-                            <option value="city">City</option>
-                            <option value="state">State</option>
-                            <option value="zip">ZIP</option>
-                            <option value="age">Age</option>
-                            <option value="income">Income</option>
-                            <option value="credit_score">Credit Score</option>
-                            <option value="notes">Notes</option>
+                            <option value="lead_age">Lead Age</option>
+                            <option value="brand">Brand</option>
+                            <option value="source">Source</option>
                           </select>
                         </div>
                       </div>
@@ -563,41 +523,46 @@ const LeadPools = () => {
                   </div>
                 </div>
               )}
-
-              <div className="upload-options">
-                <h3>Upload Options</h3>
-                <div className="option-group">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="skipHeader"
-                      checked={uploadData.options.skipHeader}
-                      onChange={handleOptionChange}
-                    />
-                    Skip header row
-                  </label>
-                </div>
-                <div className="option-group">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="updateExisting"
-                      checked={uploadData.options.updateExisting}
-                      onChange={handleOptionChange}
-                    />
-                    Update existing leads
-                  </label>
-                </div>
-            </div>
-
-            <div className="modal-footer">
-                <button type="button" className="cancel-button" onClick={closeUploadModal}>
-                Cancel
-              </button>
-                <button type="submit" className="submit-button">
-                  Upload Leads
-              </button>
-            </div>
+              
+              <div className="form-group">
+                <label className="option-group">
+                  <input
+                    type="checkbox"
+                    name="skipHeader"
+                    checked={uploadData.options.skipHeader}
+                    onChange={handleOptionChange}
+                  />
+                  Skip Header Row
+                </label>
+              </div>
+              
+              <div className="form-group">
+                <label className="option-group">
+                  <input
+                    type="checkbox"
+                    name="updateExisting"
+                    checked={uploadData.options.updateExisting}
+                    onChange={handleOptionChange}
+                  />
+                  Update Existing Leads
+                </label>
+              </div>
+              
+              <div className="lead-pool-actions">
+                <button 
+                  type="button" 
+                  className="action-button secondary-button"
+                  onClick={() => setShowUploadModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="action-button primary-button"
+                >
+                  Import Leads
+                </button>
+              </div>
             </form>
           </div>
         </div>

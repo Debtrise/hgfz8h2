@@ -16,7 +16,9 @@ import {
   Row, 
   Col, 
   Statistic,
-  Spin
+  Spin,
+  Modal,
+  Alert
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -31,7 +33,8 @@ import {
   BranchesOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined,
+  CopyOutlined
 } from '@ant-design/icons';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { 
@@ -40,9 +43,12 @@ import {
   updateJourney,
   getJourneySteps,
   addJourneyStep,
+  addBulkJourneySteps,
   updateJourneyStep,
   deleteJourneyStep,
-  reorderJourneySteps
+  reorderJourneySteps,
+  cloneJourney,
+  testJourneyStep
 } from '../services/journeyService';
 import './JourneyBuilderList.css';
 
@@ -65,6 +71,10 @@ const JourneyBuilderList = () => {
   const [journeyDrawerVisible, setJourneyDrawerVisible] = useState(false);
   const [editingStep, setEditingStep] = useState(null);
   const [activeTab, setActiveTab] = useState('steps');
+  const [testModalVisible, setTestModalVisible] = useState(false);
+  const [testForm] = Form.useForm();
+  const [testingStep, setTestingStep] = useState(null);
+  const [testResults, setTestResults] = useState(null);
   
   // Action types with their respective icons
   const actionTypes = [
@@ -174,6 +184,39 @@ const JourneyBuilderList = () => {
       } finally {
         setLoading(false);
       }
+    }
+  };
+
+  // Add multiple steps at once
+  const handleAddBulkSteps = async (newSteps) => {
+    if (id) {
+      try {
+        setLoading(true);
+        const stepsData = newSteps.map(step => ({
+          actionType: step.actionType,
+          actionConfig: step.actionConfig,
+          delayMinutes: step.delayMinutes,
+          sequenceOrder: step.sequenceOrder
+        }));
+        
+        const response = await addBulkJourneySteps(id, stepsData);
+        
+        // Update steps with IDs from the backend
+        const updatedSteps = steps.map(step => {
+          const matchingStep = response.find(s => s.sequence_order === step.sequenceOrder);
+          return matchingStep ? { ...step, id: matchingStep.id } : step;
+        });
+        
+        setSteps(updatedSteps);
+        message.success('Steps added successfully');
+      } catch (error) {
+        console.error('Error adding bulk steps:', error);
+        message.error('Failed to add steps');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setSteps([...steps, ...newSteps]);
     }
   };
 
@@ -356,6 +399,11 @@ const JourneyBuilderList = () => {
           description: journey?.description || 'Journey description',
           status: journey?.status || 'draft'
         });
+        
+        // Add all steps in bulk
+        if (formattedSteps.length > 0) {
+          await addBulkJourneySteps(id, formattedSteps);
+        }
         
         message.success('Journey updated successfully');
       } else {
@@ -581,7 +629,7 @@ const JourneyBuilderList = () => {
               </Space>
             </div>
             <div className="step-card-content">
-              <Text strong>{step.actionType.charAt(0).toUpperCase() + step.actionType.slice(1)}</Text>
+              <Text strong>{step.actionType ? step.actionType.charAt(0).toUpperCase() + step.actionType.slice(1) : 'Unknown Action'}</Text>
               {step.delayMinutes > 0 && (
                 <Text type="secondary">Wait: {step.delayMinutes} minutes</Text>
               )}
@@ -636,6 +684,44 @@ const JourneyBuilderList = () => {
     );
   };
 
+  // Handle journey cloning
+  const handleCloneJourney = async () => {
+    try {
+      setLoading(true);
+      const values = await journeyForm.validateFields();
+      const clonedJourney = await cloneJourney(id, `${values.name} (Copy)`);
+      message.success('Journey cloned successfully');
+      navigate(`/journeys/${clonedJourney.journey.id}`);
+    } catch (error) {
+      console.error('Error cloning journey:', error);
+      message.error('Failed to clone journey');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle step testing
+  const handleTestStep = async (step) => {
+    setTestingStep(step);
+    setTestModalVisible(true);
+    testForm.resetFields();
+  };
+
+  const handleTestSubmit = async () => {
+    try {
+      setLoading(true);
+      const values = await testForm.validateFields();
+      const results = await testJourneyStep(id, testingStep.id, values);
+      setTestResults(results);
+      message.success('Step test completed successfully');
+    } catch (error) {
+      console.error('Error testing step:', error);
+      message.error('Failed to test step');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="journey-builder">
       <Spin spinning={loading}>
@@ -652,6 +738,14 @@ const JourneyBuilderList = () => {
               >
                 Edit Details
               </Button>
+              {id && (
+                <Button
+                  icon={<CopyOutlined />}
+                  onClick={handleCloneJourney}
+                >
+                  Clone Journey
+                </Button>
+              )}
               <Button 
                 type="primary" 
                 icon={<SaveOutlined />} 
@@ -717,6 +811,86 @@ const JourneyBuilderList = () => {
             </Card>
           </TabPane>
         </Tabs>
+
+        {/* Test Step Modal */}
+        <Modal
+          title="Test Journey Step"
+          open={testModalVisible}
+          onOk={handleTestSubmit}
+          onCancel={() => {
+            setTestModalVisible(false);
+            setTestingStep(null);
+            setTestResults(null);
+            testForm.resetFields();
+          }}
+          width={600}
+        >
+          <Form
+            form={testForm}
+            layout="vertical"
+          >
+            {testingStep?.action_type === 'call' && (
+              <Form.Item
+                name="testPhone"
+                label="Test Phone Number"
+                rules={[{ required: true, message: 'Please enter a test phone number' }]}
+              >
+                <Input placeholder="Enter test phone number" />
+              </Form.Item>
+            )}
+            
+            {testingStep?.action_type === 'sms' && (
+              <Form.Item
+                name="testPhone"
+                label="Test Phone Number"
+                rules={[{ required: true, message: 'Please enter a test phone number' }]}
+              >
+                <Input placeholder="Enter test phone number" />
+              </Form.Item>
+            )}
+            
+            {testingStep?.action_type === 'email' && (
+              <Form.Item
+                name="testEmail"
+                label="Test Email Address"
+                rules={[
+                  { required: true, message: 'Please enter a test email address' },
+                  { type: 'email', message: 'Please enter a valid email address' }
+                ]}
+              >
+                <Input placeholder="Enter test email address" />
+              </Form.Item>
+            )}
+          </Form>
+
+          {testResults && (
+            <div className="test-results">
+              <Divider>Test Results</Divider>
+              <Alert
+                message={testResults.message}
+                description={
+                  <div>
+                    <p><strong>Action Type:</strong> {testResults.details.actionType}</p>
+                    {testResults.details.recipient && (
+                      <p><strong>Recipient:</strong> {testResults.details.recipient}</p>
+                    )}
+                    {testResults.details.message && (
+                      <p><strong>Message:</strong> {testResults.details.message}</p>
+                    )}
+                    {testResults.details.subject && (
+                      <p><strong>Subject:</strong> {testResults.details.subject}</p>
+                    )}
+                    {testResults.details.delayMinutes && (
+                      <p><strong>Delay:</strong> {testResults.details.delayMinutes} minutes</p>
+                    )}
+                  </div>
+                }
+                type="success"
+                showIcon
+              />
+            </div>
+          )}
+        </Modal>
       </Spin>
 
       {/* Step Edit Drawer */}

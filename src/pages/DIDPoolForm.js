@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import apiService from "../services/apiService";
 import "./Dashboard.css";
 
 const DIDPoolForm = () => {
@@ -7,15 +8,16 @@ const DIDPoolForm = () => {
   const { id } = useParams();
   const isEditMode = Boolean(id);
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
-    title: "",
+    name: "",
     description: "",
     brand: "BDS",
     source: "",
-    ingroups: "",
-    active: true,
-    numbersCount: 0,
-    dialRatio: 1.0,
+    ingroups: [],
+    status: "active",
+    dialRatio: 1.0
   });
 
   // Sample data options
@@ -35,25 +37,34 @@ const DIDPoolForm = () => {
     "Customer Service",
   ];
 
-  // Load DID pool data for editing (simulation)
+  // Load DID pool data for editing
   useEffect(() => {
     if (isEditMode) {
-      // In a real app, you would fetch the DID pool data from API
-      // This is just a simulation
-      setTimeout(() => {
-        setFormData({
-          title: "Main Sales DIDs",
-          description: "Primary phone numbers for outbound sales campaigns",
-          brand: "BDS",
-          source: "Outbound Sales",
-          ingroups: "Sales, Support",
-          active: true,
-          numbersCount: 10,
-          dialRatio: 1.5,
-        });
-      }, 300);
+      fetchDIDPool();
     }
   }, [isEditMode, id]);
+
+  const fetchDIDPool = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.didPools.getById(id);
+      const pool = response.data;
+      setFormData({
+        name: pool.name || "",
+        description: pool.description || "",
+        brand: pool.brand || "BDS",
+        source: pool.source || "",
+        ingroups: pool.ingroups || [],
+        status: pool.status || "active",
+        dialRatio: pool.dialRatio || 1.0
+      });
+    } catch (err) {
+      console.error('Error fetching DID pool:', err);
+      setError('Failed to load DID pool details. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -65,7 +76,7 @@ const DIDPoolForm = () => {
   };
 
   // Handle multi-select options
-  const handleMultiSelectChange = (e, fieldName) => {
+  const handleMultiSelectChange = (e) => {
     const options = e.target.options;
     const selectedValues = [];
 
@@ -77,20 +88,41 @@ const DIDPoolForm = () => {
 
     setFormData({
       ...formData,
-      [fieldName]: selectedValues.join(", "),
+      ingroups: selectedValues,
     });
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError(null);
 
-    // In a real app, you would send formData to API
-    console.log("Saving DID pool:", formData);
+    try {
+      const poolData = {
+        tenant_id: 1,
+        name: formData.name,
+        description: formData.description,
+        brand: formData.brand,
+        source: formData.source,
+        ingroups: formData.ingroups,
+        status: formData.status,
+        dial_ratio: parseFloat(formData.dialRatio)
+      };
 
-    // Simulate success
-    alert(`DID pool ${isEditMode ? "updated" : "created"} successfully!`);
-    navigate("/did-pools");
+      if (isEditMode) {
+        await apiService.didPools.update(id, poolData);
+      } else {
+        await apiService.didPools.create(poolData);
+      }
+
+      navigate("/did-pools");
+    } catch (err) {
+      console.error('Error saving DID pool:', err);
+      setError(`Failed to ${isEditMode ? 'update' : 'create'} DID pool. Please try again.`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle cancel
@@ -107,21 +139,28 @@ const DIDPoolForm = () => {
           </h1>
         </div>
 
+        {error && (
+          <div className="error-message">
+            {error}
+            <button className="dismiss-button" onClick={() => setError(null)}>×</button>
+          </div>
+        )}
+
         <div className="content-body">
           <form className="pool-form" onSubmit={handleSubmit}>
             <div className="form-section">
               <h2 className="form-section-title">Basic Information</h2>
 
               <div className="form-field">
-                <label className="form-label" htmlFor="title">
-                  Title
+                <label className="form-label" htmlFor="name">
+                  Name
                 </label>
                 <input
                   type="text"
-                  id="title"
-                  name="title"
+                  id="name"
+                  name="name"
                   className="form-input"
-                  value={formData.title}
+                  value={formData.name}
                   onChange={handleInputChange}
                   required
                   placeholder="Enter a name for this DID pool"
@@ -194,8 +233,8 @@ const DIDPoolForm = () => {
                   id="ingroups"
                   name="ingroups"
                   className="form-input"
-                  value={formData.ingroups.split(", ")}
-                  onChange={(e) => handleMultiSelectChange(e, "ingroups")}
+                  value={formData.ingroups}
+                  onChange={handleMultiSelectChange}
                   multiple
                   size={4}
                 >
@@ -216,22 +255,6 @@ const DIDPoolForm = () => {
 
               <div className="form-row">
                 <div className="form-field">
-                  <label className="form-label" htmlFor="numbersCount">
-                    Number of DIDs
-                  </label>
-                  <input
-                    type="number"
-                    id="numbersCount"
-                    name="numbersCount"
-                    className="form-input"
-                    value={formData.numbersCount}
-                    onChange={handleInputChange}
-                    min="0"
-                    step="1"
-                  />
-                </div>
-
-                <div className="form-field">
                   <label className="form-label" htmlFor="dialRatio">
                     Dial Ratio
                   </label>
@@ -249,19 +272,21 @@ const DIDPoolForm = () => {
                 </div>
               </div>
 
-              <div className="form-field checkbox-field">
-                <label className="form-checkbox-label">
-                  <input
-                    type="checkbox"
-                    name="active"
-                    checked={formData.active}
-                    onChange={handleInputChange}
-                  />
-                  <span>Active</span>
+              <div className="form-field">
+                <label className="form-label" htmlFor="status">
+                  Status
                 </label>
-                <p className="form-help">
-                  Inactive pools will not be used in campaigns
-                </p>
+                <select
+                  id="status"
+                  name="status"
+                  className="form-input"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  required
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
               </div>
             </div>
 
@@ -270,11 +295,19 @@ const DIDPoolForm = () => {
                 type="button"
                 className="button-outline"
                 onClick={handleCancel}
+                disabled={isLoading}
               >
                 Cancel
               </button>
-              <button type="submit" className="button-blue">
-                {isEditMode ? "Update DID Pool" : "Create DID Pool"}
+              <button type="submit" className="button-blue" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <span className="spinner"></span>
+                    {isEditMode ? "Updating..." : "Creating..."}
+                  </>
+                ) : (
+                  isEditMode ? "Update DID Pool" : "Create DID Pool"
+                )}
               </button>
             </div>
           </form>

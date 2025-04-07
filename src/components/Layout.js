@@ -25,7 +25,8 @@ import {
   CaretRightOutlined,
   MailOutlined,
   MessageOutlined,
-  FormOutlined
+  FormOutlined,
+  StarOutlined
 } from '@ant-design/icons';
 import { useSidebar } from '../context/SidebarContext';
 import DemoSidebar from './DemoSidebar';
@@ -44,7 +45,7 @@ const Layout = () => {
     settings: location.pathname.includes('/settings'),
     emailTemplates: location.pathname.includes('/email-templates'),
     smsMessaging: location.pathname.includes('/sms-messaging'),
-    didManagement: false,
+    didManagement: location.pathname.includes('/did'),
     journeys: false
   });
   
@@ -78,6 +79,11 @@ const Layout = () => {
         <NavLink to="/dashboard" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
           <DashboardOutlined />
           <span>Dashboard</span>
+        </NavLink>
+
+        <NavLink to="/features" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+          <StarOutlined />
+          <span>Features</span>
         </NavLink>
 
         <div className="sidebar-category-header" onClick={() => toggleSection('campaigns')}>
@@ -145,13 +151,23 @@ const Layout = () => {
         {expandedSections.didManagement && (
           <div className="sidebar-category-content">
             <NavLink to="/did-pools" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-              <PhoneOutlined />
+              <DatabaseOutlined />
               <span>DID Pools</span>
+            </NavLink>
+
+            <NavLink to="/did-pools/create" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <FormOutlined />
+              <span>Create Pool</span>
             </NavLink>
 
             <NavLink to="/dids" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <PhoneOutlined />
-              <span>DID Details</span>
+              <span>All DIDs</span>
+            </NavLink>
+
+            <NavLink to="/dids/import" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <FormOutlined />
+              <span>Import DIDs</span>
             </NavLink>
           </div>
         )}

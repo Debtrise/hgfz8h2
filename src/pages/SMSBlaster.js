@@ -34,6 +34,7 @@ import {
 } from 'recharts';
 import '../styles/SMSBlaster.css';
 import LoadingSpinner from '../components/LoadingSpinner';
+import apiService from "../services/apiService";
 
 const { Title } = Typography;
 const { TabPane } = Tabs;
@@ -116,14 +117,7 @@ const SMSBlaster = () => {
 
   const handleCreateCampaign = async (values) => {
     try {
-      const response = await fetch('https://sms-blaster-api-154842307047.us-central1.run.app/api/campaigns', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(values),
-      });
-      if (!response.ok) throw new Error('Failed to create campaign');
+      const response = await apiService.campaigns.create(values);
       setIsModalVisible(false);
       form.resetFields();
       fetchCampaigns();
@@ -134,10 +128,7 @@ const SMSBlaster = () => {
 
   const handleCancelCampaign = async (id) => {
     try {
-      const response = await fetch(`https://sms-blaster-api-154842307047.us-central1.run.app/api/campaigns/${id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to cancel campaign');
+      await apiService.campaigns.delete(id);
       fetchCampaigns();
       if (selectedCampaign?.id === id) {
         setSelectedCampaign(null);

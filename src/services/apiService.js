@@ -18,6 +18,13 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    console.log('API Request:', {
+      url: config.url,
+      method: config.method,
+      hasToken: !!token,
+      tenantId: getTenantId()
+    });
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -33,6 +40,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error('API Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -40,9 +48,21 @@ api.interceptors.request.use(
 // Add response interceptor to handle errors
 api.interceptors.response.use(
   (response) => {
+    console.log('API Response:', {
+      url: response.config.url,
+      status: response.status,
+      data: response.data
+    });
     return response;
   },
   async (error) => {
+    console.error('API Response Error:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
+    
     // Handle 401 Unauthorized errors
     if (error.response && error.response.status === 401) {
       // Token expired or invalid
@@ -82,17 +102,41 @@ const apiService = {
 
   // Campaign endpoints
   campaigns: {
-    getAll: (params) => api.get(`/campaigns`, { params }),
+    getAll: (params) => api.get('/campaigns', { params }),
     getById: (id) => api.get(`/campaigns/${id}`),
-    create: (data) => api.post(`/campaigns`, data),
-    update: (id, data) => api.put(`/campaigns/${id}`, data),
+    create: (data) => api.post('/campaigns', {
+      ...data,
+      leadPoolId: parseInt(data.leadPoolId),
+      didPoolId: parseInt(data.didPoolId),
+      journeyMappings: data.journeyMappings.map(mapping => ({
+        journeyId: parseInt(mapping.journeyId),
+        leadAgeMin: parseInt(mapping.leadAgeMin),
+        leadAgeMax: parseInt(mapping.leadAgeMax),
+        durationDays: parseInt(mapping.durationDays)
+      }))
+    }),
+    update: (id, data) => api.put(`/campaigns/${id}`, {
+      ...data,
+      leadPoolId: parseInt(data.leadPoolId),
+      didPoolId: parseInt(data.didPoolId),
+      journeyMappings: data.journeyMappings.map(mapping => ({
+        journeyId: parseInt(mapping.journeyId),
+        leadAgeMin: parseInt(mapping.leadAgeMin),
+        leadAgeMax: parseInt(mapping.leadAgeMax),
+        durationDays: parseInt(mapping.durationDays)
+      }))
+    }),
     delete: (id) => api.delete(`/campaigns/${id}`),
     
     // Journey mappings
     getJourneyMappings: (id) => api.get(`/campaigns/${id}/journey-mappings`),
-    addJourneyMapping: (id, data) => api.post(`/campaigns/${id}/journey-mappings`, data),
-    updateJourneyMapping: (id, mappingId, data) => api.put(`/campaigns/${id}/journey-mappings/${mappingId}`, data),
-    deleteJourneyMapping: (id, mappingId) => api.delete(`/campaigns/${id}/journey-mappings/${mappingId}`),
+    addJourneyMapping: (id, data) => api.post(`/campaigns/${id}/journey-mappings`, {
+      ...data,
+      journeyId: parseInt(data.journeyId),
+      leadAgeMin: parseInt(data.leadAgeMin),
+      leadAgeMax: parseInt(data.leadAgeMax),
+      durationDays: parseInt(data.durationDays)
+    }),
     
     // Campaign status management
     start: (id) => api.post(`/campaigns/${id}/start`),
@@ -100,7 +144,7 @@ const apiService = {
     complete: (id) => api.post(`/campaigns/${id}/complete`),
     
     // Campaign metrics
-    getMetrics: (id, timeRange) => api.get(`/campaigns/${id}/metrics`, { params: { timeRange } }),
+    getMetrics: (id, timeRange = '7d') => api.get(`/campaigns/${id}/metrics`, { params: { timeRange } })
   },
 
   // Lead pool endpoints
@@ -328,8 +372,14 @@ const apiService = {
   didPools: {
     getAll: async () => {
       try {
-        const response = await api.get('/did-pools');
-        return response;
+        const response = await api.get('/did-pools', {
+          params: { tenant_id: getTenantId() }
+        });
+        // Ensure we return an array even if the response is empty
+        return {
+          ...response,
+          data: Array.isArray(response.data) ? response.data : []
+        };
       } catch (error) {
         handleApiError(error);
         throw error;
@@ -337,7 +387,12 @@ const apiService = {
     },
     getById: async (id) => {
       try {
-        const response = await api.get(`/did-pools/${id}`);
+        if (!id) {
+          throw new Error('DID pool ID is required');
+        }
+        const response = await api.get(`/api/did-pools/${id}`, {
+          params: { tenant_id: 1 }
+        });
         return response;
       } catch (error) {
         handleApiError(error);
@@ -346,7 +401,9 @@ const apiService = {
     },
     create: async (data) => {
       try {
-        const response = await api.post('/did-pools', data);
+        const response = await api.post('/api/did-pools', data, {
+          params: { tenant_id: 1 }
+        });
         return response;
       } catch (error) {
         handleApiError(error);
@@ -355,7 +412,9 @@ const apiService = {
     },
     update: async (id, data) => {
       try {
-        const response = await api.put(`/did-pools/${id}`, data);
+        const response = await api.put(`/api/did-pools/${id}`, data, {
+          params: { tenant_id: 1 }
+        });
         return response;
       } catch (error) {
         handleApiError(error);
@@ -364,7 +423,9 @@ const apiService = {
     },
     delete: async (id) => {
       try {
-        const response = await api.delete(`/did-pools/${id}`);
+        const response = await api.delete(`/api/did-pools/${id}`, {
+          params: { tenant_id: 1 }
+        });
         return response;
       } catch (error) {
         handleApiError(error);
@@ -373,8 +434,14 @@ const apiService = {
     },
     getDids: async (id, params = {}) => {
       try {
+        if (!id) {
+          throw new Error('DID pool ID is required');
+        }
         // Convert params to URLSearchParams to properly format query parameters
         const queryParams = new URLSearchParams();
+        
+        // Add tenant_id to params
+        queryParams.append('tenant_id', '1');
         
         // Add all parameters to the query string
         Object.entries(params).forEach(([key, value]) => {
@@ -384,7 +451,7 @@ const apiService = {
         });
         
         // Make the request with the formatted query string
-        const response = await api.get(`/did-pools/${id}/dids?${queryParams.toString()}`);
+        const response = await api.get(`/api/did-pools/${id}/dids?${queryParams.toString()}`);
         return response;
       } catch (error) {
         handleApiError(error);
@@ -393,7 +460,9 @@ const apiService = {
     },
     addDidToPool: async (id, data) => {
       try {
-        const response = await api.post(`/did-pools/${id}/dids`, data);
+        const response = await api.post(`/api/did-pools/${id}/dids`, data, {
+          params: { tenant_id: 1 }
+        });
         return response;
       } catch (error) {
         handleApiError(error);
@@ -409,16 +478,27 @@ const apiService = {
         // Convert params to URLSearchParams to properly format query parameters
         const queryParams = new URLSearchParams();
         
-        // Add all parameters to the query string
-        Object.entries(params).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            queryParams.append(key, value);
-          }
-        });
+        // Add all supported filter parameters
+        const { page, limit, poolId, provider, status, search } = params;
+        if (page) queryParams.append('page', page);
+        if (limit) queryParams.append('limit', limit);
+        if (poolId) queryParams.append('poolId', poolId);
+        if (provider) queryParams.append('provider', provider);
+        if (status) queryParams.append('status', status);
+        if (search) queryParams.append('search', search);
         
         // Make the request with the formatted query string
         const response = await api.get(`/dids?${queryParams.toString()}`);
-        return response;
+        return {
+          ...response,
+          data: response.data.dids || [],
+          pagination: response.data.pagination || {
+            page: 1,
+            limit: 50,
+            total: 0,
+            pages: 1
+          }
+        };
       } catch (error) {
         handleApiError(error);
         throw error;
@@ -426,8 +506,14 @@ const apiService = {
     },
     getById: async (id) => {
       try {
+        if (!id) {
+          throw new Error('DID ID is required');
+        }
         const response = await api.get(`/dids/${id}`);
-        return response;
+        return {
+          ...response,
+          data: response.data
+        };
       } catch (error) {
         handleApiError(error);
         throw error;
@@ -435,7 +521,17 @@ const apiService = {
     },
     create: async (data) => {
       try {
-        const response = await api.post('/dids', data);
+        // Transform the data to match API expectations
+        const didData = {
+          phoneNumber: data.phoneNumber,
+          provider: data.provider,
+          callerIdName: data.callerIdName,
+          region: data.region || 'US-National',
+          status: data.status || 'active',
+          monthlyCost: data.monthlyCost || 0,
+          didPoolId: data.didPoolId
+        };
+        const response = await api.post('/dids', didData);
         return response;
       } catch (error) {
         handleApiError(error);
@@ -444,7 +540,14 @@ const apiService = {
     },
     update: async (id, data) => {
       try {
-        const response = await api.put(`/dids/${id}`, data);
+        // Transform the data to match API expectations
+        const didData = {
+          phoneNumber: data.phoneNumber,
+          callerIdName: data.callerIdName,
+          status: data.status,
+          didPoolId: data.didPoolId
+        };
+        const response = await api.put(`/dids/${id}`, didData);
         return response;
       } catch (error) {
         handleApiError(error);
@@ -460,22 +563,20 @@ const apiService = {
         throw error;
       }
     },
-    importDids: async (data) => {
+    import: async (data) => {
       try {
-        const response = await api.post('/dids/import', data);
-        return response;
-      } catch (error) {
-        handleApiError(error);
-        throw error;
-      }
-    },
-    importToLeadPool: async (poolId, formData) => {
-      try {
-        const response = await api.post(`/dids/pool/${poolId}/import`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        });
+        // Transform the data to match API expectations
+        const importData = {
+          dids: data.dids.map(did => ({
+            phoneNumber: did.phoneNumber,
+            provider: did.provider,
+            callerIdName: did.callerIdName
+          })),
+          defaultPoolId: data.defaultPoolId,
+          defaultProvider: data.defaultProvider || 'Twilio',
+          defaultRegion: data.defaultRegion || 'US-National'
+        };
+        const response = await api.post('/dids/import', importData);
         return response;
       } catch (error) {
         handleApiError(error);
@@ -571,6 +672,19 @@ const apiService = {
     create: (data) => api.post('/journeys', { ...data, tenant_id: getTenantId() }),
     update: (id, data) => api.put(`/journeys/${id}`, { ...data, tenant_id: getTenantId() }),
     delete: (id) => api.delete(`/journeys/${id}`),
+    clone: (id, data) => api.post(`/journeys/${id}/clone`, data),
+    getSteps: (id) => api.get(`/journeys/${id}/steps`),
+    addStep: (id, data) => api.post(`/journeys/${id}/steps`, data),
+    addBulkSteps: (id, data) => api.post(`/journeys/${id}/steps/bulk`, data),
+    updateStep: (id, stepId, data) => api.put(`/journeys/${id}/steps/${stepId}`, data),
+    deleteStep: (id, stepId) => api.delete(`/journeys/${id}/steps/${stepId}`),
+    reorderSteps: (id, data) => api.post(`/journeys/${id}/steps/reorder`, data),
+    testStep: (id, stepId, data) => api.post(`/journeys/${id}/steps/${stepId}/test`, data),
+    getMetrics: (id, params) => api.get(`/journeys/${id}/metrics`, { params }),
+    start: (id) => api.post(`/journeys/${id}/start`),
+    pause: (id) => api.post(`/journeys/${id}/pause`),
+    archive: (id) => api.post(`/journeys/${id}/archive`),
+    getCampaigns: (id) => api.get(`/journeys/${id}/campaigns`),
   },
 
   // Call center endpoints

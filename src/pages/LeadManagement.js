@@ -1,481 +1,247 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
-import './LeadManagement.css';
-import { FaUsers, FaPhone, FaCheckCircle, FaExclamationCircle, FaArrowRight, FaFileImport, FaUserPlus, FaSearch, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
-import LoadingSpinner from '../components/LoadingSpinner';
+import './ListPages.css';
 
 const LeadManagement = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [leadPools, setLeadPools] = useState([]);
-  const [leads, setLeads] = useState([]);
   const [stats, setStats] = useState({
     totalLeads: 0,
-    activeLeads: 0,
-    completedLeads: 0,
-    failedLeads: 0
+    activePools: 0,
+    leadsToday: 0,
+    conversionRate: 0
   });
-  
-  // Pagination and filtering state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [leadsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
-    status: 'all',
-    leadPool: 'all'
-  });
-  const [sortField, setSortField] = useState('createdAt');
-  const [sortDirection, setSortDirection] = useState('desc');
+  const [recentPools, setRecentPools] = useState([]);
+  const [recentLeads, setRecentLeads] = useState([]);
 
   useEffect(() => {
     fetchData();
-  }, [currentPage, searchTerm, filters, sortField, sortDirection]);
+  }, []);
 
   const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      setLoading(true);
+      // Fetch lead pools
+      const poolsResponse = await apiService.leadPools.getAll();
+      const pools = poolsResponse.data || [];
+      setRecentPools(pools.slice(0, 5)); // Get 5 most recent pools
       
-      // Get current user's tenant ID (assuming it's stored in localStorage)
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const tenantId = currentUser.tenantId || 1; // Default to 1 if not available
-      
-      // Prepare query parameters
-      const params = {
-        page: currentPage,
-        limit: leadsPerPage,
-        sort: `${sortField}:${sortDirection}`,
-        search: searchTerm || undefined,
-        status: filters.status !== 'all' ? filters.status : undefined,
-        leadPool: filters.leadPool !== 'all' ? filters.leadPool : undefined
-      };
-      
-      // Fetch lead pools and leads
-      const [poolsResponse, leadsResponse] = await Promise.all([
-        apiService.leadPools.getAll(),
-        apiService.leads.getAll(params)
-      ]);
+      // Fetch recent leads
+      const leadsResponse = await apiService.leads.getAll({ limit: 5 });
+      setRecentLeads(leadsResponse.leads || []);
 
-      setLeadPools(poolsResponse.data || []);
-      
-      // Debug the API response
-      console.log('Leads API Response:', leadsResponse);
-      
-      // Ensure leads is always an array
-      let leadsData = [];
-      let totalLeads = 0;
-      
-      if (Array.isArray(leadsResponse)) {
-        // Direct array response
-        leadsData = leadsResponse;
-        totalLeads = leadsResponse.length;
-      } else if (leadsResponse && Array.isArray(leadsResponse.data)) {
-        // Response with data property containing array
-        leadsData = leadsResponse.data;
-        totalLeads = leadsResponse.total || leadsResponse.data.length;
-      } else if (leadsResponse && leadsResponse.data && Array.isArray(leadsResponse.data.leads)) {
-        // Nested data structure
-        leadsData = leadsResponse.data.leads;
-        totalLeads = leadsResponse.data.total || leadsResponse.data.leads.length;
-      }
-      
-      // Map the API response fields to the expected frontend fields
-      const mappedLeads = leadsData.map(lead => ({
-        id: lead.id,
-        firstName: lead.first_name || lead.firstName,
-        lastName: lead.last_name || lead.lastName,
-        phone: lead.phone,
-        email: lead.email,
-        status: lead.status,
-        createdAt: lead.created_at || lead.createdAt,
-        leadAge: lead.lead_age || lead.leadAge,
-        pools: lead.pools
-      }));
-      
-      setLeads(mappedLeads);
-      
-      // Set total pages for pagination
-      setTotalPages(Math.ceil(totalLeads / leadsPerPage) || 1);
-
-      // Calculate statistics
-      const activeLeads = mappedLeads.filter(lead => lead.status === 'active').length;
-      const completedLeads = mappedLeads.filter(lead => lead.status === 'completed').length;
-      const failedLeads = mappedLeads.filter(lead => lead.status === 'failed').length;
-
+      // Calculate stats
       setStats({
-        totalLeads: totalLeads,
-        activeLeads,
-        completedLeads,
-        failedLeads
+        totalLeads: leadsResponse.pagination?.total || 0,
+        activePools: pools.filter(pool => pool.status === 'active').length,
+        leadsToday: leadsResponse.today || 0,
+        conversionRate: leadsResponse.conversionRate || 0
       });
-
-      setError(null);
     } catch (err) {
-      setError('Failed to load lead management data. Please try again later.');
       console.error('Error fetching lead management data:', err);
-      setLeads([]); // Set empty array on error
+      setError('Failed to load lead management data. Please try again later.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const navigateToLeadPools = () => navigate('/lead-pools');
-  const navigateToLeads = () => navigate('/leads');
-  const navigateToDIDPools = () => navigate('/did-pools');
-  
-  // Handle search input
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1); // Reset to first page when searching
-  };
-  
-  // Handle filter changes
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    setCurrentPage(1); // Reset to first page when filters change
-  };
-  
-  // Handle sort changes
-  const handleSortChange = (field) => {
-    if (field === sortField) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-  };
-  
-  // Handle page changes
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
-  
-  // View lead details
-  const viewLeadDetails = (leadId) => {
-    navigate(`/leads/${leadId}`);
+  const handleCreatePool = () => {
+    navigate('/lead-pools/create');
   };
 
-  if (loading && leads.length === 0) {
-    return (
-      <div className="loading-state">
-        <LoadingSpinner size="large" text="Loading lead management data..." />
-      </div>
-    );
-  }
+  const handleImportLeads = () => {
+    navigate('/leads/import');
+  };
 
-  if (error && leads.length === 0) {
+  const handleViewAllPools = () => {
+    navigate('/lead-pools');
+  };
+
+  const handleViewAllLeads = () => {
+    navigate('/leads');
+  };
+
+  if (isLoading) {
     return (
-      <div className="error-state">
-        <h2>Error</h2>
-        <p>{error}</p>
-        <button onClick={fetchData} className="view-button">Try Again</button>
+      <div className="page-container">
+        <div className="content-container">
+          <div className="loading-state">
+            Loading lead management data...
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="lead-management">
-      <h1>Lead Management</h1>
-      
-      {/* Stats Summary */}
-      <div className="stats-summary">
-        <div className="stat-card">
-          <div className="stat-title">Total Leads</div>
-          <div className="stat-value">{stats.totalLeads}</div>
-          <div className="stat-subtitle">Across all pools</div>
+    <div className="page-container">
+      <div className="content-container">
+        <div className="content-header">
+          <h1 className="page-title">Lead Management</h1>
+          <div className="header-actions">
+            <button 
+              className="button-primary"
+              onClick={handleCreatePool}
+            >
+              Create Lead Pool
+            </button>
+            <button 
+              className="button-secondary"
+              onClick={handleImportLeads}
+            >
+              Import Leads
+            </button>
+          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-title">Active Leads</div>
-          <div className="stat-value">{stats.activeLeads}</div>
-          <div className="stat-subtitle">Ready for processing</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-title">Completed Leads</div>
-          <div className="stat-value">{stats.completedLeads}</div>
-          <div className="stat-subtitle">Successfully processed</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-title">Failed Leads</div>
-          <div className="stat-value">{stats.failedLeads}</div>
-          <div className="stat-subtitle">Requires attention</div>
-        </div>
-      </div>
 
-      {/* Quick Access */}
-      <div className="quick-access-section">
-        <h2 className="section-title">Quick Access</h2>
-        <div className="quick-access-cards">
-          <div className="quick-access-card" onClick={navigateToLeadPools}>
-            <div className="card-icon">
-              <FaUsers />
-            </div>
-            <div className="card-content">
-              <h3>Lead Pools</h3>
-              <p>Manage your lead pools and campaigns</p>
-            </div>
-            <FaArrowRight />
-          </div>
-          <div className="quick-access-card" onClick={navigateToLeads}>
-            <div className="card-icon">
-              <FaPhone />
-            </div>
-            <div className="card-content">
-              <h3>All Leads</h3>
-              <p>View and manage all leads</p>
-            </div>
-            <FaArrowRight />
-          </div>
-          <div className="quick-access-card" onClick={navigateToDIDPools}>
-            <div className="card-icon">
-              <FaCheckCircle />
-            </div>
-            <div className="card-content">
-              <h3>DID Pools</h3>
-              <p>Manage your DID pools</p>
-            </div>
-            <FaArrowRight />
-          </div>
-        </div>
-      </div>
-
-      {/* Leads Table */}
-      <div className="leads-table-section">
-        <h2 className="section-title">All Leads</h2>
-        
-        {/* Search and Filters */}
-        <div className="leads-controls">
-          <div className="search-container">
-            <input
-              type="text"
-              placeholder="Search leads..."
-              value={searchTerm}
-              onChange={handleSearch}
-              className="search-input"
-            />
-            <FaSearch className="search-icon" />
-          </div>
-          
-          <div className="filters-container">
-            <select
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              className="filter-select"
-            >
-              <option value="all">All Statuses</option>
-              <option value="new">New</option>
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-              <option value="failed">Failed</option>
-            </select>
-            
-            <select
-              name="leadPool"
-              value={filters.leadPool}
-              onChange={handleFilterChange}
-              className="filter-select"
-            >
-              <option value="all">All Lead Pools</option>
-              {leadPools.map(pool => (
-                <option key={pool.id} value={pool.id}>{pool.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        
-        {/* Leads Table */}
-        <div className="leads-table-container">
-          {loading ? (
-            <div className="loading-state">
-              <LoadingSpinner size="medium" text="Loading leads..." />
-            </div>
-          ) : (
-            <table className="leads-table">
-              <thead>
-                <tr>
-                  <th onClick={() => handleSortChange('firstName')} className="sortable">
-                    Name
-                    {sortField === 'firstName' && (
-                      sortDirection === 'asc' ? <FaSortUp /> : <FaSortDown />
-                    )}
-                    {sortField !== 'firstName' && <FaSort />}
-                  </th>
-                  <th onClick={() => handleSortChange('phone')} className="sortable">
-                    Phone
-                    {sortField === 'phone' && (
-                      sortDirection === 'asc' ? <FaSortUp /> : <FaSortDown />
-                    )}
-                    {sortField !== 'phone' && <FaSort />}
-                  </th>
-                  <th onClick={() => handleSortChange('email')} className="sortable">
-                    Email
-                    {sortField === 'email' && (
-                      sortDirection === 'asc' ? <FaSortUp /> : <FaSortDown />
-                    )}
-                    {sortField !== 'email' && <FaSort />}
-                  </th>
-                  <th onClick={() => handleSortChange('status')} className="sortable">
-                    Status
-                    {sortField === 'status' && (
-                      sortDirection === 'asc' ? <FaSortUp /> : <FaSortDown />
-                    )}
-                    {sortField !== 'status' && <FaSort />}
-                  </th>
-                  <th onClick={() => handleSortChange('createdAt')} className="sortable">
-                    Created
-                    {sortField === 'createdAt' && (
-                      sortDirection === 'asc' ? <FaSortUp /> : <FaSortDown />
-                    )}
-                    {sortField !== 'createdAt' && <FaSort />}
-                  </th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leads.length > 0 ? (
-                  leads.map((lead) => (
-                    <tr key={lead.id}>
-                      <td>{`${lead.firstName || ''} ${lead.lastName || ''}`}</td>
-                      <td>{lead.phone || 'N/A'}</td>
-                      <td>{lead.email || 'N/A'}</td>
-                      <td>
-                        <span className={`status-badge ${lead.status || 'unknown'}`}>
-                          {lead.status || 'Unknown'}
-                        </span>
-                      </td>
-                      <td>{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'N/A'}</td>
-                      <td>
-                        <button 
-                          className="view-button"
-                          onClick={() => viewLeadDetails(lead.id)}
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" className="empty-state">
-                      <p>No leads found</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
-        
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="pagination">
-            <button
-              onClick={() => handlePageChange(1)}
-              disabled={currentPage === 1}
-              className="pagination-button"
-            >
-              First
-            </button>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="pagination-button"
-            >
-              Previous
-            </button>
-            
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter(page => 
-                page === 1 || 
-                page === totalPages || 
-                (page >= currentPage - 2 && page <= currentPage + 2)
-              )
-              .map((page, index, array) => {
-                // Add ellipsis if there's a gap
-                if (index > 0 && page - array[index - 1] > 1) {
-                  return (
-                    <React.Fragment key={`ellipsis-${page}`}>
-                      <span className="pagination-ellipsis">...</span>
-                      <button
-                        onClick={() => handlePageChange(page)}
-                        className={`pagination-button ${currentPage === page ? 'active' : ''}`}
-                      >
-                        {page}
-                      </button>
-                    </React.Fragment>
-                  );
-                }
-                
-                return (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`pagination-button ${currentPage === page ? 'active' : ''}`}
-                  >
-                    {page}
-                  </button>
-                );
-              })}
-            
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="pagination-button"
-            >
-              Next
-            </button>
-            <button
-              onClick={() => handlePageChange(totalPages)}
-              disabled={currentPage === totalPages}
-              className="pagination-button"
-            >
-              Last
-            </button>
+        {error && (
+          <div className="error-message">
+            {error}
+            <button className="dismiss-button" onClick={() => setError(null)}>×</button>
           </div>
         )}
-      </div>
 
-      {/* Recent Activity */}
-      <div className="recent-activity-section">
-        <h2 className="section-title">Recent Activity</h2>
-        <div className="activity-list">
-          {leads.length > 0 ? (
-            leads.slice(0, 5).map((lead) => (
-              <div key={lead.id} className="activity-item">
-                <div className="activity-icon">
-                  {lead.status === 'completed' ? <FaCheckCircle /> : 
-                   lead.status === 'failed' ? <FaExclamationCircle /> : 
-                   <FaPhone />}
-                </div>
-                <div className="activity-content">
-                  <div className="activity-title">
-                    {lead.firstName} {lead.lastName} - {lead.phone}
-                  </div>
-                  <div className="activity-details">
-                    <span>Status: {lead.status}</span>
-                    <span>Pool: {lead.poolName || 'None'}</span>
-                    <span>Last Updated: {lead.updatedAt ? new Date(lead.updatedAt).toLocaleDateString() : 'N/A'}</span>
-                  </div>
-                </div>
-                <button 
-                  className="view-button"
-                  onClick={() => viewLeadDetails(lead.id)}
-                >
-                  View
-                </button>
-              </div>
-            ))
-          ) : (
-            <div className="empty-state">
-              <p>No recent activity to display</p>
+        <div className="content-body">
+          {/* Stats Overview */}
+          <div className="stats-grid">
+            <div className="stat-card">
+              <div className="stat-title">Total Leads</div>
+              <div className="stat-value">{stats.totalLeads.toLocaleString()}</div>
             </div>
-          )}
+            <div className="stat-card">
+              <div className="stat-title">Active Pools</div>
+              <div className="stat-value">{stats.activePools}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-title">Leads Today</div>
+              <div className="stat-value">{stats.leadsToday.toLocaleString()}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-title">Conversion Rate</div>
+              <div className="stat-value">{stats.conversionRate}%</div>
+            </div>
+          </div>
+
+          {/* Recent Lead Pools */}
+          <div className="section-container">
+            <div className="section-header">
+              <h2>Recent Lead Pools</h2>
+              <button 
+                className="button-text"
+                onClick={handleViewAllPools}
+              >
+                View All Pools
+              </button>
+            </div>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Lead Count</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentPools.map(pool => (
+                    <tr key={pool.id}>
+                      <td>{pool.name}</td>
+                      <td>{pool.description || 'No description'}</td>
+                      <td>{pool.lead_count || 0}</td>
+                      <td>
+                        <span className={`status-badge ${pool.status}`}>
+                          {pool.status}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="action-buttons">
+                          <button
+                            className="action-button view-button"
+                            onClick={() => navigate(`/lead-pools/${pool.id}`)}
+                            title="View Details"
+                          >
+                            <i className="fas fa-eye"></i>
+                          </button>
+                          <button
+                            className="action-button edit-button"
+                            onClick={() => navigate(`/lead-pools/${pool.id}/edit`)}
+                            title="Edit"
+                          >
+                            <i className="fas fa-edit"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Recent Leads */}
+          <div className="section-container">
+            <div className="section-header">
+              <h2>Recent Leads</h2>
+              <button 
+                className="button-text"
+                onClick={handleViewAllLeads}
+              >
+                View All Leads
+              </button>
+            </div>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Pool</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentLeads.map(lead => (
+                    <tr key={lead.id}>
+                      <td>{`${lead.firstName} ${lead.lastName}`}</td>
+                      <td>{lead.phone}</td>
+                      <td>{lead.email}</td>
+                      <td>
+                        <span className={`status-badge ${lead.status}`}>
+                          {lead.status}
+                        </span>
+                      </td>
+                      <td>{lead.pool_name}</td>
+                      <td>
+                        <div className="action-buttons">
+                          <button
+                            className="action-button view-button"
+                            onClick={() => navigate(`/leads/${lead.id}`)}
+                            title="View Details"
+                          >
+                            <i className="fas fa-eye"></i>
+                          </button>
+                          <button
+                            className="action-button edit-button"
+                            onClick={() => navigate(`/leads/${lead.id}/edit`)}
+                            title="Edit"
+                          >
+                            <i className="fas fa-edit"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>

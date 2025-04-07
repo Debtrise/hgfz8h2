@@ -16,7 +16,8 @@ import {
   Select,
   Tabs,
   message,
-  Spin
+  Spin,
+  Typography
 } from 'antd';
 import {
   PlusOutlined,
@@ -44,6 +45,7 @@ import './Journeys.css';
 const { Search } = Input;
 const { Option } = Select;
 const { TabPane } = Tabs;
+const { Text } = Typography;
 
 const Journeys = () => {
   const navigate = useNavigate();
@@ -122,26 +124,13 @@ const Journeys = () => {
       setLoading(true);
       const journeyToDuplicate = journeys.find(j => j.id === id);
       if (journeyToDuplicate) {
-        // Create a copy of the journey with a new name
-        const newJourney = {
-          ...journeyToDuplicate,
-          name: `${journeyToDuplicate.name} (Copy)`,
-          status: 'draft'
-        };
-        
-        // Remove the id so it will be treated as a new journey
-        delete newJourney.id;
-        
-        // Create the new journey
-        const createdJourney = await createJourney(newJourney);
-        
-        // Add the new journey to the list
-        setJourneys([...journeys, createdJourney]);
-        message.success('Journey duplicated successfully');
+        const clonedJourney = await cloneJourney(id, `${journeyToDuplicate.name} (Copy)`);
+        setJourneys([...journeys, clonedJourney.journey]);
+        message.success('Journey cloned successfully');
       }
     } catch (error) {
-      console.error('Error duplicating journey:', error);
-      message.error('Failed to duplicate journey');
+      console.error('Error cloning journey:', error);
+      message.error('Failed to clone journey');
     } finally {
       setLoading(false);
     }
@@ -193,101 +182,76 @@ const Journeys = () => {
 
   const columns = [
     {
-      title: 'Journey Name',
+      title: 'Name',
       dataIndex: 'name',
       key: 'name',
       render: (text, record) => (
-        <Space>
-          <Button
-            type="text"
-            icon={record.favorite ? <StarFilled /> : <StarOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFavorite(record.id);
-            }}
-          />
-          <span>{text}</span>
+        <Space direction="vertical" size="small">
+          <Text strong>{text}</Text>
+          <Text type="secondary">{record.description}</Text>
         </Space>
-      )
-    },
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      render: (type) => (
-        <Tag icon={getTypeIcon(type)}>{type}</Tag>
-      )
+      ),
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
       render: (status) => (
-        <Tag color={getStatusColor(status)}>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
+        <Tag color={
+          status === 'active' ? 'success' :
+          status === 'paused' ? 'warning' :
+          status === 'archived' ? 'default' : 'processing'
+        }>
+          {status.toUpperCase()}
         </Tag>
-      )
+      ),
     },
     {
-      title: 'Contacts',
-      key: 'contacts',
-      render: (_, record) => (
-        <Space direction="vertical" size="small">
-          <span>{record.active_leads_count || 0} / {record.step_count || 0}</span>
-          <span style={{ color: '#8c8c8c' }}>
-            {record.step_count ? Math.round((record.active_leads_count / record.step_count) * 100) : 0}% completion
-          </span>
-        </Space>
-      )
+      title: 'Steps',
+      dataIndex: 'step_count',
+      key: 'step_count',
+      render: (count) => (
+        <Statistic value={count} suffix="steps" />
+      ),
     },
     {
-      title: 'Last Modified',
-      dataIndex: 'updated_at',
-      key: 'updated_at',
-      render: (date) => date ? new Date(date).toLocaleDateString() : 'N/A'
+      title: 'Campaigns',
+      dataIndex: 'campaign_count',
+      key: 'campaign_count',
+      render: (count) => (
+        <Statistic value={count} suffix="campaigns" />
+      ),
     },
     {
-      title: 'Created By',
-      dataIndex: 'created_by_name',
-      key: 'created_by_name'
+      title: 'Created',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (date) => new Date(date).toLocaleDateString(),
     },
     {
       title: 'Actions',
       key: 'actions',
       render: (_, record) => (
-        <Dropdown
-          overlay={
-            <Menu>
-              <Menu.Item
-                key="edit"
-                icon={<EditOutlined />}
-                onClick={() => handleEditJourney(record.id)}
-              >
-                Edit
-              </Menu.Item>
-              <Menu.Item
-                key="duplicate"
-                icon={<CopyOutlined />}
-                onClick={() => handleDuplicateJourney(record.id)}
-              >
-                Duplicate
-              </Menu.Item>
-              <Menu.Item
-                key="delete"
-                icon={<DeleteOutlined />}
-                danger
-                onClick={() => handleDeleteJourney(record.id)}
-              >
-                Delete
-              </Menu.Item>
-            </Menu>
-          }
-          trigger={['click']}
-        >
-          <Button type="text" icon={<MoreOutlined />} />
-        </Dropdown>
-      )
-    }
+        <Space>
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={() => handleEditJourney(record.id)}
+          />
+          <Button
+            type="text"
+            icon={<CopyOutlined />}
+            onClick={() => handleDuplicateJourney(record.id)}
+          />
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDeleteJourney(record.id)}
+          />
+        </Space>
+      ),
+    },
   ];
 
   const filteredJourneys = journeys.filter(journey => {
@@ -310,97 +274,46 @@ const Journeys = () => {
   const renderJourneyList = () => {
     return (
       <>
-        <div className="journeys-header">
-          <div className="header-left">
-            <h1>Journeys</h1>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreateJourney}
-            >
-              Create Journey
-            </Button>
-          </div>
-          <div className="header-right">
+        <Card className="journeys-table-container">
+          <div className="table-header">
             <Space>
               <Search
-                placeholder="Search journeys..."
+                placeholder="Search journeys"
                 allowClear
-                onChange={e => setSearchTerm(e.target.value)}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 style={{ width: 200 }}
               />
               <Select
-                defaultValue="all"
-                style={{ width: 120 }}
+                value={statusFilter}
                 onChange={setStatusFilter}
+                style={{ width: 120 }}
               >
                 <Option value="all">All Status</Option>
                 <Option value="active">Active</Option>
-                <Option value="paused">Paused</Option>
                 <Option value="draft">Draft</Option>
+                <Option value="paused">Paused</Option>
+                <Option value="archived">Archived</Option>
               </Select>
               <Select
-                defaultValue="all"
-                style={{ width: 120 }}
+                value={typeFilter}
                 onChange={setTypeFilter}
+                style={{ width: 120 }}
               >
                 <Option value="all">All Types</Option>
-                <Option value="Email">Email</Option>
-                <Option value="Call">Call</Option>
-                <Option value="SMS">SMS</Option>
+                <Option value="welcome">Welcome</Option>
+                <Option value="followup">Follow-up</Option>
+                <Option value="nurture">Nurture</Option>
               </Select>
               <Button
-                icon={showFavorites ? <StarFilled /> : <StarOutlined />}
-                onClick={() => setShowFavorites(!showFavorites)}
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreateJourney}
               >
-                Favorites
+                New Journey
               </Button>
             </Space>
           </div>
-        </div>
 
-        <div className="journeys-stats">
-          <Row gutter={16}>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="Total Journeys"
-                  value={totalJourneys}
-                  suffix={`${journeys.filter(j => j.favorite).length} favorited`}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="Active Contacts"
-                  value={totalContacts}
-                  suffix="Across all journeys"
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="Average Completion"
-                  value={averageCompletion}
-                  suffix="%"
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="Active Journeys"
-                  value={activeJourneys}
-                  suffix="Currently running"
-                />
-              </Card>
-            </Col>
-          </Row>
-        </div>
-
-        <div className="journeys-table-container">
           <Table
             columns={columns}
             dataSource={filteredJourneys}
@@ -409,13 +322,10 @@ const Journeys = () => {
             pagination={{
               pageSize: 10,
               showSizeChanger: true,
-              showQuickJumper: true
+              showTotal: (total) => `Total ${total} journeys`,
             }}
-            onRow={(record) => ({
-              onClick: () => handleEditJourney(record.id)
-            })}
           />
-        </div>
+        </Card>
 
         <Modal
           title="Delete Journey"
