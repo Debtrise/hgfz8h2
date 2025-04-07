@@ -239,6 +239,26 @@ const apiService = {
         throw error;
       }
     },
+    getByLeadPool: async (leadPoolId, params = {}) => {
+      try {
+        // Convert params to URLSearchParams to properly format query parameters
+        const queryParams = new URLSearchParams();
+        
+        // Add all parameters to the query string
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            queryParams.append(key, value);
+          }
+        });
+        
+        // Make the request with the formatted query string
+        const response = await api.get(`/leads/by-lead-pool/${leadPoolId}?${queryParams.toString()}`);
+        return response.data;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
     create: async (leadData) => {
       try {
         // Format the data according to the new API requirements
@@ -296,7 +316,7 @@ const apiService = {
     },
     import: async (data) => {
       try {
-        // Format the data according to the new API requirements
+        // Format the data according to the API requirements
         const formattedData = {
           leads: data.leads.map(lead => ({
             phone: lead.phone,
@@ -305,34 +325,24 @@ const apiService = {
             email: lead.email,
             leadAge: lead.leadAge || 0,
             brand: lead.brand,
-            source: lead.source
+            source: lead.source,
+            status: lead.status || "new",
+            additionalData: lead.additionalData || {}
           })),
           defaultPoolId: data.defaultPoolId
         };
         
         const response = await api.post('/leads/import', formattedData);
-        return response.data;
+        return {
+          msg: response.data.msg,
+          imported: response.data.imported || [],
+          skipped: response.data.skipped || []
+        };
       } catch (error) {
         handleApiError(error);
         throw error;
       }
     },
-    getByLeadPool: (leadPoolId, params = {}) => {
-      // Convert all parameters to query string format
-      const queryParams = new URLSearchParams();
-      
-      // Add all parameters to the query string
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, value);
-        }
-      });
-      
-      // Make the request with all parameters in the query string
-      return api.get(`/leads/pool/${leadPoolId}?${queryParams.toString()}`);
-    },
-    importToLeadPool: (leadPoolId, formData) => api.post(`/leads/pool/${leadPoolId}/import`, formData),
-    updateStatus: (id, status) => api.put(`/leads/${id}/status`, { status }),
     assignToAgent: (id, agentId) => api.put(`/leads/${id}/assign`, { agentId }),
     assignLeads: async ({ leadIds, agentId }) => {
       try {
@@ -365,17 +375,30 @@ const apiService = {
         handleApiError(error);
         throw error;
       }
-    }
+    },
+    importFromFile: async (formData) => {
+      try {
+        const response = await api.post(
+          `/leads/import-file`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+        return response.data;
+      } catch (error) {
+        throw handleApiError(error);
+      }
+    },
   },
 
   // DID Pool endpoints
   didPools: {
     getAll: async () => {
       try {
-        const response = await api.get('/did-pools', {
-          params: { tenant_id: getTenantId() }
-        });
-        // Ensure we return an array even if the response is empty
+        const response = await api.get('/api/did-pools');
         return {
           ...response,
           data: Array.isArray(response.data) ? response.data : []
@@ -390,9 +413,7 @@ const apiService = {
         if (!id) {
           throw new Error('DID pool ID is required');
         }
-        const response = await api.get(`/api/did-pools/${id}`, {
-          params: { tenant_id: 1 }
-        });
+        const response = await api.get(`/api/did-pools/${id}`);
         return response;
       } catch (error) {
         handleApiError(error);
@@ -401,8 +422,10 @@ const apiService = {
     },
     create: async (data) => {
       try {
-        const response = await api.post('/api/did-pools', data, {
-          params: { tenant_id: 1 }
+        const response = await api.post('/api/did-pools', {
+          name: data.name,
+          description: data.description,
+          status: data.status || 'active'
         });
         return response;
       } catch (error) {
@@ -412,8 +435,10 @@ const apiService = {
     },
     update: async (id, data) => {
       try {
-        const response = await api.put(`/api/did-pools/${id}`, data, {
-          params: { tenant_id: 1 }
+        const response = await api.put(`/api/did-pools/${id}`, {
+          name: data.name,
+          description: data.description,
+          status: data.status
         });
         return response;
       } catch (error) {
@@ -423,9 +448,7 @@ const apiService = {
     },
     delete: async (id) => {
       try {
-        const response = await api.delete(`/api/did-pools/${id}`, {
-          params: { tenant_id: 1 }
-        });
+        const response = await api.delete(`/api/did-pools/${id}`);
         return response;
       } catch (error) {
         handleApiError(error);
@@ -437,21 +460,7 @@ const apiService = {
         if (!id) {
           throw new Error('DID pool ID is required');
         }
-        // Convert params to URLSearchParams to properly format query parameters
-        const queryParams = new URLSearchParams();
-        
-        // Add tenant_id to params
-        queryParams.append('tenant_id', '1');
-        
-        // Add all parameters to the query string
-        Object.entries(params).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            queryParams.append(key, value);
-          }
-        });
-        
-        // Make the request with the formatted query string
-        const response = await api.get(`/api/did-pools/${id}/dids?${queryParams.toString()}`);
+        const response = await api.get(`/api/did-pools/${id}/dids`, { params });
         return response;
       } catch (error) {
         handleApiError(error);
@@ -460,8 +469,45 @@ const apiService = {
     },
     addDidToPool: async (id, data) => {
       try {
-        const response = await api.post(`/api/did-pools/${id}/dids`, data, {
-          params: { tenant_id: 1 }
+        const response = await api.post(`/api/did-pools/${id}/dids`, {
+          phoneNumber: data.phoneNumber,
+          provider: data.provider,
+          callerIdName: data.callerIdName,
+          region: data.region,
+          status: data.status || 'active',
+          monthlyCost: data.monthlyCost
+        });
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    removeDidFromPool: async (poolId, didId) => {
+      try {
+        const response = await api.delete(`/api/did-pools/${poolId}/dids/${didId}`);
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    bulkAddDids: async (poolId, didIds) => {
+      try {
+        const response = await api.post(`/api/did-pools/${poolId}/dids/bulk`, {
+          didIds
+        });
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    moveDids: async (poolId, data) => {
+      try {
+        const response = await api.post(`/api/did-pools/${poolId}/move-dids`, {
+          didIds: data.didIds,
+          targetPoolId: data.targetPoolId
         });
         return response;
       } catch (error) {
@@ -475,20 +521,7 @@ const apiService = {
   dids: {
     getAll: async (params = {}) => {
       try {
-        // Convert params to URLSearchParams to properly format query parameters
-        const queryParams = new URLSearchParams();
-        
-        // Add all supported filter parameters
-        const { page, limit, poolId, provider, status, search } = params;
-        if (page) queryParams.append('page', page);
-        if (limit) queryParams.append('limit', limit);
-        if (poolId) queryParams.append('poolId', poolId);
-        if (provider) queryParams.append('provider', provider);
-        if (status) queryParams.append('status', status);
-        if (search) queryParams.append('search', search);
-        
-        // Make the request with the formatted query string
-        const response = await api.get(`/dids?${queryParams.toString()}`);
+        const response = await api.get('/api/dids', { params });
         return {
           ...response,
           data: response.data.dids || [],
@@ -497,8 +530,22 @@ const apiService = {
             limit: 50,
             total: 0,
             pages: 1
+          },
+          filters: response.data.filters || {
+            providers: [],
+            regions: [],
+            statuses: []
           }
         };
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    getProviders: async () => {
+      try {
+        const response = await api.get('/api/dids/providers');
+        return response;
       } catch (error) {
         handleApiError(error);
         throw error;
@@ -509,11 +556,8 @@ const apiService = {
         if (!id) {
           throw new Error('DID ID is required');
         }
-        const response = await api.get(`/dids/${id}`);
-        return {
-          ...response,
-          data: response.data
-        };
+        const response = await api.get(`/api/dids/${id}`);
+        return response;
       } catch (error) {
         handleApiError(error);
         throw error;
@@ -521,17 +565,15 @@ const apiService = {
     },
     create: async (data) => {
       try {
-        // Transform the data to match API expectations
-        const didData = {
+        const response = await api.post('/api/dids', {
           phoneNumber: data.phoneNumber,
           provider: data.provider,
           callerIdName: data.callerIdName,
-          region: data.region || 'US-National',
+          region: data.region,
           status: data.status || 'active',
-          monthlyCost: data.monthlyCost || 0,
+          monthlyCost: data.monthlyCost,
           didPoolId: data.didPoolId
-        };
-        const response = await api.post('/dids', didData);
+        });
         return response;
       } catch (error) {
         handleApiError(error);
@@ -540,14 +582,15 @@ const apiService = {
     },
     update: async (id, data) => {
       try {
-        // Transform the data to match API expectations
-        const didData = {
+        const response = await api.put(`/api/dids/${id}`, {
           phoneNumber: data.phoneNumber,
+          provider: data.provider,
           callerIdName: data.callerIdName,
+          region: data.region,
           status: data.status,
+          monthlyCost: data.monthlyCost,
           didPoolId: data.didPoolId
-        };
-        const response = await api.put(`/dids/${id}`, didData);
+        });
         return response;
       } catch (error) {
         handleApiError(error);
@@ -556,7 +599,7 @@ const apiService = {
     },
     delete: async (id) => {
       try {
-        const response = await api.delete(`/dids/${id}`);
+        const response = await api.delete(`/api/dids/${id}`);
         return response;
       } catch (error) {
         handleApiError(error);
@@ -565,18 +608,27 @@ const apiService = {
     },
     import: async (data) => {
       try {
-        // Transform the data to match API expectations
-        const importData = {
+        const response = await api.post('/api/dids/import', {
           dids: data.dids.map(did => ({
             phoneNumber: did.phoneNumber,
             provider: did.provider,
-            callerIdName: did.callerIdName
-          })),
-          defaultPoolId: data.defaultPoolId,
-          defaultProvider: data.defaultProvider || 'Twilio',
-          defaultRegion: data.defaultRegion || 'US-National'
-        };
-        const response = await api.post('/dids/import', importData);
+            callerIdName: did.callerIdName,
+            region: did.region,
+            status: did.status || 'active',
+            monthlyCost: did.monthlyCost
+          }))
+        });
+        return response;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    test: async (id, testPhone) => {
+      try {
+        const response = await api.post(`/api/dids/${id}/test`, {
+          testPhone
+        });
         return response;
       } catch (error) {
         handleApiError(error);

@@ -113,29 +113,14 @@ const Layout = () => {
         
         {expandedSections.resources && (
           <div className="sidebar-category-content">
-            <NavLink to="/lead-pools" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-              <TeamOutlined />
-              <span>Lead Pools</span>
-            </NavLink>
-
-            <NavLink to="/leads" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-              <TeamOutlined />
-              <span>Leads List</span>
-            </NavLink>
-
-            <NavLink to="/leads/import" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+            <NavLink to="/lead-management" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <FormOutlined />
-              <span>Import Leads</span>
+              <span>Lead Management</span>
             </NavLink>
 
             <NavLink to="/leads/assignments" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <TeamOutlined />
               <span>Lead Assignments</span>
-            </NavLink>
-
-            <NavLink to="/lead-management" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
-              <FormOutlined />
-              <span>Lead Management</span>
             </NavLink>
           </div>
         )}

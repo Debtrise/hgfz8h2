@@ -13,7 +13,9 @@ const DIDPools = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    status: 'active'
+    status: 'active',
+    region: 'US',
+    timezone: 'America/New_York'
   });
 
   // Fetch DID pools on component mount
@@ -26,12 +28,11 @@ const DIDPools = () => {
     setError(null);
     try {
       const response = await apiService.didPools.getAll();
-      // Ensure we're using the data array from the response
       setDidPools(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error('Error fetching DID pools:', err);
       setError('Failed to load DID pools. Please try again later.');
-      setDidPools([]); // Set empty array on error
+      setDidPools([]);
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +54,9 @@ const DIDPools = () => {
       setFormData({
         name: '',
         description: '',
-        status: 'active'
+        status: 'active',
+        region: 'US',
+        timezone: 'America/New_York'
       });
       fetchDidPools();
     } catch (err) {
@@ -94,7 +97,7 @@ const DIDPools = () => {
     <div className="page-container">
       <div className="content-container">
         <div className="content-header">
-          <h1 className="page-title">DID Pools</h1>
+          <h1 className="page-title">All DID Pools</h1>
           <div className="header-actions">
             <button 
               className="button-primary"
@@ -113,15 +116,18 @@ const DIDPools = () => {
         )}
 
         <div className="content-body">
-          {didPools && didPools.length > 0 ? (
+          {didPools.length > 0 ? (
             <div className="table-container">
               <table className="data-table">
                 <thead>
                   <tr>
                     <th>Name</th>
                     <th>Description</th>
-                    <th>DID Count</th>
+                    <th>Region</th>
+                    <th>Timezone</th>
                     <th>Status</th>
+                    <th>Total DIDs</th>
+                    <th>Created At</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -130,36 +136,37 @@ const DIDPools = () => {
                     <tr key={pool.id}>
                       <td>{pool.name}</td>
                       <td>{pool.description || 'No description'}</td>
-                      <td>{pool.did_count || 0}</td>
+                      <td>{pool.region || 'N/A'}</td>
+                      <td>{pool.timezone || 'N/A'}</td>
                       <td>
-                        <span className={`status-badge ${pool.status?.toLowerCase() || 'active'}`}>
-                          {pool.status || 'Active'}
+                        <span className={`status-badge ${pool.status.toLowerCase()}`}>
+                          {pool.status}
                         </span>
                       </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button 
-                            className="action-button view-button"
-                            onClick={() => viewDidPoolDetails(pool.id)}
-                            title="View Details"
-                          >
-                            <i className="fas fa-eye"></i>
-                          </button>
-                          <button 
-                            className="action-button edit-button"
-                            onClick={() => navigate(`/did-pools/${pool.id}/edit`)}
-                            title="Edit"
-                          >
-                            <i className="fas fa-edit"></i>
-                          </button>
-                          <button 
-                            className="action-button delete-button"
-                            onClick={() => handleDeleteDidPool(pool.id)}
-                            title="Delete"
-                          >
-                            <i className="fas fa-trash"></i>
-                          </button>
-                        </div>
+                      <td>{pool.totalDids || 0}</td>
+                      <td>{new Date(pool.createdAt).toLocaleString()}</td>
+                      <td className="action-buttons">
+                        <button 
+                          className="action-button view-button"
+                          onClick={() => viewDidPoolDetails(pool.id)}
+                          title="View Details"
+                        >
+                          <i className="fas fa-eye"></i>
+                        </button>
+                        <button 
+                          className="action-button edit-button"
+                          onClick={() => navigate(`/did-pools/${pool.id}/edit`)}
+                          title="Edit Pool"
+                        >
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button 
+                          className="action-button delete-button"
+                          onClick={() => handleDeleteDidPool(pool.id)}
+                          title="Delete Pool"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -168,66 +175,116 @@ const DIDPools = () => {
             </div>
           ) : (
             <div className="empty-state">
-              <p>No DID pools found. Create your first DID pool to get started.</p>
+              <p>No DID pools found. Create a new DID pool to get started.</p>
+              <button 
+                className="button-primary"
+                onClick={() => setShowCreateModal(true)}
+              >
+                Create DID Pool
+              </button>
             </div>
           )}
         </div>
-
-        {/* Create DID Pool Modal */}
-        {showCreateModal && (
-          <div className="modal-overlay">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h2>Create DID Pool</h2>
-                <button className="close-button" onClick={() => setShowCreateModal(false)}>×</button>
-              </div>
-              <form onSubmit={handleCreateDidPool}>
-                <div className="form-group">
-                  <label htmlFor="name">Name</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="description">Description</label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    rows="3"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="status">Status</label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="button-secondary" onClick={() => setShowCreateModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="button-primary">
-                    Create DID Pool
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Create DID Pool Modal */}
+      {showCreateModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Create DID Pool</h2>
+              <button 
+                className="close-button"
+                onClick={() => setShowCreateModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleCreateDidPool}>
+              <div className="form-group">
+                <label htmlFor="name">Name *</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Enter pool name"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="description">Description</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="Enter pool description"
+                  rows="3"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="region">Region</label>
+                <select
+                  id="region"
+                  name="region"
+                  value={formData.region}
+                  onChange={handleInputChange}
+                >
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  <option value="UK">United Kingdom</option>
+                  <option value="AU">Australia</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="timezone">Timezone</label>
+                <select
+                  id="timezone"
+                  name="timezone"
+                  value={formData.timezone}
+                  onChange={handleInputChange}
+                >
+                  <option value="America/New_York">Eastern Time (ET)</option>
+                  <option value="America/Chicago">Central Time (CT)</option>
+                  <option value="America/Denver">Mountain Time (MT)</option>
+                  <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                  <option value="America/Anchorage">Alaska Time (AKT)</option>
+                  <option value="Pacific/Honolulu">Hawaii Time (HT)</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="status">Status</label>
+                <select
+                  id="status"
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <div className="form-actions">
+                <button 
+                  type="button" 
+                  className="button-secondary"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="button-primary"
+                >
+                  Create Pool
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

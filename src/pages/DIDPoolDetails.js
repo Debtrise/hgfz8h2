@@ -17,7 +17,9 @@ const DIDPoolDetails = () => {
     phoneNumber: '',
     provider: '',
     callerIdName: '',
-    status: 'active'
+    status: 'active',
+    region: 'US',
+    timezone: 'America/New_York'
   });
   const [importData, setImportData] = useState({
     file: null,
@@ -31,7 +33,8 @@ const DIDPoolDetails = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     provider: 'all',
-    status: 'all'
+    status: 'all',
+    region: 'all'
   });
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -76,7 +79,8 @@ const DIDPoolDetails = () => {
         sortOrder: sortConfig.direction,
         search: searchTerm || undefined,
         provider: filters.provider !== 'all' ? filters.provider : undefined,
-        status: filters.status !== 'all' ? filters.status : undefined
+        status: filters.status !== 'all' ? filters.status : undefined,
+        region: filters.region !== 'all' ? filters.region : undefined
       };
 
       const response = await apiService.didPools.getDids(id, params);
@@ -143,13 +147,15 @@ const DIDPoolDetails = () => {
   const handleAddDid = async (e) => {
     e.preventDefault();
     try {
-      await apiService.didPools.addDidToPool(id, formData);
+      await apiService.didPools.addDid(id, formData);
       setShowAddModal(false);
       setFormData({
         phoneNumber: '',
         provider: '',
         callerIdName: '',
-        status: 'active'
+        status: 'active',
+        region: 'US',
+        timezone: 'America/New_York'
       });
       fetchDids();
     } catch (err) {
@@ -160,16 +166,13 @@ const DIDPoolDetails = () => {
 
   const handleImportDids = async (e) => {
     e.preventDefault();
-    if (!importData.file) return;
-    
     try {
       const formData = new FormData();
       formData.append('file', importData.file);
-      formData.append('mapping', JSON.stringify(importData.mapping));
       formData.append('options', JSON.stringify(importData.options));
-      
-      await apiService.dids.importToLeadPool(id, formData);
-      
+      formData.append('mapping', JSON.stringify(importData.mapping));
+
+      await apiService.didPools.importDids(id, formData);
       setShowImportModal(false);
       setImportData({
         file: null,
@@ -180,9 +183,6 @@ const DIDPoolDetails = () => {
         }
       });
       setFilePreview(null);
-      
-      // Show success message
-      alert('DIDs imported successfully!');
       fetchDids();
     } catch (err) {
       console.error('Error importing DIDs:', err);
@@ -193,7 +193,7 @@ const DIDPoolDetails = () => {
   const handleDeleteDid = async (didId) => {
     if (window.confirm('Are you sure you want to delete this DID? This action cannot be undone.')) {
       try {
-        await apiService.dids.delete(didId);
+        await apiService.didPools.deleteDid(id, didId);
         fetchDids();
       } catch (err) {
         console.error('Error deleting DID:', err);
@@ -204,6 +204,7 @@ const DIDPoolDetails = () => {
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
   const handleFilterChange = (e) => {
@@ -212,10 +213,7 @@ const DIDPoolDetails = () => {
       ...prev,
       [name]: value
     }));
-    setPagination(prev => ({
-      ...prev,
-      currentPage: 1
-    }));
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
   const handleSortChange = (key) => {
@@ -237,7 +235,7 @@ const DIDPoolDetails = () => {
       const response = await apiService.didPools.getDids(id, { export: true });
       
       // Create a CSV string from the DIDs
-      const headers = ['Phone Number', 'Provider', 'Caller ID Name', 'Status', 'Created At'];
+      const headers = ['Phone Number', 'Provider', 'Caller ID Name', 'Status', 'Region', 'Timezone', 'Created At'];
       const csvRows = [headers];
       
       response.data.dids.forEach(did => {
@@ -246,6 +244,8 @@ const DIDPoolDetails = () => {
           did.provider,
           did.callerIdName,
           did.status,
+          did.region,
+          did.timezone,
           new Date(did.createdAt).toLocaleString()
         ]);
       });
@@ -335,6 +335,14 @@ const DIDPoolDetails = () => {
                 <span className="detail-value">{didPool?.description || 'No description'}</span>
               </div>
               <div className="detail-item">
+                <span className="detail-label">Region:</span>
+                <span className="detail-value">{didPool?.region}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Timezone:</span>
+                <span className="detail-value">{didPool?.timezone}</span>
+              </div>
+              <div className="detail-item">
                 <span className="detail-label">Status:</span>
                 <span className={`status-badge ${didPool?.status?.toLowerCase() || 'active'}`}>
                   {didPool?.status || 'Active'}
@@ -410,6 +418,22 @@ const DIDPoolDetails = () => {
                 </select>
               </div>
             </div>
+            <div className="filter-group">
+              <label>Region:</label>
+              <div className="select-wrapper">
+                <select
+                  name="region"
+                  value={filters.region}
+                  onChange={handleFilterChange}
+                >
+                  <option value="all">All Regions</option>
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  <option value="UK">United Kingdom</option>
+                  <option value="AU">Australia</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           {isLoading ? (
@@ -445,6 +469,18 @@ const DIDPoolDetails = () => {
                         <i className={`fas fa-sort-${sortConfig.direction === 'asc' ? 'up' : 'down'}`}></i>
                       )}
                     </th>
+                    <th onClick={() => handleSortChange('region')} className="sortable">
+                      Region
+                      {sortConfig.key === 'region' && (
+                        <i className={`fas fa-sort-${sortConfig.direction === 'asc' ? 'up' : 'down'}`}></i>
+                      )}
+                    </th>
+                    <th onClick={() => handleSortChange('timezone')} className="sortable">
+                      Timezone
+                      {sortConfig.key === 'timezone' && (
+                        <i className={`fas fa-sort-${sortConfig.direction === 'asc' ? 'up' : 'down'}`}></i>
+                      )}
+                    </th>
                     <th onClick={() => handleSortChange('createdAt')} className="sortable">
                       Created At
                       {sortConfig.key === 'createdAt' && (
@@ -461,28 +497,28 @@ const DIDPoolDetails = () => {
                       <td>{did.provider}</td>
                       <td>{did.callerIdName}</td>
                       <td>
-                        <span className={`status-badge ${did.status?.toLowerCase() || 'active'}`}>
-                          {did.status || 'Active'}
+                        <span className={`status-badge ${did.status.toLowerCase()}`}>
+                          {did.status}
                         </span>
                       </td>
+                      <td>{did.region}</td>
+                      <td>{did.timezone}</td>
                       <td>{new Date(did.createdAt).toLocaleString()}</td>
-                      <td>
-                        <div className="action-buttons">
-                          <button 
-                            className="action-button edit-button"
-                            onClick={() => navigate(`/dids/${did.id}/edit`)}
-                            title="Edit"
-                          >
-                            <i className="fas fa-edit"></i>
-                          </button>
-                          <button 
-                            className="action-button delete-button"
-                            onClick={() => handleDeleteDid(did.id)}
-                            title="Delete"
-                          >
-                            <i className="fas fa-trash"></i>
-                          </button>
-                        </div>
+                      <td className="action-buttons">
+                        <button 
+                          className="action-button edit-button"
+                          onClick={() => navigate(`/dids/${did.id}/edit`)}
+                          title="Edit DID"
+                        >
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button 
+                          className="action-button delete-button"
+                          onClick={() => handleDeleteDid(did.id)}
+                          title="Delete DID"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -512,41 +548,9 @@ const DIDPoolDetails = () => {
               >
                 <i className="fas fa-angle-left"></i>
               </button>
-              
-              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                .filter(page => {
-                  // Show first page, last page, current page, and pages around current page
-                  return page === 1 || 
-                         page === pagination.totalPages || 
-                         Math.abs(page - pagination.currentPage) <= 1;
-                })
-                .map((page, index, array) => {
-                  // Add ellipsis between non-consecutive pages
-                  if (index > 0 && page - array[index - 1] > 1) {
-                    return (
-                      <React.Fragment key={`ellipsis-${page}`}>
-                        <span className="pagination-ellipsis">...</span>
-                        <button 
-                          className={`pagination-button ${page === pagination.currentPage ? 'active' : ''}`}
-                          onClick={() => handlePageChange(page)}
-                        >
-                          {page}
-                        </button>
-                      </React.Fragment>
-                    );
-                  }
-                  
-                  return (
-                    <button 
-                      key={page}
-                      className={`pagination-button ${page === pagination.currentPage ? 'active' : ''}`}
-                      onClick={() => handlePageChange(page)}
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
-              
+              <span className="pagination-info">
+                Page {pagination.currentPage} of {pagination.totalPages}
+              </span>
               <button 
                 className="pagination-button"
                 onClick={() => handlePageChange(pagination.currentPage + 1)}
@@ -610,9 +614,38 @@ const DIDPoolDetails = () => {
                     name="callerIdName"
                     value={formData.callerIdName}
                     onChange={handleInputChange}
-                    placeholder="e.g., Company Name"
-                    required
+                    placeholder="Enter caller ID name"
                   />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="region">Region</label>
+                  <select
+                    id="region"
+                    name="region"
+                    value={formData.region}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="US">United States</option>
+                    <option value="CA">Canada</option>
+                    <option value="UK">United Kingdom</option>
+                    <option value="AU">Australia</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="timezone">Timezone</label>
+                  <select
+                    id="timezone"
+                    name="timezone"
+                    value={formData.timezone}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="America/New_York">Eastern Time (ET)</option>
+                    <option value="America/Chicago">Central Time (CT)</option>
+                    <option value="America/Denver">Mountain Time (MT)</option>
+                    <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                  </select>
                 </div>
                 <div className="form-group">
                   <label htmlFor="status">Status</label>
@@ -621,16 +654,24 @@ const DIDPoolDetails = () => {
                     name="status"
                     value={formData.status}
                     onChange={handleInputChange}
+                    required
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="button-secondary" onClick={() => setShowAddModal(false)}>
+                  <button 
+                    type="button" 
+                    className="button-secondary"
+                    onClick={() => setShowAddModal(false)}
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="button-primary">
+                  <button 
+                    type="submit" 
+                    className="button-primary"
+                  >
                     Add DID
                   </button>
                 </div>
@@ -658,18 +699,13 @@ const DIDPoolDetails = () => {
                     onChange={handleFileChange}
                     required
                   />
-                  <small className="form-help">
-                    Upload a CSV file with columns: phoneNumber, provider, callerIdName, status
-                  </small>
                 </div>
-                
                 {filePreview && (
                   <div className="file-preview">
                     <h3>File Preview</h3>
                     <pre>{filePreview}</pre>
                   </div>
                 )}
-                
                 <div className="form-group">
                   <label className="checkbox-label">
                     <input
@@ -681,7 +717,6 @@ const DIDPoolDetails = () => {
                     Skip Header Row
                   </label>
                 </div>
-                
                 <div className="form-group">
                   <label className="checkbox-label">
                     <input
@@ -693,12 +728,19 @@ const DIDPoolDetails = () => {
                     Update Existing DIDs
                   </label>
                 </div>
-                
                 <div className="modal-footer">
-                  <button type="button" className="button-secondary" onClick={() => setShowImportModal(false)}>
+                  <button 
+                    type="button" 
+                    className="button-secondary"
+                    onClick={() => setShowImportModal(false)}
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="button-primary">
+                  <button 
+                    type="submit" 
+                    className="button-primary"
+                    disabled={!importData.file}
+                  >
                     Import DIDs
                   </button>
                 </div>
@@ -711,4 +753,4 @@ const DIDPoolDetails = () => {
   );
 };
 
-export default DIDPoolDetails; 
+export default DIDPoolDetails;

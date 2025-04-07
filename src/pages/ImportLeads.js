@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import apiService from "../services/apiService";
-import "./ListPages.css";
+import "./ImportLeads.css";
 import LoadingSpinner from "../components/LoadingSpinner";
 
 const ImportLeads = () => {
@@ -11,33 +11,54 @@ const ImportLeads = () => {
   const [success, setSuccess] = useState(null);
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
-  const [availableFields, setAvailableFields] = useState([]);
-  const [leadPools, setLeadPools] = useState([]);
-  const [selectedLeadPool, setSelectedLeadPool] = useState("");
-  const [mapping, setMapping] = useState({});
-  const [options, setOptions] = useState({
+  const [fieldMapping, setFieldMapping] = useState({});
+  const [importOptions, setImportOptions] = useState({
     skipHeader: true,
     updateExisting: false,
-    validateData: true
+    defaultBrand: '',
+    defaultSource: '',
+    defaultLeadAge: 0
   });
+  const [defaultPoolId, setDefaultPoolId] = useState('');
+  const [leadPools, setLeadPools] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [sources, setSources] = useState([]);
+  const [availableFields, setAvailableFields] = useState([
+    'phone',
+    'firstName',
+    'lastName',
+    'email',
+    'brand',
+    'source',
+    'leadAge'
+  ]);
 
-  // Fetch lead pools on component mount
   useEffect(() => {
     fetchLeadPools();
+    fetchBrandsAndSources();
   }, []);
 
   const fetchLeadPools = async () => {
     try {
       const response = await apiService.leadPools.getAll();
       setLeadPools(response.data || []);
-      
-      // Set default selected lead pool if available
-      if (response.data && response.data.length > 0) {
-        setSelectedLeadPool(response.data[0].id.toString());
-      }
     } catch (err) {
-      console.error("Error fetching lead pools:", err);
-      setError("Failed to load lead pools. Please try again later.");
+      console.error('Error fetching lead pools:', err);
+      setError('Failed to load lead pools. Please try again later.');
+    }
+  };
+
+  const fetchBrandsAndSources = async () => {
+    try {
+      const [brandsResponse, sourcesResponse] = await Promise.all([
+        apiService.brands.getAll(),
+        apiService.sources.getAll()
+      ]);
+      setBrands(brandsResponse.data || []);
+      setSources(sourcesResponse.data || []);
+    } catch (err) {
+      console.error('Error fetching brands and sources:', err);
+      setError('Failed to load brands and sources. Please try again later.');
     }
   };
 
@@ -45,139 +66,91 @@ const ImportLeads = () => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
       setFile(selectedFile);
-      
-      // Preview the file
+      // Preview file content
       const reader = new FileReader();
-      reader.onload = (event) => {
-        const csvContent = event.target.result;
-        const lines = csvContent.split('\n').slice(0, 5); // Get first 5 lines for preview
-        setFilePreview(lines.join('\n'));
-    
-        // Extract headers from the first line
-        if (lines.length > 0) {
-          const headers = lines[0].split(',').map(header => header.trim());
-          setAvailableFields(headers);
-          
-          // Set default mapping
-          const defaultMapping = {};
-          headers.forEach(header => {
-            // Try to match common field names
-            const normalizedHeader = header.toLowerCase().replace(/\s+/g, '_');
-            if (normalizedHeader.includes('first') || normalizedHeader.includes('fname')) {
-              defaultMapping[header] = 'first_name';
-            } else if (normalizedHeader.includes('last') || normalizedHeader.includes('lname')) {
-              defaultMapping[header] = 'last_name';
-            } else if (normalizedHeader.includes('email')) {
-              defaultMapping[header] = 'email';
-            } else if (normalizedHeader.includes('phone') || normalizedHeader.includes('tel')) {
-              defaultMapping[header] = 'phone';
-            } else if (normalizedHeader.includes('address') || normalizedHeader.includes('street')) {
-              defaultMapping[header] = 'address';
-            } else if (normalizedHeader.includes('city')) {
-              defaultMapping[header] = 'city';
-            } else if (normalizedHeader.includes('state') || normalizedHeader.includes('province')) {
-              defaultMapping[header] = 'state';
-            } else if (normalizedHeader.includes('zip') || normalizedHeader.includes('postal')) {
-              defaultMapping[header] = 'zip_code';
-            } else {
-              defaultMapping[header] = '';
-            }
-          });
-          setMapping(defaultMapping);
-        }
+      reader.onload = (e) => {
+        const content = e.target.result;
+        setFilePreview(content);
+        // Auto-detect field mapping based on headers
+        detectFieldMapping(content);
       };
       reader.readAsText(selectedFile);
     }
   };
 
-  const handleMappingChange = (header, field) => {
-    setMapping({
-      ...mapping,
-      [header]: field
-    });
-  };
-  
-  const handleOptionChange = (e) => {
-    const { name, checked } = e.target;
-    setOptions({
-      ...options,
-      [name]: checked
-    });
+  const detectFieldMapping = (content) => {
+    const lines = content.split('\n');
+    if (lines.length > 0) {
+      const headers = lines[0].split(',').map(h => h.trim());
+      const mapping = {};
+      headers.forEach(header => {
+        const normalizedHeader = header.toLowerCase().replace(/\s+/g, '');
+        const matchingField = availableFields.find(field => 
+          normalizedHeader.includes(field.toLowerCase())
+        );
+        if (matchingField) {
+          mapping[matchingField] = header;
+        }
+      });
+      setFieldMapping(mapping);
+    }
   };
 
-  const handleLeadPoolChange = (e) => {
-    setSelectedLeadPool(e.target.value);
+  const handleFieldMappingChange = (field, value) => {
+    setFieldMapping(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const handleImport = async (e) => {
+  const handleImportOptionsChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setImportOptions(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!file) {
-      setError("Please select a file to import");
+      setError('Please select a file to import');
       return;
     }
-    
-    if (!selectedLeadPool) {
-      setError("Please select a lead pool");
-      return;
-    }
-    
-    // Check if required fields are mapped
-    const requiredFields = ['first_name', 'last_name', 'email', 'phone'];
-    const mappedFields = Object.values(mapping);
-    const missingRequired = requiredFields.filter(field => !mappedFields.includes(field));
-    
-    if (missingRequired.length > 0) {
-      setError(`Please map the following required fields: ${missingRequired.join(', ')}`);
-      return;
-    }
-    
+
     setIsLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('mapping', JSON.stringify(mapping));
-      formData.append('options', JSON.stringify(options));
-      
-      await apiService.leadPools.importLeads(selectedLeadPool, formData);
-      
-      setSuccess("Leads imported successfully!");
-      
-      // Reset form
-      setFile(null);
-      setFilePreview(null);
-      setAvailableFields([]);
-      setMapping({});
-      
-      // Navigate to the lead pool detail page
-      setTimeout(() => {
-        navigate(`/lead-pools/${selectedLeadPool}`);
-      }, 2000);
+      formData.append('fieldMapping', JSON.stringify(fieldMapping));
+      formData.append('options', JSON.stringify(importOptions));
+      formData.append('defaultPoolId', defaultPoolId);
+
+      const response = await apiService.leads.importFromFile(formData);
+      setSuccess(response);
     } catch (err) {
-      console.error("Error importing leads:", err);
-      setError("Failed to import leads. Please check your file format and try again.");
+      console.error('Error importing leads:', err);
+      setError(err.message || 'Failed to import leads. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleCancel = () => {
-    navigate("/leads");
   };
 
   return (
     <div className="page-container">
       <div className="content-container">
         <div className="content-header">
-          <div className="header-with-back">
-            <button className="back-button" onClick={handleCancel}>
-              <i className="back-icon"></i>
-              <span>Back to Leads</span>
+          <h1 className="page-title">Import Leads</h1>
+          <div className="header-actions">
+            <button 
+              className="button-secondary"
+              onClick={() => navigate('/leads')}
+            >
+              Back to Leads
             </button>
-            <h1 className="page-title">Import Leads</h1>
           </div>
         </div>
 
@@ -188,156 +161,218 @@ const ImportLeads = () => {
               <button className="dismiss-button" onClick={() => setError(null)}>×</button>
             </div>
           )}
-          
-          {success && (
-            <div className="success-message">
-              {success}
-              <button className="dismiss-button" onClick={() => setSuccess(null)}>×</button>
-            </div>
-          )}
 
-          <div className="import-form-container">
-            <form onSubmit={handleImport}>
-              <div className="form-section">
-                <h2>Select Lead Pool</h2>
-                <div className="form-group">
-                  <label htmlFor="leadPool">Lead Pool:</label>
-                  <select
-                    id="leadPool"
-                    value={selectedLeadPool}
-                    onChange={handleLeadPoolChange}
-                    required
-                  >
-                    <option value="">Select a Lead Pool</option>
-                    {leadPools.map(pool => (
-                      <option key={pool.id} value={pool.id}>
-                        {pool.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          {success ? (
+            <div className="import-success">
+              <h3>Import Successful!</h3>
+              <p>Successfully imported {success.imported || 0} leads.</p>
+              {success.skipped > 0 && (
+                <p>Skipped {success.skipped} leads due to duplicates or invalid data.</p>
+              )}
+              {success.importedLeads && success.importedLeads.length > 0 && (
+                <>
+                  <h4>Imported Leads</h4>
+                  <div className="imported-leads">
+                    <ul>
+                      {success.importedLeads.map((lead, index) => (
+                        <li key={index}>
+                          {lead.firstName} {lead.lastName} ({lead.phone})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              )}
+              {success.skippedLeads && success.skippedLeads.length > 0 && (
+                <>
+                  <h4>Skipped Leads</h4>
+                  <div className="skipped-leads">
+                    <ul>
+                      {success.skippedLeads.map((lead, index) => (
+                        <li key={index}>
+                          {lead.firstName} {lead.lastName} ({lead.phone})
+                          <span className="skip-reason">- {lead.reason}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              )}
+              <div className="form-actions">
+                <button 
+                  className="button-primary"
+                  onClick={() => navigate('/leads')}
+                >
+                  View All Leads
+                </button>
+                <button 
+                  className="button-secondary"
+                  onClick={() => {
+                    setSuccess(null);
+                    setFile(null);
+                    setFilePreview(null);
+                    setFieldMapping({});
+                  }}
+                >
+                  Import More
+                </button>
               </div>
-
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit}>
               <div className="form-section">
                 <h2>Upload File</h2>
-                <div className="form-group">
-                  <label htmlFor="file">CSV File:</label>
+                <div className="file-input-container">
                   <input
                     type="file"
+                    className="file-input"
                     id="file"
-                    accept=".csv"
+                    accept=".csv,.xlsx,.xls"
                     onChange={handleFileChange}
-                    required
                   />
-                  <p className="form-help">Upload a CSV file with lead information</p>
+                  <label htmlFor="file" className="button-primary">
+                    Choose File
+                  </label>
+                  <p className="file-help">
+                    Supported formats: CSV, Excel (XLSX, XLS)
+                    <br />
+                    Maximum file size: 50MB
+                  </p>
                 </div>
-
                 {filePreview && (
                   <div className="file-preview">
-                    <h3>File Preview</h3>
                     <pre>{filePreview}</pre>
                   </div>
                 )}
               </div>
 
-              {availableFields.length > 0 && (
-                <div className="form-section">
-                  <h2>Field Mapping</h2>
-                  <p className="form-help">Map CSV columns to lead fields</p>
-                  <div className="mapping-table">
-                    <div className="mapping-header">
-                      <div className="mapping-cell">CSV Column</div>
-                      <div className="mapping-cell">Lead Field</div>
+              <div className="form-section">
+                <h2>Field Mapping</h2>
+                <div className="mapping-container">
+                  {availableFields.map(field => (
+                    <div key={field} className="mapping-row">
+                      <div className="mapping-field">{field}</div>
+                      <select
+                        className="mapping-select"
+                        value={fieldMapping[field] || ''}
+                        onChange={(e) => handleFieldMappingChange(field, e.target.value)}
+                      >
+                        <option value="">Select field</option>
+                        {filePreview && filePreview.split('\n')[0].split(',').map(header => (
+                          <option key={header} value={header.trim()}>
+                            {header.trim()}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    {availableFields.map(field => (
-                      <div key={field} className="mapping-row">
-                        <div className="mapping-cell">{field}</div>
-                        <div className="mapping-cell">
-                          <select
-                            value={mapping[field] || ''}
-                            onChange={(e) => handleMappingChange(field, e.target.value)}
-                          >
-                            <option value="">-- Select Field --</option>
-                            <option value="first_name">First Name</option>
-                            <option value="last_name">Last Name</option>
-                            <option value="email">Email</option>
-                            <option value="phone">Phone</option>
-                            <option value="address">Address</option>
-                            <option value="city">City</option>
-                            <option value="state">State</option>
-                            <option value="zip_code">ZIP Code</option>
-                            <option value="notes">Notes</option>
-                          </select>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
-              )}
+              </div>
 
               <div className="form-section">
                 <h2>Import Options</h2>
-                <div className="option-group">
-                  <label>
+                <div className="options-container">
+                  <div className="option-row">
+                    <label>
+                      <input
+                        type="checkbox"
+                        name="skipHeader"
+                        checked={importOptions.skipHeader}
+                        onChange={handleImportOptionsChange}
+                      />
+                      Skip header row
+                    </label>
+                  </div>
+                  <div className="option-row">
+                    <label>
+                      <input
+                        type="checkbox"
+                        name="updateExisting"
+                        checked={importOptions.updateExisting}
+                        onChange={handleImportOptionsChange}
+                      />
+                      Update existing leads
+                    </label>
+                  </div>
+                  <div className="option-row">
+                    <label>Default Brand:</label>
+                    <select
+                      className="default-select"
+                      name="defaultBrand"
+                      value={importOptions.defaultBrand}
+                      onChange={handleImportOptionsChange}
+                    >
+                      <option value="">Select brand</option>
+                      {brands.map(brand => (
+                        <option key={brand.id} value={brand.id}>
+                          {brand.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="option-row">
+                    <label>Default Source:</label>
+                    <select
+                      className="default-select"
+                      name="defaultSource"
+                      value={importOptions.defaultSource}
+                      onChange={handleImportOptionsChange}
+                    >
+                      <option value="">Select source</option>
+                      {sources.map(source => (
+                        <option key={source.id} value={source.id}>
+                          {source.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="option-row">
+                    <label>Default Lead Age (days):</label>
                     <input
-                      type="checkbox"
-                      name="skipHeader"
-                      checked={options.skipHeader}
-                      onChange={handleOptionChange}
+                      type="number"
+                      className="default-input"
+                      name="defaultLeadAge"
+                      value={importOptions.defaultLeadAge}
+                      onChange={handleImportOptionsChange}
+                      min="0"
                     />
-                    Skip header row
-                  </label>
-                </div>
-                <div className="option-group">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="updateExisting"
-                      checked={options.updateExisting}
-                      onChange={handleOptionChange}
-                    />
-                    Update existing leads
-                  </label>
-                </div>
-                <div className="option-group">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="validateData"
-                      checked={options.validateData}
-                      onChange={handleOptionChange}
-                    />
-                    Validate data before import
-                  </label>
+                  </div>
+                  <div className="option-row">
+                    <label>Default Lead Pool:</label>
+                    <select
+                      className="lead-pool-select"
+                      value={defaultPoolId}
+                      onChange={(e) => setDefaultPoolId(e.target.value)}
+                    >
+                      <option value="">Select lead pool</option>
+                      {leadPools.map(pool => (
+                        <option key={pool.id} value={pool.id}>
+                          {pool.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
               <div className="form-actions">
                 <button
-                  type="button"
-                  className="button-outline"
-                  onClick={handleCancel}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </button>
-                <button
                   type="submit"
-                  className="button-blue"
-                  disabled={isLoading || !file || !selectedLeadPool}
+                  className="submit-button"
+                  disabled={isLoading || !file}
                 >
                   {isLoading ? (
                     <>
-                      <span className="button-spinner"></span>
+                      <span className="loading-spinner" />
                       Importing...
                     </>
                   ) : (
-                    "Import Leads"
+                    'Import Leads'
                   )}
                 </button>
               </div>
             </form>
-          </div>
+          )}
         </div>
       </div>
     </div>

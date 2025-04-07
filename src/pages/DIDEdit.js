@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
 import LoadingSpinner from '../components/LoadingSpinner';
-import './DIDPools.css';
+import './DIDEdit.css';
 
 const DIDEdit = () => {
   const { id } = useParams();
@@ -12,13 +12,11 @@ const DIDEdit = () => {
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     phoneNumber: '',
-    provider: '',
-    callerIdName: '',
-    status: 'active'
+    status: 'active',
+    notes: '',
+    tags: []
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch DID details on component mount
   useEffect(() => {
     fetchDid();
   }, [id]);
@@ -27,18 +25,13 @@ const DIDEdit = () => {
     setIsLoading(true);
     setError(null);
     try {
-      if (!id) {
-        setError('Invalid DID ID');
-        setIsLoading(false);
-        return;
-      }
       const response = await apiService.dids.getById(id);
       setDid(response.data);
       setFormData({
         phoneNumber: response.data.phoneNumber || '',
-        provider: response.data.provider || '',
-        callerIdName: response.data.callerIdName || '',
-        status: response.data.status || 'active'
+        status: response.data.status || 'active',
+        notes: response.data.notes || '',
+        tags: response.data.tags || []
       });
     } catch (err) {
       console.error('Error fetching DID:', err);
@@ -56,33 +49,35 @@ const DIDEdit = () => {
     }));
   };
 
+  const handleTagsChange = (e) => {
+    const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag);
+    setFormData(prev => ({
+      ...prev,
+      tags
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setError(null);
-    
     try {
       await apiService.dids.update(id, formData);
-      
-      // Navigate back to the DID pool details page
-      if (did && did.poolId) {
-        navigate(`/did-pools/${did.poolId}`);
-      } else {
-        navigate('/did-pools');
-      }
+      navigate(`/did-pools/${did.poolId}`);
     } catch (err) {
       console.error('Error updating DID:', err);
       setError('Failed to update DID. Please try again.');
-      setIsSubmitting(false);
     }
   };
 
-  const handleCancel = () => {
-    // Navigate back to the DID pool details page
-    if (did && did.poolId) {
-      navigate(`/did-pools/${did.poolId}`);
-    } else {
-      navigate('/did-pools');
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this DID? This action cannot be undone.')) {
+      try {
+        await apiService.dids.delete(id);
+        navigate(`/did-pools/${did.poolId}`);
+      } catch (err) {
+        console.error('Error deleting DID:', err);
+        setError('Failed to delete DID. Please try again.');
+      }
     }
   };
 
@@ -98,18 +93,42 @@ const DIDEdit = () => {
     );
   }
 
+  if (!did) {
+    return (
+      <div className="page-container">
+        <div className="content-container">
+          <div className="error-state">
+            <p>DID not found</p>
+            <button 
+              className="button-primary"
+              onClick={() => navigate(-1)}
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-container">
       <div className="content-container">
         <div className="content-header">
-          <div className="header-left">
+          <h1 className="page-title">Edit DID</h1>
+          <div className="header-actions">
             <button 
-              className="back-button"
-              onClick={handleCancel}
+              className="button-secondary"
+              onClick={() => navigate(-1)}
             >
-              <i className="fas fa-arrow-left"></i> Back
+              Cancel
             </button>
-            <h1 className="page-title">Edit DID</h1>
+            <button 
+              className="button-danger"
+              onClick={handleDelete}
+            >
+              Delete DID
+            </button>
           </div>
         </div>
 
@@ -121,83 +140,75 @@ const DIDEdit = () => {
         )}
 
         <div className="content-body">
-          <div className="form-card">
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label htmlFor="phoneNumber">Phone Number</label>
-                <input
-                  type="text"
-                  id="phoneNumber"
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleInputChange}
-                  placeholder="e.g., +1234567890"
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="provider">Provider</label>
-                <select
-                  id="provider"
-                  name="provider"
-                  value={formData.provider}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Select Provider</option>
-                  <option value="Twilio">Twilio</option>
-                  <option value="Bandwidth">Bandwidth</option>
-                  <option value="Vonage">Vonage</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="callerIdName">Caller ID Name</label>
-                <input
-                  type="text"
-                  id="callerIdName"
-                  name="callerIdName"
-                  value={formData.callerIdName}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Company Name"
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="status">Status</label>
-                <select
-                  id="status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-              
-              <div className="form-actions">
-                <button 
-                  type="button" 
-                  className="button-secondary"
-                  onClick={handleCancel}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="button-primary"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
-          </div>
+          <form onSubmit={handleSubmit} className="edit-form">
+            <div className="form-group">
+              <label htmlFor="phoneNumber">Phone Number *</label>
+              <input
+                type="tel"
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleInputChange}
+                required
+                placeholder="Enter phone number"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="status">Status</label>
+              <select
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={handleInputChange}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="reserved">Reserved</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="notes">Notes</label>
+              <textarea
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleInputChange}
+                placeholder="Enter notes about this DID"
+                rows="4"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="tags">Tags</label>
+              <input
+                type="text"
+                id="tags"
+                name="tags"
+                value={formData.tags.join(', ')}
+                onChange={handleTagsChange}
+                placeholder="Enter tags separated by commas"
+              />
+              <small className="help-text">Separate tags with commas</small>
+            </div>
+
+            <div className="form-actions">
+              <button 
+                type="button" 
+                className="button-secondary"
+                onClick={() => navigate(-1)}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="button-primary"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

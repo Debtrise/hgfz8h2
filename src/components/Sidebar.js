@@ -87,14 +87,8 @@ const Sidebar = () => {
             title="Leads Management"
             className={isLeadsSectionActive() ? 'active-section' : ''}
           >
-            <Menu.Item key="lead-pools">
-              <Link to="/lead-pools">Lead Pools</Link>
-            </Menu.Item>
-            <Menu.Item key="all-leads">
-              <Link to="/leads">All Leads</Link>
-            </Menu.Item>
-            <Menu.Item key="import-leads">
-              <Link to="/leads/import">Import Leads</Link>
+            <Menu.Item key="lead-management">
+              <Link to="/lead-management">Lead Management</Link>
             </Menu.Item>
             <Menu.Item key="lead-assignments">
               <Link to="/leads/assignments">Lead Assignments</Link>

@@ -33,11 +33,13 @@ const LeadPoolDetail = () => {
     source: 'all',
     dateRange: 'all'
   });
+  const [sortField, setSortField] = useState('created_at');
+  const [sortDirection, setSortDirection] = useState('desc');
 
   useEffect(() => {
     fetchLeadPool();
     fetchLeads();
-  }, [id, pagination.currentPage, filters]);
+  }, [id, pagination.currentPage, filters, sortField, sortDirection]);
 
   const fetchLeadPool = async () => {
     setIsLoading(true);
@@ -61,6 +63,7 @@ const LeadPoolDetail = () => {
       const response = await apiService.leads.getByLeadPool(id, {
         page: pagination.currentPage,
         limit: pagination.leadsPerPage,
+        sort: `${sortField}:${sortDirection}`,
         status: filters.status !== 'all' ? filters.status : undefined,
         source: filters.source !== 'all' ? filters.source : undefined,
         dateRange: filters.dateRange !== 'all' ? filters.dateRange : undefined
@@ -235,6 +238,15 @@ const LeadPoolDetail = () => {
     setFilePreview(null);
   };
 
+  const handleSortChange = (field) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   if (isLoading && !leadPool) {
     return (
       <div className="lead-pool-detail-container">
@@ -397,12 +409,52 @@ const LeadPoolDetail = () => {
               <table className="leads-table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Status</th>
-                    <th>Source</th>
-                    <th>Created</th>
+                    <th
+                      className="sortable"
+                      onClick={() => handleSortChange('first_name')}
+                    >
+                      <span>Name</span>
+                      {sortField === 'first_name' && (
+                        <span className={`sort-icon ${sortDirection}`}></span>
+                      )}
+                    </th>
+                    <th>Contact</th>
+                    <th
+                      className="sortable"
+                      onClick={() => handleSortChange('created_at')}
+                    >
+                      <span>Added</span>
+                      {sortField === 'created_at' && (
+                        <span className={`sort-icon ${sortDirection}`}></span>
+                      )}
+                    </th>
+                    <th
+                      className="sortable"
+                      onClick={() => handleSortChange('last_contacted_at')}
+                    >
+                      <span>Last Contact</span>
+                      {sortField === 'last_contacted_at' && (
+                        <span className={`sort-icon ${sortDirection}`}></span>
+                      )}
+                    </th>
+                    <th
+                      className="sortable"
+                      onClick={() => handleSortChange('lead_age')}
+                    >
+                      <span>Age (days)</span>
+                      {sortField === 'lead_age' && (
+                        <span className={`sort-icon ${sortDirection}`}></span>
+                      )}
+                    </th>
+                    <th
+                      className="sortable"
+                      onClick={() => handleSortChange('status')}
+                    >
+                      <span>Status</span>
+                      {sortField === 'status' && (
+                        <span className={`sort-icon ${sortDirection}`}></span>
+                      )}
+                    </th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -411,14 +463,14 @@ const LeadPoolDetail = () => {
                     <tr key={lead.id}>
                       <td>{`${lead.firstName} ${lead.lastName}`}</td>
                       <td>{lead.email}</td>
-                      <td>{lead.phone}</td>
+                      <td>{new Date(lead.createdAt).toLocaleDateString()}</td>
+                      <td>{new Date(lead.lastContactedAt).toLocaleDateString()}</td>
+                      <td>{Math.floor((new Date() - new Date(lead.createdAt)) / (1000 * 60 * 60 * 24))}</td>
                       <td>
                         <span className={`status-badge ${lead.status}`}>
                           {lead.status}
                         </span>
                       </td>
-                      <td>{lead.source}</td>
-                      <td>{new Date(lead.createdAt).toLocaleDateString()}</td>
                       <td className="action-buttons">
                         <button 
                           className="action-button view-button"

@@ -37,7 +37,7 @@ const LeadPools = () => {
   const [availableFields, setAvailableFields] = useState([]);
   const [filePreview, setFilePreview] = useState(null);
   const [stats, setStats] = useState({
-    totalLeads: 0,
+    totalLeads: '',
     activePools: 0,
     averageLeadsPerPool: 0
   });
@@ -58,11 +58,14 @@ const LeadPools = () => {
       setLeadPools(pools);
       
       // Calculate stats
-      const totalLeads = pools.reduce((sum, pool) => sum + (pool.lead_count || 0), 0);
-      const activePools = pools.filter(pool => pool.status === 'active').length;
+      const totalLeads = pools.reduce((sum, pool) => {
+        const count = pool.lead_count ? parseInt(pool.lead_count, 10) : 0;
+        return isNaN(count) ? sum : sum + count;
+      }, 0);
+      
       setStats({
-        totalLeads,
-        activePools,
+        totalLeads: String(totalLeads),
+        activePools: pools.filter(pool => pool.status === 'active').length,
         averageLeadsPerPool: pools.length ? Math.round(totalLeads / pools.length) : 0
       });
     } catch (err) {
@@ -271,7 +274,7 @@ const LeadPools = () => {
       <div className="lead-pools-stats">
         <div className="stat-card">
           <h3>Total Leads</h3>
-          <div className="value">{stats.totalLeads.toLocaleString()}</div>
+          <div className="value">{stats.totalLeads}</div>
         </div>
         <div className="stat-card">
           <h3>Active Pools</h3>
@@ -279,7 +282,7 @@ const LeadPools = () => {
         </div>
         <div className="stat-card">
           <h3>Avg. Leads per Pool</h3>
-          <div className="value">{stats.averageLeadsPerPool.toLocaleString()}</div>
+          <div className="value">{stats.averageLeadsPerPool}</div>
         </div>
       </div>
 

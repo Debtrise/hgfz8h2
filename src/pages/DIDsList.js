@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import apiService from "../services/apiService";
+import LoadingSpinner from "../components/LoadingSpinner";
 import "./ListPages.css";
 
 const DIDsList = () => {
@@ -19,14 +20,30 @@ const DIDsList = () => {
   const [filters, setFilters] = useState({
     poolId: "all",
     provider: "all",
-    status: "all"
+    status: "all",
+    region: "all"
   });
   const [error, setError] = useState(null);
+  const [didPools, setDidPools] = useState([]);
 
   // Fetch DIDs when filters or pagination changes
   useEffect(() => {
     fetchDIDs();
-  }, [pagination.page, filters, searchTerm]);
+  }, [pagination.page, filters, searchTerm, sortField, sortDirection]);
+
+  // Fetch DID pools for the filter dropdown
+  useEffect(() => {
+    fetchDidPools();
+  }, []);
+
+  const fetchDidPools = async () => {
+    try {
+      const response = await apiService.didPools.getAll();
+      setDidPools(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      console.error('Error fetching DID pools:', err);
+    }
+  };
 
   const fetchDIDs = async () => {
     setIsLoading(true);
@@ -38,7 +55,10 @@ const DIDsList = () => {
         search: searchTerm || undefined,
         poolId: filters.poolId !== "all" ? filters.poolId : undefined,
         provider: filters.provider !== "all" ? filters.provider : undefined,
-        status: filters.status !== "all" ? filters.status : undefined
+        status: filters.status !== "all" ? filters.status : undefined,
+        region: filters.region !== "all" ? filters.region : undefined,
+        sortBy: sortField,
+        sortOrder: sortDirection
       };
 
       const response = await apiService.dids.getAll(params);
@@ -82,6 +102,16 @@ const DIDsList = () => {
     });
   };
 
+  // Handle sort change
+  const handleSortChange = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   // Handle status toggle
   const handleToggleStatus = async (e, didId, currentStatus) => {
     e.stopPropagation();
@@ -107,24 +137,7 @@ const DIDsList = () => {
     <div className="page-container">
       <div className="content-container">
         <div className="content-header">
-          <h1 className="page-title">DID Management</h1>
-          <div className="header-actions">
-            <div className="search-container">
-              <input
-                type="text"
-                className="search-input"
-                placeholder="Search DIDs..."
-                value={searchTerm}
-                onChange={handleSearch}
-              />
-            </div>
-            <button
-              className="button-primary"
-              onClick={() => navigate('/dids/import')}
-            >
-              Import DIDs
-            </button>
-          </div>
+          <h1 className="page-title">All DIDs</h1>
         </div>
 
         {error && (
@@ -134,22 +147,43 @@ const DIDsList = () => {
           </div>
         )}
 
-        <div className="content-body">
-          {/* Filters */}
-          <div className="filter-row">
-            <div className="filter-group">
-              <label>Pool:</label>
+        <div className="filter-row">
+          <div className="search-container">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search DIDs..."
+              value={searchTerm}
+              onChange={handleSearch}
+            />
+            <button 
+              className="search-button"
+              onClick={() => {
+                setPagination(prev => ({ ...prev, page: 1 }));
+                fetchDIDs();
+              }}
+            >
+              <i className="fas fa-search"></i>
+            </button>
+          </div>
+          <div className="filter-group">
+            <label>Pool:</label>
+            <div className="select-wrapper">
               <select
                 name="poolId"
                 value={filters.poolId}
                 onChange={handleFilterChange}
               >
                 <option value="all">All Pools</option>
-                {/* Add pool options dynamically */}
+                {didPools.map(pool => (
+                  <option key={pool.id} value={pool.id}>{pool.name}</option>
+                ))}
               </select>
             </div>
-            <div className="filter-group">
-              <label>Provider:</label>
+          </div>
+          <div className="filter-group">
+            <label>Provider:</label>
+            <div className="select-wrapper">
               <select
                 name="provider"
                 value={filters.provider}
@@ -159,10 +193,13 @@ const DIDsList = () => {
                 <option value="Twilio">Twilio</option>
                 <option value="Bandwidth">Bandwidth</option>
                 <option value="Vonage">Vonage</option>
+                <option value="Other">Other</option>
               </select>
             </div>
-            <div className="filter-group">
-              <label>Status:</label>
+          </div>
+          <div className="filter-group">
+            <label>Status:</label>
+            <div className="select-wrapper">
               <select
                 name="status"
                 value={filters.status}
@@ -174,134 +211,169 @@ const DIDsList = () => {
               </select>
             </div>
           </div>
+          <div className="filter-group">
+            <label>Region:</label>
+            <div className="select-wrapper">
+              <select
+                name="region"
+                value={filters.region}
+                onChange={handleFilterChange}
+              >
+                <option value="all">All Regions</option>
+                <option value="US">United States</option>
+                <option value="CA">Canada</option>
+                <option value="UK">United Kingdom</option>
+                <option value="AU">Australia</option>
+              </select>
+            </div>
+          </div>
+        </div>
 
-          {/* Table */}
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Phone Number</th>
-                  <th>Pool</th>
-                  <th>Provider</th>
-                  <th>Caller ID Name</th>
-                  <th>Region</th>
-                  <th>Status</th>
-                  <th>Monthly Cost</th>
-                  <th>Created At</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
+        <div className="content-body">
+          {isLoading ? (
+            <div className="loading-state">
+              <LoadingSpinner size="medium" text="Loading DIDs..." />
+            </div>
+          ) : dids.length > 0 ? (
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <td colSpan="9" className="loading-state">
-                      Loading DIDs...
-                    </td>
+                    <th onClick={() => handleSortChange('phoneNumber')} className="sortable">
+                      Phone Number
+                      {sortField === 'phoneNumber' && (
+                        <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
+                      )}
+                    </th>
+                    <th onClick={() => handleSortChange('pool')} className="sortable">
+                      Pool
+                      {sortField === 'pool' && (
+                        <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
+                      )}
+                    </th>
+                    <th onClick={() => handleSortChange('provider')} className="sortable">
+                      Provider
+                      {sortField === 'provider' && (
+                        <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
+                      )}
+                    </th>
+                    <th onClick={() => handleSortChange('callerIdName')} className="sortable">
+                      Caller ID Name
+                      {sortField === 'callerIdName' && (
+                        <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
+                      )}
+                    </th>
+                    <th onClick={() => handleSortChange('region')} className="sortable">
+                      Region
+                      {sortField === 'region' && (
+                        <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
+                      )}
+                    </th>
+                    <th onClick={() => handleSortChange('status')} className="sortable">
+                      Status
+                      {sortField === 'status' && (
+                        <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
+                      )}
+                    </th>
+                    <th onClick={() => handleSortChange('monthlyCost')} className="sortable">
+                      Monthly Cost
+                      {sortField === 'monthlyCost' && (
+                        <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
+                      )}
+                    </th>
+                    <th onClick={() => handleSortChange('createdAt')} className="sortable">
+                      Created At
+                      {sortField === 'createdAt' && (
+                        <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
+                      )}
+                    </th>
+                    <th>Actions</th>
                   </tr>
-                ) : dids.length > 0 ? (
-                  dids.map((did) => (
+                </thead>
+                <tbody>
+                  {dids.map(did => (
                     <tr key={did.id} onClick={() => viewDIDDetails(did.id)}>
-                      <td>{did.phone_number}</td>
-                      <td>{did.pool_name}</td>
+                      <td>{did.phoneNumber}</td>
+                      <td>{did.pool?.name || 'N/A'}</td>
                       <td>{did.provider}</td>
-                      <td>{did.caller_id_name}</td>
+                      <td>{did.callerIdName}</td>
                       <td>{did.region}</td>
                       <td>
-                        <div className="toggle-container" onClick={(e) => e.stopPropagation()}>
-                          <label className="toggle-switch">
-                            <input
-                              type="checkbox"
-                              checked={did.status === "active"}
-                              onChange={(e) => handleToggleStatus(e, did.id, did.status)}
-                            />
-                            <span className="toggle-slider"></span>
-                          </label>
-                          <span className="toggle-status">{did.status}</span>
-                        </div>
+                        <span 
+                          className={`status-badge ${did.status.toLowerCase()}`}
+                          onClick={(e) => handleToggleStatus(e, did.id, did.status)}
+                        >
+                          {did.status}
+                        </span>
                       </td>
-                      <td>${did.monthly_cost}</td>
-                      <td>{new Date(did.created_at).toLocaleDateString()}</td>
-                      <td>
-                        <div className="action-buttons">
-                          <button 
-                            className="action-button view-button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              viewDIDDetails(did.id);
-                            }}
-                            title="View Details"
-                          >
-                            <i className="fas fa-eye"></i>
-                          </button>
-                        </div>
+                      <td>${did.monthlyCost?.toFixed(2) || '0.00'}</td>
+                      <td>{new Date(did.createdAt).toLocaleString()}</td>
+                      <td className="action-buttons">
+                        <button 
+                          className="action-button edit-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/dids/${did.id}/edit`);
+                          }}
+                          title="Edit DID"
+                        >
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button 
+                          className="action-button delete-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleStatus(e, did.id, did.status);
+                          }}
+                          title="Toggle Status"
+                        >
+                          <i className={`fas fa-${did.status === 'active' ? 'ban' : 'check'}`}></i>
+                        </button>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="9" className="empty-state">
-                      No DIDs found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>No DIDs found. Add DIDs to a pool to get started.</p>
+            </div>
+          )}
 
           {/* Pagination */}
           {pagination.pages > 1 && (
             <div className="pagination">
-              <button
+              <button 
                 className="pagination-button"
                 onClick={() => handlePageChange(1)}
                 disabled={pagination.page === 1}
               >
-                First
+                <i className="fas fa-angle-double-left"></i>
               </button>
-              <button
+              <button 
                 className="pagination-button"
                 onClick={() => handlePageChange(pagination.page - 1)}
                 disabled={pagination.page === 1}
               >
-                Previous
+                <i className="fas fa-angle-left"></i>
               </button>
-              {[...Array(pagination.pages)].map((_, i) => {
-                // Show current page, first, last, and pages around current
-                if (
-                  i === 0 ||
-                  i === pagination.pages - 1 ||
-                  (i >= pagination.page - 2 && i <= pagination.page + 2)
-                ) {
-                  return (
-                    <button
-                      key={i}
-                      className={`pagination-button ${pagination.page === i + 1 ? "active" : ""}`}
-                      onClick={() => handlePageChange(i + 1)}
-                    >
-                      {i + 1}
-                    </button>
-                  );
-                } else if (
-                  i === pagination.page - 3 ||
-                  i === pagination.page + 3
-                ) {
-                  return <span key={i}>...</span>;
-                }
-                return null;
-              })}
-              <button
+              <span className="pagination-info">
+                Page {pagination.page} of {pagination.pages}
+              </span>
+              <button 
                 className="pagination-button"
                 onClick={() => handlePageChange(pagination.page + 1)}
                 disabled={pagination.page === pagination.pages}
               >
-                Next
+                <i className="fas fa-angle-right"></i>
               </button>
-              <button
+              <button 
                 className="pagination-button"
                 onClick={() => handlePageChange(pagination.pages)}
                 disabled={pagination.page === pagination.pages}
               >
-                Last
+                <i className="fas fa-angle-double-right"></i>
               </button>
             </div>
           )}

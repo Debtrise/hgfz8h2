@@ -491,4 +491,33 @@
 
 .option-group input[type="checkbox"] {
   margin: 0;
+}
+
+.sortable {
+  cursor: pointer;
+  position: relative;
+  padding-right: 20px;
+}
+
+.sortable:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.sort-icon {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+}
+
+.sort-icon.asc {
+  border-bottom: 5px solid #666;
+}
+
+.sort-icon.desc {
+  border-top: 5px solid #666;
 } 

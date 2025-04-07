@@ -43,11 +43,27 @@ const LeadsList = () => {
     setIsLoading(true);
     setError(null);
     try {
+      // Map frontend field names to API field names
+      const fieldMapping = {
+        "name": "first_name",
+        "dateAdded": "created_at",
+        "lastContact": "last_contacted_at",
+        "age": "lead_age",
+        "status": "status",
+        "leadPool": "lead_pool_name",
+        "email": "email",
+        "phone": "phone",
+        "brand": "brand",
+        "source": "source"
+      };
+      
+      const apiField = fieldMapping[sortField] || sortField;
+      
       // Prepare query parameters
       const params = {
         page: currentPage,
         limit: leadsPerPage,
-        sort: `${sortField}:${sortDirection}`,
+        sort: `${apiField}:${sortDirection}`,
         search: searchTerm || undefined,
         status: filters.status !== "all" ? filters.status : undefined,
         leadPool: filters.leadPool !== "all" ? filters.leadPool : undefined
@@ -137,6 +153,22 @@ const LeadsList = () => {
   const totalPages = Math.ceil(totalLeads / leadsPerPage);
 
   const handleSortChange = (field) => {
+    // Map frontend field names to API field names
+    const fieldMapping = {
+      "name": "first_name",
+      "dateAdded": "created_at",
+      "lastContact": "last_contacted_at",
+      "age": "lead_age",
+      "status": "status",
+      "leadPool": "lead_pool_name",
+      "email": "email",
+      "phone": "phone",
+      "brand": "brand",
+      "source": "source"
+    };
+    
+    const apiField = fieldMapping[field] || field;
+    
     if (field === sortField) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
@@ -333,13 +365,61 @@ const LeadsList = () => {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Name</th>
+                  <th
+                    className="sortable"
+                    onClick={() => handleSortChange("name")}
+                  >
+                    <span>Name</span>
+                    {sortField === "name" && (
+                      <span className={`sort-icon ${sortDirection}`}></span>
+                    )}
+                  </th>
                   <th>Contact</th>
-                  <th>Lead Pool</th>
-                  <th>Added</th>
-                  <th>Last Contact</th>
-                  <th>Age (days)</th>
-                  <th>Status</th>
+                  <th
+                    className="sortable"
+                    onClick={() => handleSortChange("leadPool")}
+                  >
+                    <span>Lead Pool</span>
+                    {sortField === "leadPool" && (
+                      <span className={`sort-icon ${sortDirection}`}></span>
+                    )}
+                  </th>
+                  <th
+                    className="sortable"
+                    onClick={() => handleSortChange("dateAdded")}
+                  >
+                    <span>Added</span>
+                    {sortField === "dateAdded" && (
+                      <span className={`sort-icon ${sortDirection}`}></span>
+                    )}
+                  </th>
+                  <th
+                    className="sortable"
+                    onClick={() => handleSortChange("lastContact")}
+                  >
+                    <span>Last Contact</span>
+                    {sortField === "lastContact" && (
+                      <span className={`sort-icon ${sortDirection}`}></span>
+                    )}
+                  </th>
+                  <th
+                    className="sortable"
+                    onClick={() => handleSortChange("age")}
+                  >
+                    <span>Age (days)</span>
+                    {sortField === "age" && (
+                      <span className={`sort-icon ${sortDirection}`}></span>
+                    )}
+                  </th>
+                  <th
+                    className="sortable"
+                    onClick={() => handleSortChange("status")}
+                  >
+                    <span>Status</span>
+                    {sortField === "status" && (
+                      <span className={`sort-icon ${sortDirection}`}></span>
+                    )}
+                  </th>
                   <th>Actions</th>
                 </tr>
               </thead>
