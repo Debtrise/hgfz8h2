@@ -13,22 +13,80 @@ const DIDPools = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    status: 'active',
-    region: 'US',
-    timezone: 'America/New_York'
+    brand: '',
+    source: '',
+    status: 'active'
   });
+  
+  // State for brands and sources from API
+  const [brands, setBrands] = useState([]);
+  const [sources, setSources] = useState([]);
 
-  // Fetch DID pools on component mount
+  // Fetch DID pools, brands, and sources on component mount
   useEffect(() => {
     fetchDidPools();
+    fetchBrands();
+    fetchSources();
   }, []);
+
+  const fetchBrands = async () => {
+    try {
+      const response = await apiService.brands.getAll();
+      setBrands(response.data || []);
+    } catch (err) {
+      console.error('Error fetching brands:', err);
+    }
+  };
+
+  const fetchSources = async () => {
+    try {
+      const response = await apiService.sources.getAll();
+      setSources(response.data || []);
+    } catch (err) {
+      console.error('Error fetching sources:', err);
+    }
+  };
 
   const fetchDidPools = async () => {
     setIsLoading(true);
     setError(null);
     try {
+      console.log('Fetching DID pools...');
       const response = await apiService.didPools.getAll();
-      setDidPools(Array.isArray(response.data) ? response.data : []);
+      console.log('DID pools response:', response);
+      
+      if (response && response.data) {
+        const pools = Array.isArray(response.data) ? response.data : [];
+        
+        // Fetch detailed information for each pool to get accurate data
+        const poolsWithDetails = await Promise.all(
+          pools.map(async (pool) => {
+            try {
+              const poolDetails = await apiService.didPools.getById(pool.id);
+              return {
+                ...pool,
+                brand: poolDetails.data?.brand || pool.brand || 'N/A',
+                source: poolDetails.data?.source || pool.source || 'N/A',
+                totalDids: poolDetails.data?.dids?.length || 0
+              };
+            } catch (err) {
+              console.error(`Error fetching details for pool ${pool.id}:`, err);
+              return {
+                ...pool,
+                brand: pool.brand || 'N/A',
+                source: pool.source || 'N/A',
+                totalDids: 0
+              };
+            }
+          })
+        );
+        
+        setDidPools(poolsWithDetails);
+      } else {
+        console.error('Invalid response format:', response);
+        setError('Failed to load DID pools. Invalid response format.');
+        setDidPools([]);
+      }
     } catch (err) {
       console.error('Error fetching DID pools:', err);
       setError('Failed to load DID pools. Please try again later.');
@@ -48,17 +106,26 @@ const DIDPools = () => {
 
   const handleCreateDidPool = async (e) => {
     e.preventDefault();
+    setError(null);
     try {
-      await apiService.didPools.create(formData);
-      setShowCreateModal(false);
-      setFormData({
-        name: '',
-        description: '',
-        status: 'active',
-        region: 'US',
-        timezone: 'America/New_York'
-      });
-      fetchDidPools();
+      console.log('Creating DID pool with data:', formData);
+      const response = await apiService.didPools.create(formData);
+      console.log('Create DID pool response:', response);
+      
+      if (response && response.data) {
+        setShowCreateModal(false);
+        setFormData({
+          name: '',
+          description: '',
+          brand: '',
+          source: '',
+          status: 'active'
+        });
+        fetchDidPools();
+      } else {
+        console.error('Invalid response format:', response);
+        setError('Failed to create DID pool. Invalid response format.');
+      }
     } catch (err) {
       console.error('Error creating DID pool:', err);
       setError('Failed to create DID pool. Please try again.');
@@ -67,9 +134,18 @@ const DIDPools = () => {
 
   const handleDeleteDidPool = async (id) => {
     if (window.confirm('Are you sure you want to delete this DID pool? This action cannot be undone.')) {
+      setError(null);
       try {
-        await apiService.didPools.delete(id);
-        fetchDidPools();
+        console.log('Deleting DID pool:', id);
+        const response = await apiService.didPools.delete(id);
+        console.log('Delete DID pool response:', response);
+        
+        if (response) {
+          fetchDidPools();
+        } else {
+          console.error('Invalid response format:', response);
+          setError('Failed to delete DID pool. Invalid response format.');
+        }
       } catch (err) {
         console.error('Error deleting DID pool:', err);
         setError('Failed to delete DID pool. Please try again.');
@@ -123,8 +199,8 @@ const DIDPools = () => {
                   <tr>
                     <th>Name</th>
                     <th>Description</th>
-                    <th>Region</th>
-                    <th>Timezone</th>
+                    <th>Brand</th>
+                    <th>Source</th>
                     <th>Status</th>
                     <th>Total DIDs</th>
                     <th>Created At</th>
@@ -136,15 +212,15 @@ const DIDPools = () => {
                     <tr key={pool.id}>
                       <td>{pool.name}</td>
                       <td>{pool.description || 'No description'}</td>
-                      <td>{pool.region || 'N/A'}</td>
-                      <td>{pool.timezone || 'N/A'}</td>
+                      <td>{pool.brand || 'N/A'}</td>
+                      <td>{pool.source || 'N/A'}</td>
                       <td>
-                        <span className={`status-badge ${pool.status.toLowerCase()}`}>
-                          {pool.status}
+                        <span className={`status-badge ${pool.status?.toLowerCase()}`}>
+                          {pool.status || 'Unknown'}
                         </span>
                       </td>
                       <td>{pool.totalDids || 0}</td>
-                      <td>{new Date(pool.createdAt).toLocaleString()}</td>
+                      <td>{pool.createdAt ? new Date(pool.createdAt).toLocaleString() : 'N/A'}</td>
                       <td className="action-buttons">
                         <button 
                           className="action-button view-button"
@@ -225,33 +301,31 @@ const DIDPools = () => {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="region">Region</label>
+                <label htmlFor="brand">Brand</label>
                 <select
-                  id="region"
-                  name="region"
-                  value={formData.region}
+                  id="brand"
+                  name="brand"
+                  value={formData.brand}
                   onChange={handleInputChange}
                 >
-                  <option value="US">United States</option>
-                  <option value="CA">Canada</option>
-                  <option value="UK">United Kingdom</option>
-                  <option value="AU">Australia</option>
+                  <option value="">Select a brand</option>
+                  {brands.map((brand) => (
+                    <option key={brand.id} value={brand.name}>{brand.name}</option>
+                  ))}
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="timezone">Timezone</label>
+                <label htmlFor="source">Source</label>
                 <select
-                  id="timezone"
-                  name="timezone"
-                  value={formData.timezone}
+                  id="source"
+                  name="source"
+                  value={formData.source}
                   onChange={handleInputChange}
                 >
-                  <option value="America/New_York">Eastern Time (ET)</option>
-                  <option value="America/Chicago">Central Time (CT)</option>
-                  <option value="America/Denver">Mountain Time (MT)</option>
-                  <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                  <option value="America/Anchorage">Alaska Time (AKT)</option>
-                  <option value="Pacific/Honolulu">Hawaii Time (HT)</option>
+                  <option value="">Select a source</option>
+                  {sources.map((source) => (
+                    <option key={source.id} value={source.name}>{source.name}</option>
+                  ))}
                 </select>
               </div>
               <div className="form-group">

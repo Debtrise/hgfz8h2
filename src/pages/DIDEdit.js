@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
-import LoadingSpinner from '../components/LoadingSpinner';
 import './DIDEdit.css';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const DIDEdit = () => {
   const { id } = useParams();
@@ -11,10 +11,9 @@ const DIDEdit = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
-    phoneNumber: '',
+    number: '',
     status: 'active',
-    notes: '',
-    tags: []
+    notes: ''
   });
 
   useEffect(() => {
@@ -25,16 +24,23 @@ const DIDEdit = () => {
     setIsLoading(true);
     setError(null);
     try {
+      console.log('Fetching DID details...');
       const response = await apiService.dids.getById(id);
-      setDid(response.data);
-      setFormData({
-        phoneNumber: response.data.phoneNumber || '',
-        status: response.data.status || 'active',
-        notes: response.data.notes || '',
-        tags: response.data.tags || []
-      });
+      console.log('DID details response:', response);
+      
+      if (response && response.data) {
+        setDid(response.data);
+        setFormData({
+          number: response.data.number,
+          status: response.data.status,
+          notes: response.data.notes || ''
+        });
+      } else {
+        console.error('Invalid response format:', response);
+        setError('Failed to load DID details. Invalid response format.');
+      }
     } catch (err) {
-      console.error('Error fetching DID:', err);
+      console.error('Error fetching DID details:', err);
       setError('Failed to load DID details. Please try again later.');
     } finally {
       setIsLoading(false);
@@ -49,20 +55,20 @@ const DIDEdit = () => {
     }));
   };
 
-  const handleTagsChange = (e) => {
-    const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag);
-    setFormData(prev => ({
-      ...prev,
-      tags
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     try {
-      await apiService.dids.update(id, formData);
-      navigate(`/did-pools/${did.poolId}`);
+      console.log('Updating DID with data:', formData);
+      const response = await apiService.dids.update(id, formData);
+      console.log('Update DID response:', response);
+      
+      if (response && response.data) {
+        navigate(`/did-pools/${did.poolId}`);
+      } else {
+        console.error('Invalid response format:', response);
+        setError('Failed to update DID. Invalid response format.');
+      }
     } catch (err) {
       console.error('Error updating DID:', err);
       setError('Failed to update DID. Please try again.');
@@ -71,9 +77,18 @@ const DIDEdit = () => {
 
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this DID? This action cannot be undone.')) {
+      setError(null);
       try {
-        await apiService.dids.delete(id);
-        navigate(`/did-pools/${did.poolId}`);
+        console.log('Deleting DID:', id);
+        const response = await apiService.dids.delete(id);
+        console.log('Delete DID response:', response);
+        
+        if (response) {
+          navigate(`/did-pools/${did.poolId}`);
+        } else {
+          console.error('Invalid response format:', response);
+          setError('Failed to delete DID. Invalid response format.');
+        }
       } catch (err) {
         console.error('Error deleting DID:', err);
         setError('Failed to delete DID. Please try again.');
@@ -98,12 +113,12 @@ const DIDEdit = () => {
       <div className="page-container">
         <div className="content-container">
           <div className="error-state">
-            <p>DID not found</p>
+            <p>DID not found.</p>
             <button 
               className="button-primary"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/did-pools')}
             >
-              Go Back
+              Back to DID Pools
             </button>
           </div>
         </div>
@@ -115,14 +130,17 @@ const DIDEdit = () => {
     <div className="page-container">
       <div className="content-container">
         <div className="content-header">
-          <h1 className="page-title">Edit DID</h1>
-          <div className="header-actions">
+          <div className="header-left">
             <button 
-              className="button-secondary"
-              onClick={() => navigate(-1)}
+              className="back-button"
+              onClick={() => navigate(`/did-pools/${did.poolId}`)}
             >
-              Cancel
+              <i className="fas fa-arrow-left"></i>
+              Back to DID Pool
             </button>
+            <h1 className="page-title">Edit DID</h1>
+          </div>
+          <div className="header-actions">
             <button 
               className="button-danger"
               onClick={handleDelete}
@@ -142,18 +160,17 @@ const DIDEdit = () => {
         <div className="content-body">
           <form onSubmit={handleSubmit} className="edit-form">
             <div className="form-group">
-              <label htmlFor="phoneNumber">Phone Number *</label>
+              <label htmlFor="number">Phone Number *</label>
               <input
                 type="tel"
-                id="phoneNumber"
-                name="phoneNumber"
-                value={formData.phoneNumber}
+                id="number"
+                name="number"
+                value={formData.number}
                 onChange={handleInputChange}
                 required
                 placeholder="Enter phone number"
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="status">Status</label>
               <select
@@ -164,10 +181,8 @@ const DIDEdit = () => {
               >
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
-                <option value="reserved">Reserved</option>
               </select>
             </div>
-
             <div className="form-group">
               <label htmlFor="notes">Notes</label>
               <textarea
@@ -175,29 +190,15 @@ const DIDEdit = () => {
                 name="notes"
                 value={formData.notes}
                 onChange={handleInputChange}
-                placeholder="Enter notes about this DID"
-                rows="4"
+                placeholder="Enter notes"
+                rows="3"
               />
             </div>
-
-            <div className="form-group">
-              <label htmlFor="tags">Tags</label>
-              <input
-                type="text"
-                id="tags"
-                name="tags"
-                value={formData.tags.join(', ')}
-                onChange={handleTagsChange}
-                placeholder="Enter tags separated by commas"
-              />
-              <small className="help-text">Separate tags with commas</small>
-            </div>
-
             <div className="form-actions">
               <button 
                 type="button" 
                 className="button-secondary"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate(`/did-pools/${did.poolId}`)}
               >
                 Cancel
               </button>

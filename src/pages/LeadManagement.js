@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
 import './ListPages.css';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const LeadManagement = () => {
   const navigate = useNavigate();
@@ -15,10 +16,36 @@ const LeadManagement = () => {
   });
   const [recentPools, setRecentPools] = useState([]);
   const [recentLeads, setRecentLeads] = useState([]);
+  const [filters, setFilters] = useState({
+    brand: 'all',
+    source: 'all'
+  });
+  const [brands, setBrands] = useState([]);
+  const [sources, setSources] = useState([]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+    fetchBrands();
+    fetchSources();
+  }, [filters]);
+
+  const fetchBrands = async () => {
+    try {
+      const response = await apiService.brands.getAll();
+      setBrands(response.data || []);
+    } catch (err) {
+      console.error('Error fetching brands:', err);
+    }
+  };
+
+  const fetchSources = async () => {
+    try {
+      const response = await apiService.sources.getAll();
+      setSources(response.data || []);
+    } catch (err) {
+      console.error('Error fetching sources:', err);
+    }
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -29,13 +56,32 @@ const LeadManagement = () => {
       const pools = poolsResponse.data || [];
       setRecentPools(pools.slice(0, 5)); // Get 5 most recent pools
       
-      // Fetch recent leads
-      const leadsResponse = await apiService.leads.getAll({ limit: 5 });
+      // Fetch recent leads with filters
+      const leadsParams = {
+        limit: 5,
+        status: filters.status !== 'all' ? filters.status : undefined,
+        brand: filters.brand !== 'all' ? filters.brand : undefined,
+        source: filters.source !== 'all' ? filters.source : undefined
+      };
+      
+      const leadsResponse = await apiService.leads.getAll(leadsParams);
+      
+      // Set recent leads
       setRecentLeads(leadsResponse.leads || []);
+
+      // Fetch total leads count with filters
+      const totalLeadsParams = {
+        limit: 1, // We only need the count, not the actual leads
+        status: filters.status !== 'all' ? filters.status : undefined,
+        brand: filters.brand !== 'all' ? filters.brand : undefined,
+        source: filters.source !== 'all' ? filters.source : undefined
+      };
+      
+      const totalLeadsResponse = await apiService.leads.getAll(totalLeadsParams);
 
       // Calculate stats
       setStats({
-        totalLeads: leadsResponse.pagination?.total || 0,
+        totalLeads: totalLeadsResponse.pagination?.total || 0,
         activePools: pools.filter(pool => pool.status === 'active').length,
         leadsToday: leadsResponse.today || 0,
         conversionRate: leadsResponse.conversionRate || 0
@@ -46,6 +92,14 @@ const LeadManagement = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleCreatePool = () => {
@@ -69,7 +123,7 @@ const LeadManagement = () => {
       <div className="page-container">
         <div className="content-container">
           <div className="loading-state">
-            Loading lead management data...
+            <LoadingSpinner size="large" text="Loading lead management data..." />
           </div>
         </div>
       </div>
@@ -105,6 +159,41 @@ const LeadManagement = () => {
         )}
 
         <div className="content-body">
+          {/* Filters */}
+          <div className="filters-container">
+            <div className="filter-group">
+              <label htmlFor="brand">Brand:</label>
+              <select
+                id="brand"
+                name="brand"
+                value={filters.brand}
+                onChange={handleFilterChange}
+                className="filter-select"
+              >
+                <option value="all">All Brands</option>
+                {brands.map(brand => (
+                  <option key={brand.id} value={brand.name}>{brand.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="filter-group">
+              <label htmlFor="source">Source:</label>
+              <select
+                id="source"
+                name="source"
+                value={filters.source}
+                onChange={handleFilterChange}
+                className="filter-select"
+              >
+                <option value="all">All Sources</option>
+                {sources.map(source => (
+                  <option key={source.id} value={source.name}>{source.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           {/* Stats Overview */}
           <div className="stats-grid">
             <div className="stat-card">

@@ -73,6 +73,39 @@ api.interceptors.response.use(
   }
 );
 
+// Add the handleApiError function
+const handleApiError = (error) => {
+  console.error('API Error:', error);
+  
+  if (error.response) {
+    // The request was made and the server responded with a status code
+    // that falls out of the range of 2xx
+    console.error('Error response data:', error.response.data);
+    console.error('Error response status:', error.response.status);
+    
+    // Return a formatted error message
+    return {
+      message: error.response.data.message || `Server error: ${error.response.status}`,
+      status: error.response.status,
+      data: error.response.data
+    };
+  } else if (error.request) {
+    // The request was made but no response was received
+    console.error('Error request:', error.request);
+    return {
+      message: 'No response from server. Please check your connection.',
+      status: 0
+    };
+  } else {
+    // Something happened in setting up the request that triggered an Error
+    console.error('Error message:', error.message);
+    return {
+      message: error.message,
+      status: 0
+    };
+  }
+};
+
 // API service object
 const apiService = {
   // Auth endpoints
@@ -398,12 +431,15 @@ const apiService = {
   didPools: {
     getAll: async () => {
       try {
-        const response = await api.get('/api/did-pools');
+        console.log('Fetching all DID pools');
+        const response = await api.get('/did-pools');
+        console.log('DID pools response:', response);
         return {
           ...response,
           data: Array.isArray(response.data) ? response.data : []
         };
       } catch (error) {
+        console.error('Error fetching DID pools:', error);
         handleApiError(error);
         throw error;
       }
@@ -413,44 +449,60 @@ const apiService = {
         if (!id) {
           throw new Error('DID pool ID is required');
         }
-        const response = await api.get(`/api/did-pools/${id}`);
+        console.log(`Fetching DID pool with ID: ${id}`);
+        const response = await api.get(`/did-pools/${id}`);
+        console.log('DID pool response:', response);
         return response;
       } catch (error) {
+        console.error(`Error fetching DID pool ${id}:`, error);
         handleApiError(error);
         throw error;
       }
     },
     create: async (data) => {
       try {
-        const response = await api.post('/api/did-pools', {
+        console.log('Creating DID pool with data:', data);
+        const response = await api.post('/did-pools', {
           name: data.name,
           description: data.description,
-          status: data.status || 'active'
+          status: data.status || 'active',
+          region: data.region,
+          timezone: data.timezone
         });
+        console.log('Create DID pool response:', response);
         return response;
       } catch (error) {
+        console.error('Error creating DID pool:', error);
         handleApiError(error);
         throw error;
       }
     },
     update: async (id, data) => {
       try {
-        const response = await api.put(`/api/did-pools/${id}`, {
+        console.log(`Updating DID pool ${id} with data:`, data);
+        const response = await api.put(`/did-pools/${id}`, {
           name: data.name,
           description: data.description,
-          status: data.status
+          status: data.status,
+          region: data.region,
+          timezone: data.timezone
         });
+        console.log('Update DID pool response:', response);
         return response;
       } catch (error) {
+        console.error(`Error updating DID pool ${id}:`, error);
         handleApiError(error);
         throw error;
       }
     },
     delete: async (id) => {
       try {
-        const response = await api.delete(`/api/did-pools/${id}`);
+        console.log(`Deleting DID pool ${id}`);
+        const response = await api.delete(`/did-pools/${id}`);
+        console.log('Delete DID pool response:', response);
         return response;
       } catch (error) {
+        console.error(`Error deleting DID pool ${id}:`, error);
         handleApiError(error);
         throw error;
       }
@@ -460,16 +512,20 @@ const apiService = {
         if (!id) {
           throw new Error('DID pool ID is required');
         }
-        const response = await api.get(`/api/did-pools/${id}/dids`, { params });
+        console.log(`Fetching DIDs for pool ${id} with params:`, params);
+        const response = await api.get(`/did-pools/${id}/dids`, { params });
+        console.log('DIDs response:', response);
         return response;
       } catch (error) {
+        console.error(`Error fetching DIDs for pool ${id}:`, error);
         handleApiError(error);
         throw error;
       }
     },
     addDidToPool: async (id, data) => {
       try {
-        const response = await api.post(`/api/did-pools/${id}/dids`, {
+        console.log(`Adding DID to pool ${id} with data:`, data);
+        const response = await api.post(`/did-pools/${id}/dids`, {
           phoneNumber: data.phoneNumber,
           provider: data.provider,
           callerIdName: data.callerIdName,
@@ -477,40 +533,51 @@ const apiService = {
           status: data.status || 'active',
           monthlyCost: data.monthlyCost
         });
+        console.log('Add DID to pool response:', response);
         return response;
       } catch (error) {
+        console.error(`Error adding DID to pool ${id}:`, error);
         handleApiError(error);
         throw error;
       }
     },
     removeDidFromPool: async (poolId, didId) => {
       try {
-        const response = await api.delete(`/api/did-pools/${poolId}/dids/${didId}`);
+        console.log(`Removing DID ${didId} from pool ${poolId}`);
+        const response = await api.delete(`/did-pools/${poolId}/dids/${didId}`);
+        console.log('Remove DID from pool response:', response);
         return response;
       } catch (error) {
+        console.error(`Error removing DID ${didId} from pool ${poolId}:`, error);
         handleApiError(error);
         throw error;
       }
     },
     bulkAddDids: async (poolId, didIds) => {
       try {
-        const response = await api.post(`/api/did-pools/${poolId}/dids/bulk`, {
+        console.log(`Bulk adding DIDs to pool ${poolId}:`, didIds);
+        const response = await api.post(`/did-pools/${poolId}/dids/bulk`, {
           didIds
         });
+        console.log('Bulk add DIDs response:', response);
         return response;
       } catch (error) {
+        console.error(`Error bulk adding DIDs to pool ${poolId}:`, error);
         handleApiError(error);
         throw error;
       }
     },
     moveDids: async (poolId, data) => {
       try {
-        const response = await api.post(`/api/did-pools/${poolId}/move-dids`, {
+        console.log(`Moving DIDs from pool ${poolId} with data:`, data);
+        const response = await api.post(`/did-pools/${poolId}/move-dids`, {
           didIds: data.didIds,
           targetPoolId: data.targetPoolId
         });
+        console.log('Move DIDs response:', response);
         return response;
       } catch (error) {
+        console.error(`Error moving DIDs from pool ${poolId}:`, error);
         handleApiError(error);
         throw error;
       }
@@ -521,7 +588,9 @@ const apiService = {
   dids: {
     getAll: async (params = {}) => {
       try {
-        const response = await api.get('/api/dids', { params });
+        console.log('Fetching all DIDs with params:', params);
+        const response = await api.get('/dids', { params });
+        console.log('DIDs response:', response);
         return {
           ...response,
           data: response.data.dids || [],
@@ -538,15 +607,19 @@ const apiService = {
           }
         };
       } catch (error) {
+        console.error('Error fetching DIDs:', error);
         handleApiError(error);
         throw error;
       }
     },
     getProviders: async () => {
       try {
-        const response = await api.get('/api/dids/providers');
+        console.log('Fetching DID providers');
+        const response = await api.get('/dids/providers');
+        console.log('DID providers response:', response);
         return response;
       } catch (error) {
+        console.error('Error fetching DID providers:', error);
         handleApiError(error);
         throw error;
       }
@@ -556,16 +629,20 @@ const apiService = {
         if (!id) {
           throw new Error('DID ID is required');
         }
-        const response = await api.get(`/api/dids/${id}`);
+        console.log(`Fetching DID with ID: ${id}`);
+        const response = await api.get(`/dids/${id}`);
+        console.log('DID response:', response);
         return response;
       } catch (error) {
+        console.error(`Error fetching DID ${id}:`, error);
         handleApiError(error);
         throw error;
       }
     },
     create: async (data) => {
       try {
-        const response = await api.post('/api/dids', {
+        console.log('Creating DID with data:', data);
+        const response = await api.post('/dids', {
           phoneNumber: data.phoneNumber,
           provider: data.provider,
           callerIdName: data.callerIdName,
@@ -574,15 +651,18 @@ const apiService = {
           monthlyCost: data.monthlyCost,
           didPoolId: data.didPoolId
         });
+        console.log('Create DID response:', response);
         return response;
       } catch (error) {
+        console.error('Error creating DID:', error);
         handleApiError(error);
         throw error;
       }
     },
     update: async (id, data) => {
       try {
-        const response = await api.put(`/api/dids/${id}`, {
+        console.log(`Updating DID ${id} with data:`, data);
+        const response = await api.put(`/dids/${id}`, {
           phoneNumber: data.phoneNumber,
           provider: data.provider,
           callerIdName: data.callerIdName,
@@ -591,24 +671,30 @@ const apiService = {
           monthlyCost: data.monthlyCost,
           didPoolId: data.didPoolId
         });
+        console.log('Update DID response:', response);
         return response;
       } catch (error) {
+        console.error(`Error updating DID ${id}:`, error);
         handleApiError(error);
         throw error;
       }
     },
     delete: async (id) => {
       try {
-        const response = await api.delete(`/api/dids/${id}`);
+        console.log(`Deleting DID ${id}`);
+        const response = await api.delete(`/dids/${id}`);
+        console.log('Delete DID response:', response);
         return response;
       } catch (error) {
+        console.error(`Error deleting DID ${id}:`, error);
         handleApiError(error);
         throw error;
       }
     },
     import: async (data) => {
       try {
-        const response = await api.post('/api/dids/import', {
+        console.log('Importing DIDs with data:', data);
+        const response = await api.post('/dids/import', {
           dids: data.dids.map(did => ({
             phoneNumber: did.phoneNumber,
             provider: did.provider,
@@ -618,19 +704,24 @@ const apiService = {
             monthlyCost: did.monthlyCost
           }))
         });
+        console.log('Import DIDs response:', response);
         return response;
       } catch (error) {
+        console.error('Error importing DIDs:', error);
         handleApiError(error);
         throw error;
       }
     },
     test: async (id, testPhone) => {
       try {
-        const response = await api.post(`/api/dids/${id}/test`, {
+        console.log(`Testing DID ${id} with phone: ${testPhone}`);
+        const response = await api.post(`/dids/${id}/test`, {
           testPhone
         });
+        console.log('Test DID response:', response);
         return response;
       } catch (error) {
+        console.error(`Error testing DID ${id}:`, error);
         handleApiError(error);
         throw error;
       }

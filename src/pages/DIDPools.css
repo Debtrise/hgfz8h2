@@ -141,20 +141,43 @@
 }
 
 .action-button {
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: none;
+  border: none;
+  padding: 8px;
   cursor: pointer;
-  width: 32px;
-  height: 32px;
   border-radius: 4px;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
 }
 
-.action-button:hover {
-  transform: translateY(-1px);
+.action-button i {
+  font-size: 16px;
+}
+
+.action-button.view-button {
+  color: #1976d2;
+}
+
+.action-button.view-button:hover {
+  background-color: rgba(25, 118, 210, 0.1);
+}
+
+.action-button.edit-button {
+  color: #2e7d32;
+}
+
+.action-button.edit-button:hover {
+  background-color: rgba(46, 125, 50, 0.1);
+}
+
+.action-button.delete-button {
+  color: #d32f2f;
+}
+
+.action-button.delete-button:hover {
+  background-color: rgba(211, 47, 47, 0.1);
 }
 
 .view-button {
