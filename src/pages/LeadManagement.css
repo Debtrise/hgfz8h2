@@ -99,6 +99,182 @@
   margin: 0;
 }
 
+/* Leads Table Section */
+.leads-table-section {
+  margin-bottom: 2rem;
+}
+
+.leads-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.search-container {
+  position: relative;
+  flex: 1;
+  min-width: 250px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+}
+
+.filters-container {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  min-width: 150px;
+}
+
+.leads-table-container {
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.leads-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leads-table th {
+  background-color: var(--table-header-bg);
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: left;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.leads-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.leads-table tr:last-child td {
+  border-bottom: none;
+}
+
+.leads-table tr:hover {
+  background-color: var(--hover-bg);
+}
+
+.sortable {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sortable svg {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-badge.new {
+  background-color: var(--info-light);
+  color: var(--info);
+}
+
+.status-badge.active {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.status-badge.completed {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.status-badge.failed {
+  background-color: var(--error-light);
+  color: var(--error);
+}
+
+.status-badge.unknown {
+  background-color: var(--gray-light);
+  color: var(--gray);
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.pagination-button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.pagination-button:hover:not(:disabled) {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.pagination-button.active {
+  background-color: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+  color: var(--text-secondary);
+  padding: 0 0.25rem;
+}
+
 /* Recent Activity Section */
 .recent-activity-section {
   margin-bottom: 2rem;
@@ -201,7 +377,7 @@
 
 .error-state h2 {
   color: var(--error);
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .error-state p {
@@ -209,10 +385,10 @@
   margin-bottom: 1rem;
 }
 
-/* Responsive Adjustments */
+/* Responsive Styles */
 @media (max-width: 768px) {
   .stats-summary {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
   
   .quick-access-cards {
@@ -223,6 +399,24 @@
     flex-direction: column;
     gap: 0.25rem;
   }
+  
+  .leads-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filters-container {
+    width: 100%;
+  }
+  
+  .filter-select {
+    flex: 1;
+  }
+  
+  .leads-table th, 
+  .leads-table td {
+    padding: 0.75rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -232,5 +426,10 @@
   
   .stat-value {
     font-size: 1.5rem;
+  }
+  
+  .leads-table {
+    display: block;
+    overflow-x: auto;
   }
 } 

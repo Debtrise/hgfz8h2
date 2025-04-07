@@ -180,7 +180,7 @@ const apiService = {
         
         // Make the request with the formatted query string
         const response = await api.get(`/leads?${queryParams.toString()}`);
-        return response.data;
+        return response.data; // Return the data directly since it's already in the correct format
       } catch (error) {
         handleApiError(error);
         throw error;

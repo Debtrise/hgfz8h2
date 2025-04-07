@@ -36,7 +36,8 @@ import JourneyBuilderList from '../components/JourneyBuilderList';
 import { 
   getAllJourneys, 
   deleteJourney, 
-  updateJourney 
+  updateJourney,
+  cloneJourney
 } from '../services/journeyService';
 import './Journeys.css';
 

@@ -2,6 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./JourneySelect.css";
 import apiService from "../services/apiService";
+import { Select, Button, Modal, Form, Input, message } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
+import { getAllJourneys, createJourney } from '../services/journeyService';
+
+const { Option } = Select;
 
 const JourneySelect = ({
   campaignData = null,
@@ -9,6 +14,9 @@ const JourneySelect = ({
   onPreview = null,
   onCancel = null,
   isEmbedded = false,
+  value,
+  onChange,
+  disabled,
 }) => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,26 +32,10 @@ const JourneySelect = ({
   );
 
   // State for journeys
-  const [journeys, setJourneys] = useState([
-    {
-      id: 1,
-      name: "BDS_Webforms_Fresh",
-      description: "3 call / day call flow",
-      startDay: 0,
-      endDay: 5,
-      dateAdded: "1/24/25",
-      favorite: false,
-    },
-    {
-      id: 2,
-      name: "New_Webforms_Fresh",
-      description: "2 call / day call flow with SMS",
-      startDay: 6,
-      endDay: 15,
-      dateAdded: "1/23/25",
-      favorite: false,
-    },
-  ]);
+  const [journeys, setJourneys] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [form] = Form.useForm();
 
   // State for new journey modal
   const [showNewJourneyModal, setShowNewJourneyModal] = useState(false);
@@ -58,6 +50,23 @@ const JourneySelect = ({
       updateJourneys(journeys);
     }
   }, [journeys, updateJourneys, isEmbedded]);
+
+  useEffect(() => {
+    fetchJourneys();
+  }, []);
+
+  const fetchJourneys = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllJourneys();
+      setJourneys(data);
+    } catch (error) {
+      console.error('Error fetching journeys:', error);
+      message.error('Failed to load journeys');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Toggle journey favorite status
   const toggleFavorite = (id) => {
@@ -116,46 +125,32 @@ const JourneySelect = ({
   };
 
   // Add a new journey
-  const addNewJourney = async () => {
-    if (!newJourneyName.trim()) {
-      setError("Journey name is required");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    setError(null);
-    
+  const handleCreateJourney = async () => {
     try {
-      // Create a new journey
-      const response = await apiService.journeys.create({
-        name: newJourneyName,
-        description: newJourneyDescription
-      });
+      const values = await form.validateFields();
       
-      // Add the new journey to the list
-      const newJourney = {
-        id: response.data.id,
-        name: newJourneyName,
-        description: newJourneyDescription,
-        startDay: 1,
-        endDay: 14,
-        favorite: false
+      const journeyData = {
+        name: values.name,
+        description: values.description,
+        status: 'draft'
       };
       
-      setJourneys(prev => [...prev, newJourney]);
-      setNewJourneyName("");
-      setNewJourneyDescription("");
-      setShowNewJourneyModal(false);
+      const newJourney = await createJourney(journeyData);
+      
+      setJourneys([...journeys, newJourney]);
+      onChange(newJourney.id);
+      setModalVisible(false);
+      form.resetFields();
+      
+      message.success('Journey created successfully');
       
       // Update the parent component
       if (updateJourneys) {
         updateJourneys([...journeys, newJourney]);
       }
-    } catch (err) {
-      console.error("Error creating journey:", err);
-      setError("Failed to create journey. Please try again later.");
-    } finally {
-      setIsSubmitting(false);
+    } catch (error) {
+      console.error('Error creating journey:', error);
+      message.error('Failed to create journey');
     }
   };
 
@@ -245,7 +240,7 @@ const JourneySelect = ({
             <h2 className="section-title">Journey Select</h2>
             <button
               className="button-outline"
-              onClick={() => setShowNewJourneyModal(true)}
+              onClick={() => setModalVisible(true)}
             >
               New
             </button>
@@ -332,7 +327,7 @@ const JourneySelect = ({
         <div className="add-journey-row">
           <button
             className="add-journey-button"
-            onClick={() => setShowNewJourneyModal(true)}
+            onClick={() => setModalVisible(true)}
             title="Add a new journey"
           >
             +
@@ -351,51 +346,35 @@ const JourneySelect = ({
       </div>
 
       {/* New Journey Modal */}
-      {showNewJourneyModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 className="modal-title">Add New Journey</h3>
-
-            <div className="modal-form-group">
-              <label className="modal-label">Journey Name</label>
-              <input
-                type="text"
-                className="modal-input"
-                value={newJourneyName}
-                onChange={(e) => setNewJourneyName(e.target.value)}
-                placeholder="Enter journey name"
-              />
-            </div>
-
-            <div className="modal-form-group">
-              <label className="modal-label">Description</label>
-              <input
-                type="text"
-                className="modal-input"
-                value={newJourneyDescription}
-                onChange={(e) => setNewJourneyDescription(e.target.value)}
-                placeholder="Enter journey description"
-              />
-            </div>
-
-            <div className="modal-buttons">
-              <button
-                className="button-outline"
-                onClick={() => setShowNewJourneyModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="button-blue"
-                onClick={addNewJourney}
-                disabled={!newJourneyName.trim()}
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        title="Create New Journey"
+        open={modalVisible}
+        onOk={handleCreateJourney}
+        onCancel={() => {
+          setModalVisible(false);
+          form.resetFields();
+        }}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+        >
+          <Form.Item
+            name="name"
+            label="Journey Name"
+            rules={[{ required: true, message: 'Please enter journey name' }]}
+          >
+            <Input placeholder="Enter journey name" />
+          </Form.Item>
+          
+          <Form.Item
+            name="description"
+            label="Description"
+          >
+            <Input.TextArea rows={4} placeholder="Enter journey description" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 

@@ -34,7 +34,16 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { getJourneyById, createJourney, updateJourneySteps, updateJourney } from '../services/journeyService';
+import { 
+  getJourneyById, 
+  createJourney, 
+  updateJourney,
+  getJourneySteps,
+  addJourneyStep,
+  updateJourneyStep,
+  deleteJourneyStep,
+  reorderJourneySteps
+} from '../services/journeyService';
 import './JourneyBuilderList.css';
 
 const { Title, Text } = Typography;
@@ -94,7 +103,7 @@ const JourneyBuilderList = () => {
   }, [id, journeyForm]);
 
   // Handle drag and drop reordering
-  const handleDragEnd = (result) => {
+  const handleDragEnd = async (result) => {
     if (!result.destination) return;
     
     const items = Array.from(steps);
@@ -108,21 +117,64 @@ const JourneyBuilderList = () => {
     }));
     
     setSteps(updatedItems);
+    
+    // If we have an ID, update the backend
+    if (id) {
+      try {
+        setLoading(true);
+        const stepIds = updatedItems.map(item => item.id);
+        await reorderJourneySteps(id, stepIds);
+        message.success('Steps reordered successfully');
+      } catch (error) {
+        console.error('Error reordering steps:', error);
+        message.error('Failed to reorder steps');
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   // Add a new step
-  const handleAddStep = () => {
+  const handleAddStep = async () => {
     const newStep = {
       id: `step-${Date.now()}`,
       sequenceOrder: steps.length + 1,
       actionType: 'email',
       actionConfig: {},
-      waitTime: 0,
+      delayMinutes: 0,
       conditionType: null,
       conditionConfig: null
     };
     
     setSteps([...steps, newStep]);
+    
+    // If we have an ID, add to the backend
+    if (id) {
+      try {
+        setLoading(true);
+        const stepData = {
+          actionType: newStep.actionType,
+          actionConfig: newStep.actionConfig,
+          delayMinutes: newStep.delayMinutes,
+          sequenceOrder: newStep.sequenceOrder
+        };
+        
+        const response = await addJourneyStep(id, stepData);
+        
+        // Update the step with the ID from the backend
+        const updatedSteps = steps.map(step => 
+          step.id === newStep.id ? { ...step, id: response.id } : step
+        );
+        
+        setSteps(updatedSteps);
+        message.success('Step added successfully');
+      } catch (error) {
+        console.error('Error adding step:', error);
+        message.error('Failed to add step');
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   // Open the edit drawer for a step
@@ -131,7 +183,7 @@ const JourneyBuilderList = () => {
     editForm.setFieldsValue({
       actionType: step.actionType,
       ...step.actionConfig,
-      waitTime: step.waitTime,
+      delayMinutes: step.delayMinutes,
       conditionType: step.conditionType,
       ...step.conditionConfig
     });
@@ -139,8 +191,22 @@ const JourneyBuilderList = () => {
   };
 
   // Delete a step
-  const handleDeleteStep = (stepId) => {
+  const handleDeleteStep = async (stepId) => {
     setSteps(steps.filter(step => step.id !== stepId));
+    
+    // If we have an ID and the step has a real ID (not a temporary one), delete from the backend
+    if (id && !stepId.toString().includes('step-')) {
+      try {
+        setLoading(true);
+        await deleteJourneyStep(id, stepId);
+        message.success('Step deleted successfully');
+      } catch (error) {
+        console.error('Error deleting step:', error);
+        message.error('Failed to delete step');
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   // Save step changes
@@ -153,7 +219,7 @@ const JourneyBuilderList = () => {
         ...editingStep,
         actionType: values.actionType,
         actionConfig: getActionConfig(values),
-        waitTime: values.waitTime || 0,
+        delayMinutes: values.delayMinutes || 0,
         conditionType: values.conditionType || null,
         conditionConfig: getConditionConfig(values)
       };
@@ -164,11 +230,25 @@ const JourneyBuilderList = () => {
       );
       
       setSteps(updatedSteps);
+      
+      // If we have an ID and the step has a real ID (not a temporary one), update the backend
+      if (id && !editingStep.id.toString().includes('step-')) {
+        setLoading(true);
+        const stepData = {
+          actionType: updatedStep.actionType,
+          actionConfig: updatedStep.actionConfig,
+          delayMinutes: updatedStep.delayMinutes,
+          sequenceOrder: updatedStep.sequenceOrder
+        };
+        
+        await updateJourneyStep(id, editingStep.id, stepData);
+        message.success('Step updated successfully');
+        setLoading(false);
+      }
+      
       setEditDrawerVisible(false);
       setEditingStep(null);
       editForm.resetFields();
-      
-      message.success('Step updated successfully');
     } catch (error) {
       console.error('Error saving step:', error);
     }
@@ -180,21 +260,21 @@ const JourneyBuilderList = () => {
       case 'email':
         return {
           subject: values.subject,
-          template: values.template,
-          sender: values.sender,
-          replyTo: values.replyTo
+          template_id: values.template_id,
+          variables: values.variables || {}
         };
       case 'call':
         return {
-          script: values.script,
-          agentInstructions: values.agentInstructions,
-          maxRetries: values.maxRetries,
-          dialTimeout: values.dialTimeout
+          script_id: values.script_id,
+          max_attempts: values.max_attempts,
+          voicemail_message_id: values.voicemail_message_id,
+          transfer_extension: values.transfer_extension
         };
       case 'sms':
         return {
           message: values.message,
-          senderId: values.senderId
+          template_id: values.template_id,
+          variables: values.variables || {}
         };
       default:
         return {};
@@ -263,18 +343,21 @@ const JourneyBuilderList = () => {
       
       // Format steps for API
       const formattedSteps = steps.map(step => ({
-        sequenceOrder: step.sequenceOrder,
         actionType: step.actionType,
         actionConfig: step.actionConfig,
-        waitTime: step.waitTime,
-        conditionType: step.conditionType,
-        conditionConfig: step.conditionConfig
+        delayMinutes: step.delayMinutes,
+        sequenceOrder: step.sequenceOrder
       }));
       
       if (id) {
-        // Update existing journey steps
-        await updateJourneySteps(id, formattedSteps);
-        message.success('Journey steps updated successfully');
+        // Update existing journey
+        await updateJourney(id, {
+          name: journey?.name || 'New Journey',
+          description: journey?.description || 'Journey description',
+          status: journey?.status || 'draft'
+        });
+        
+        message.success('Journey updated successfully');
       } else {
         // Create new journey
         const journeyData = {
@@ -320,28 +403,21 @@ const JourneyBuilderList = () => {
               <Input placeholder="Email subject" />
             </Form.Item>
             <Form.Item
-              name="template"
+              name="template_id"
               label="Template"
               rules={[{ required: true, message: 'Please select email template' }]}
             >
               <Select placeholder="Select email template">
-                <Option value="welcome">Welcome Email</Option>
-                <Option value="follow_up">Follow-up Email</Option>
-                <Option value="reminder">Reminder Email</Option>
+                <Option value="1">Welcome Email</Option>
+                <Option value="2">Follow-up Email</Option>
+                <Option value="3">Reminder Email</Option>
               </Select>
             </Form.Item>
             <Form.Item
-              name="sender"
-              label="Sender"
-              rules={[{ required: true, message: 'Please enter sender email' }]}
+              name="variables"
+              label="Variables"
             >
-              <Input placeholder="sender@company.com" />
-            </Form.Item>
-            <Form.Item
-              name="replyTo"
-              label="Reply To"
-            >
-              <Input placeholder="agent@company.com" />
+              <Input placeholder="Template variables (JSON)" />
             </Form.Item>
           </>
         );
@@ -349,31 +425,37 @@ const JourneyBuilderList = () => {
         return (
           <>
             <Form.Item
-              name="script"
-              label="Call Script"
-              rules={[{ required: true, message: 'Please enter call script' }]}
+              name="script_id"
+              label="Script"
+              rules={[{ required: true, message: 'Please select call script' }]}
             >
-              <TextArea rows={4} placeholder="Enter call script..." />
+              <Select placeholder="Select call script">
+                <Option value="1">Welcome Call</Option>
+                <Option value="2">Follow-up Call</Option>
+                <Option value="3">Reminder Call</Option>
+              </Select>
             </Form.Item>
             <Form.Item
-              name="agentInstructions"
-              label="Agent Instructions"
+              name="max_attempts"
+              label="Max Attempts"
+              initialValue={3}
             >
-              <TextArea rows={2} placeholder="Enter instructions for the agent..." />
+              <InputNumber min={1} max={5} />
             </Form.Item>
             <Form.Item
-              name="maxRetries"
-              label="Max Retries"
-              initialValue={2}
+              name="voicemail_message_id"
+              label="Voicemail Message"
             >
-              <InputNumber min={0} max={5} />
+              <Select placeholder="Select voicemail message" allowClear>
+                <Option value="1">Standard Voicemail</Option>
+                <Option value="2">Urgent Voicemail</Option>
+              </Select>
             </Form.Item>
             <Form.Item
-              name="dialTimeout"
-              label="Dial Timeout (seconds)"
-              initialValue={30}
+              name="transfer_extension"
+              label="Transfer Extension"
             >
-              <InputNumber min={10} max={120} />
+              <Input placeholder="Extension number" />
             </Form.Item>
           </>
         );
@@ -388,18 +470,27 @@ const JourneyBuilderList = () => {
               <TextArea rows={3} placeholder="Enter SMS message..." />
             </Form.Item>
             <Form.Item
-              name="senderId"
-              label="Sender ID"
-              rules={[{ required: true, message: 'Please enter sender ID' }]}
+              name="template_id"
+              label="Template"
             >
-              <Input placeholder="COMPANY" />
+              <Select placeholder="Select SMS template" allowClear>
+                <Option value="1">Welcome SMS</Option>
+                <Option value="2">Follow-up SMS</Option>
+                <Option value="3">Reminder SMS</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name="variables"
+              label="Variables"
+            >
+              <Input placeholder="Template variables (JSON)" />
             </Form.Item>
           </>
         );
       case 'wait':
         return (
           <Form.Item
-            name="waitTime"
+            name="delayMinutes"
             label="Wait Time (minutes)"
             rules={[{ required: true, message: 'Please enter wait time' }]}
             initialValue={60}
@@ -462,7 +553,7 @@ const JourneyBuilderList = () => {
   // Render step card
   const renderStepCard = (step, index) => {
     return (
-      <Draggable key={step.id} draggableId={step.id} index={index}>
+      <Draggable key={step.id} draggableId={step.id.toString()} index={index}>
         {(provided) => (
           <div
             ref={provided.innerRef}
@@ -491,8 +582,8 @@ const JourneyBuilderList = () => {
             </div>
             <div className="step-card-content">
               <Text strong>{step.actionType.charAt(0).toUpperCase() + step.actionType.slice(1)}</Text>
-              {step.waitTime > 0 && (
-                <Text type="secondary">Wait: {step.waitTime} minutes</Text>
+              {step.delayMinutes > 0 && (
+                <Text type="secondary">Wait: {step.delayMinutes} minutes</Text>
               )}
               {step.conditionType && (
                 <Text type="secondary">Condition: {step.conditionType}</Text>
@@ -506,13 +597,13 @@ const JourneyBuilderList = () => {
 
   // Render journey statistics
   const renderStatistics = () => {
-    if (!journey?.statistics) return null;
+    if (!journey?.stats) return null;
     
-    const { total_leads, active_leads, completed_leads, stopped_leads } = journey.statistics;
+    const { total_leads, active_leads, completed_leads } = journey.stats;
     
     return (
       <Row gutter={16}>
-        <Col span={6}>
+        <Col span={8}>
           <Card>
             <Statistic
               title="Total Leads"
@@ -521,7 +612,7 @@ const JourneyBuilderList = () => {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card>
             <Statistic
               title="Active Leads"
@@ -531,7 +622,7 @@ const JourneyBuilderList = () => {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card>
             <Statistic
               title="Completed Leads"
@@ -541,71 +632,7 @@ const JourneyBuilderList = () => {
             />
           </Card>
         </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Stopped Leads"
-              value={stopped_leads}
-              prefix={<CloseCircleOutlined />}
-              valueStyle={{ color: '#cf1322' }}
-            />
-          </Card>
-        </Col>
       </Row>
-    );
-  };
-
-  // Render journey metrics
-  const renderMetrics = () => {
-    if (!journey?.metrics || journey.metrics.length === 0) return null;
-    
-    return (
-      <div className="metrics-container">
-        <Title level={4}>Action Metrics</Title>
-        <Table
-          dataSource={journey.metrics}
-          columns={[
-            {
-              title: 'Action Type',
-              dataIndex: 'action_type',
-              key: 'action_type',
-              render: (type) => (
-                <Space>
-                  {getActionIcon(type)}
-                  <span>{type.charAt(0).toUpperCase() + type.slice(1)}</span>
-                </Space>
-              )
-            },
-            {
-              title: 'Executions',
-              dataIndex: 'execution_count',
-              key: 'execution_count',
-            },
-            {
-              title: 'Success',
-              dataIndex: 'success_count',
-              key: 'success_count',
-              render: (count, record) => (
-                <span style={{ color: '#3f8600' }}>
-                  {count} ({Math.round((count / record.execution_count) * 100)}%)
-                </span>
-              )
-            },
-            {
-              title: 'Failed',
-              dataIndex: 'failed_count',
-              key: 'failed_count',
-              render: (count, record) => (
-                <span style={{ color: '#cf1322' }}>
-                  {count} ({Math.round((count / record.execution_count) * 100)}%)
-                </span>
-              )
-            }
-          ]}
-          pagination={false}
-          size="small"
-        />
-      </div>
     );
   };
 
@@ -676,11 +703,9 @@ const JourneyBuilderList = () => {
           <TabPane tab="Performance" key="performance">
             <Card className="journey-info-card">
               <Title level={4}>Journey Performance</Title>
-              {journey?.statistics ? (
+              {journey?.stats ? (
                 <>
                   {renderStatistics()}
-                  <Divider />
-                  {renderMetrics()}
                 </>
               ) : (
                 <div className="empty-stats">

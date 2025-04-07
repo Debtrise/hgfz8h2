@@ -53,45 +53,43 @@ const LeadsList = () => {
         leadPool: filters.leadPool !== "all" ? filters.leadPool : undefined
       };
       
+      console.log('Fetching leads with params:', params);
+      
       // Fetch leads using the API
       const response = await apiService.leads.getAll(params);
       
-      // Handle different response data structures
-      let leadsData = [];
-      let totalCount = 0;
+      console.log('API Response:', response);
       
-      if (response && response.data) {
-        if (Array.isArray(response.data)) {
-          leadsData = response.data;
-          totalCount = response.meta?.total || response.data.length;
-        } else if (response.data.leads && Array.isArray(response.data.leads)) {
-          leadsData = response.data.leads;
-          totalCount = response.data.meta?.total || response.data.leads.length;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          leadsData = response.data.data;
-          totalCount = response.data.meta?.total || response.data.data.length;
-        }
+      // Handle the API response format
+      if (response && response.leads) {
+        setLeads(response.leads);
+        setTotalLeads(response.pagination.total);
+        setApiError(false);
+      } else {
+        console.error('Invalid API response format:', response);
+        setError('Invalid response format from server');
+        setLeads([]);
+        setTotalLeads(0);
+        setApiError(true);
       }
-      
-      setLeads(leadsData);
-      setTotalLeads(totalCount);
-      setApiError(false);
     } catch (err) {
       console.error("Error fetching leads:", err);
       let errorMessage = "Failed to load leads. ";
       
       if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
+        console.error('Error response:', {
+          status: err.response.status,
+          data: err.response.data
+        });
         errorMessage += `Server error: ${err.response.status}`;
         if (err.response.data && err.response.data.message) {
           errorMessage += ` - ${err.response.data.message}`;
         }
       } else if (err.request) {
-        // The request was made but no response was received
+        console.error('No response received:', err.request);
         errorMessage += "No response from server. Please check your connection.";
       } else {
-        // Something happened in setting up the request that triggered an Error
+        console.error('Error setting up request:', err.message);
         errorMessage += err.message || "Please try again later.";
       }
       
@@ -242,6 +240,7 @@ const LeadsList = () => {
                 value={searchTerm}
                 onChange={handleSearch}
               />
+              <i className="search-icon"></i>
             </div>
             <button
               className="button-blue"
@@ -334,86 +333,48 @@ const LeadsList = () => {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th
-                    className="sortable"
-                    onClick={() => handleSortChange("first_name")}
-                  >
-                    <span>Name</span>
-                    {sortField === "first_name" && (
-                      <span className={`sort-icon ${sortDirection}`}></span>
-                    )}
-                  </th>
+                  <th>Name</th>
                   <th>Contact</th>
-                  <th
-                    className="sortable"
-                    onClick={() => handleSortChange("lead_pool")}
-                  >
-                    <span>Lead Pool</span>
-                    {sortField === "lead_pool" && (
-                      <span className={`sort-icon ${sortDirection}`}></span>
-                    )}
-                  </th>
-                  <th
-                    className="sortable"
-                    onClick={() => handleSortChange("created_at")}
-                  >
-                    <span>Added</span>
-                    {sortField === "created_at" && (
-                      <span className={`sort-icon ${sortDirection}`}></span>
-                    )}
-                  </th>
-                  <th
-                    className="sortable"
-                    onClick={() => handleSortChange("last_contacted_at")}
-                  >
-                    <span>Last Contact</span>
-                    {sortField === "last_contacted_at" && (
-                      <span className={`sort-icon ${sortDirection}`}></span>
-                    )}
-                  </th>
-                  <th
-                    className="sortable"
-                    onClick={() => handleSortChange("lead_age")}
-                  >
-                    <span>Age (days)</span>
-                    {sortField === "lead_age" && (
-                      <span className={`sort-icon ${sortDirection}`}></span>
-                    )}
-                  </th>
-                  <th
-                    className="sortable"
-                    onClick={() => handleSortChange("status")}
-                  >
-                    <span>Status</span>
-                    {sortField === "status" && (
-                      <span className={`sort-icon ${sortDirection}`}></span>
-                    )}
-                  </th>
+                  <th>Lead Pool</th>
+                  <th>Added</th>
+                  <th>Last Contact</th>
+                  <th>Age (days)</th>
+                  <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredAndSortedLeads.length > 0 ? (
                   filteredAndSortedLeads.map((lead) => (
-                    <tr key={lead.id} onClick={() => viewLeadDetails(lead.id)}>
+                    <tr key={lead.id}>
                       <td>
-                        <strong>{`${lead.first_name || ''} ${lead.last_name || ''}`}</strong>
+                        <div className="lead-name">{`${lead.first_name || ''} ${lead.last_name || ''}`}</div>
                       </td>
                       <td>
-                        <div>{lead.email || 'N/A'}</div>
-                        <div>{lead.phone || 'N/A'}</div>
+                        <div className="contact-info">
+                          <div>{lead.email || 'N/A'}</div>
+                          <div>{lead.phone || 'N/A'}</div>
+                        </div>
                       </td>
-                      <td>{lead.lead_pool_name || 'None'}</td>
-                      <td>{lead.created_at ? new Date(lead.created_at).toLocaleDateString() : 'N/A'}</td>
-                      <td>{lead.last_contacted_at ? new Date(lead.last_contacted_at).toLocaleDateString() : 'Never'}</td>
-                      <td>{lead.lead_age || 0}</td>
+                      <td>
+                        <div className="lead-pool">{lead.lead_pool_name || 'None'}</div>
+                      </td>
+                      <td>
+                        <div className="date">{lead.created_at ? new Date(lead.created_at).toLocaleDateString() : 'N/A'}</div>
+                      </td>
+                      <td>
+                        <div className="date">{lead.last_contacted_at ? new Date(lead.last_contacted_at).toLocaleDateString() : 'Never'}</div>
+                      </td>
+                      <td>
+                        <div className="age">{lead.lead_age || 0}</div>
+                      </td>
                       <td>
                         <span className={`status-badge ${lead.status?.toLowerCase() || 'unknown'}`}>
                           {lead.status || 'Unknown'}
                         </span>
                       </td>
                       <td>
-                        <div className="item-actions" onClick={(e) => e.stopPropagation()}>
+                        <div className="item-actions">
                           <button 
                             className="action-button"
                             onClick={() => viewLeadDetails(lead.id)}

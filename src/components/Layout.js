@@ -44,7 +44,8 @@ const Layout = () => {
     settings: location.pathname.includes('/settings'),
     emailTemplates: location.pathname.includes('/email-templates'),
     smsMessaging: location.pathname.includes('/sms-messaging'),
-    didManagement: false
+    didManagement: false,
+    journeys: false
   });
   
   const [sidebarVisible, setSidebarVisible] = useState(false);
@@ -114,6 +115,16 @@ const Layout = () => {
             <NavLink to="/leads" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <TeamOutlined />
               <span>Leads List</span>
+            </NavLink>
+
+            <NavLink to="/leads/import" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <FormOutlined />
+              <span>Import Leads</span>
+            </NavLink>
+
+            <NavLink to="/leads/assignments" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <TeamOutlined />
+              <span>Lead Assignments</span>
             </NavLink>
 
             <NavLink to="/lead-management" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
@@ -210,6 +221,33 @@ const Layout = () => {
             <NavLink to="/settings/users" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
               <UserOutlined />
               <span>Users</span>
+            </NavLink>
+
+            <NavLink to="/settings/brands-sources" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <FlagOutlined />
+              <span>Brands & Sources</span>
+            </NavLink>
+          </div>
+        )}
+
+        <div className="sidebar-category-header" onClick={() => toggleSection('journeys')}>
+          <div className="category-header-left">
+            <CompassOutlined />
+            <span>Journeys</span>
+          </div>
+          {expandedSections.journeys ? <CaretDownOutlined /> : <CaretRightOutlined />}
+        </div>
+        
+        {expandedSections.journeys && (
+          <div className="sidebar-category-content">
+            <NavLink to="/journeys" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <CompassOutlined />
+              <span>All Journeys</span>
+            </NavLink>
+
+            <NavLink to="/journeys/builder" className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}>
+              <FormOutlined />
+              <span>Journey Builder</span>
             </NavLink>
           </div>
         )}

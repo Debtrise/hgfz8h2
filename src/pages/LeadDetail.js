@@ -11,6 +11,9 @@ const LeadDetail = () => {
   const [error, setError] = useState(null);
   const [lead, setLead] = useState(null);
   const [contactHistory, setContactHistory] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedLead, setEditedLead] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch lead data
   useEffect(() => {
@@ -20,7 +23,9 @@ const LeadDetail = () => {
       try {
         // Fetch lead details
         const leadResponse = await apiService.leads.getById(id);
-        setLead(leadResponse.data);
+        console.log("Lead response:", leadResponse);
+        setLead(leadResponse);
+        setEditedLead(leadResponse);
         
         // In a real implementation, you would fetch contact history from an API
         // For now, we'll use mock data
@@ -71,6 +76,44 @@ const LeadDetail = () => {
 
   const handleBack = () => {
     navigate("/leads");
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditedLead(lead);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await apiService.leads.update(id, editedLead);
+      setLead(editedLead);
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Error updating lead:", err);
+      setError("Failed to update lead information. Please try again later.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditedLead({
+      ...editedLead,
+      [name]: value
+    });
+  };
+
+  const handleStatusChange = (newStatus) => {
+    setEditedLead({
+      ...editedLead,
+      status: newStatus
+    });
   };
 
   // Function to add a new note
@@ -140,18 +183,50 @@ const LeadDetail = () => {
               <span>Back to Leads</span>
             </button>
             <h1 className="page-title">
-              {lead.first_name} {lead.last_name}
+              {lead.firstName} {lead.lastName}
             </h1>
           </div>
           <div className="header-actions">
-            <button className="button-outline" onClick={scheduleCall}>
-              <i className="phone-icon-small"></i>
-              <span>Schedule Call</span>
-            </button>
-            <button className="button-blue" onClick={addNote}>
-              <i className="note-icon-small"></i>
-              <span>Add Note</span>
-            </button>
+            {!isEditing ? (
+              <>
+                <button className="button-outline" onClick={scheduleCall}>
+                  <i className="phone-icon-small"></i>
+                  <span>Schedule Call</span>
+                </button>
+                <button className="button-outline" onClick={addNote}>
+                  <i className="note-icon-small"></i>
+                  <span>Add Note</span>
+                </button>
+                <button className="button-blue" onClick={handleEdit}>
+                  <i className="edit-icon-small"></i>
+                  <span>Edit Lead</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  className="button-outline" 
+                  onClick={handleCancel}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="button-blue" 
+                  onClick={handleSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <>
+                      <span className="button-spinner"></span>
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -162,30 +237,70 @@ const LeadDetail = () => {
               <div className="detail-card">
                 <h2 className="detail-card-title">Contact Information</h2>
                 <div className="detail-card-content">
-                  <div className="detail-item">
-                    <span className="detail-label">Name:</span>
-                    <span className="detail-value">
-                      {lead.first_name} {lead.last_name}
-                    </span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Email:</span>
-                    <span className="detail-value">{lead.email}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Phone:</span>
-                    <span className="detail-value">{lead.phone}</span>
-                  </div>
-                  {lead.address && (
-                    <div className="detail-item">
-                      <span className="detail-label">Address:</span>
-                      <span className="detail-value">
-                        {lead.address.street}
-                        <br />
-                        {lead.address.city}, {lead.address.state}{" "}
-                        {lead.address.zip_code}
-                      </span>
+                  {isEditing ? (
+                    <div className="edit-form">
+                      <div className="form-group">
+                        <label htmlFor="firstName">First Name</label>
+                        <input
+                          type="text"
+                          id="firstName"
+                          name="firstName"
+                          value={editedLead.firstName || ''}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="lastName">Last Name</label>
+                        <input
+                          type="text"
+                          id="lastName"
+                          name="lastName"
+                          value={editedLead.lastName || ''}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="email">Email</label>
+                        <input
+                          type="email"
+                          id="email"
+                          name="email"
+                          value={editedLead.email || ''}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="phone">Phone</label>
+                        <input
+                          type="tel"
+                          id="phone"
+                          name="phone"
+                          value={editedLead.phone || ''}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      </div>
                     </div>
+                  ) : (
+                    <>
+                      <div className="detail-item">
+                        <span className="detail-label">Name:</span>
+                        <span className="detail-value">
+                          {lead.firstName} {lead.lastName}
+                        </span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Email:</span>
+                        <span className="detail-value">{lead.email || 'N/A'}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Phone:</span>
+                        <span className="detail-value">{lead.phone || 'N/A'}</span>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -193,44 +308,135 @@ const LeadDetail = () => {
               <div className="detail-card">
                 <h2 className="detail-card-title">Lead Information</h2>
                 <div className="detail-card-content">
-                  <div className="detail-item">
-                    <span className="detail-label">Lead Pool:</span>
-                    <span className="detail-value">{lead.lead_pool_name || 'None'}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Date Added:</span>
-                    <span className="detail-value">
-                      {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : 'N/A'}
-                    </span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Lead Age:</span>
-                    <span className="detail-value">{lead.lead_age || 0} days</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Status:</span>
-                    <span className="detail-value">
-                      <span
-                        className={`status-badge ${lead.status?.toLowerCase() || 'unknown'}`}
-                      >
-                        {lead.status || 'Unknown'}
-                      </span>
-                    </span>
-                  </div>
-                  {lead.agent && (
-                    <div className="detail-item">
-                      <span className="detail-label">Assigned Agent:</span>
-                      <span className="detail-value">{lead.agent.name || 'None'}</span>
+                  {isEditing ? (
+                    <div className="edit-form">
+                      <div className="form-group">
+                        <label htmlFor="status">Status</label>
+                        <div className="status-selector">
+                          <button 
+                            className={`status-option ${editedLead.status === 'new' ? 'active' : ''}`}
+                            onClick={() => handleStatusChange('new')}
+                            type="button"
+                          >
+                            New
+                          </button>
+                          <button 
+                            className={`status-option ${editedLead.status === 'contacted' ? 'active' : ''}`}
+                            onClick={() => handleStatusChange('contacted')}
+                            type="button"
+                          >
+                            Contacted
+                          </button>
+                          <button 
+                            className={`status-option ${editedLead.status === 'qualified' ? 'active' : ''}`}
+                            onClick={() => handleStatusChange('qualified')}
+                            type="button"
+                          >
+                            Qualified
+                          </button>
+                          <button 
+                            className={`status-option ${editedLead.status === 'converted' ? 'active' : ''}`}
+                            onClick={() => handleStatusChange('converted')}
+                            type="button"
+                          >
+                            Converted
+                          </button>
+                          <button 
+                            className={`status-option ${editedLead.status === 'lost' ? 'active' : ''}`}
+                            onClick={() => handleStatusChange('lost')}
+                            type="button"
+                          >
+                            Lost
+                          </button>
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="brand">Brand</label>
+                        <input
+                          type="text"
+                          id="brand"
+                          name="brand"
+                          value={editedLead.brand || ''}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="source">Source</label>
+                        <input
+                          type="text"
+                          id="source"
+                          name="source"
+                          value={editedLead.source || ''}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="leadAge">Lead Age (days)</label>
+                        <input
+                          type="number"
+                          id="leadAge"
+                          name="leadAge"
+                          value={editedLead.leadAge || 0}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      </div>
                     </div>
+                  ) : (
+                    <>
+                      <div className="detail-item">
+                        <span className="detail-label">Lead Pool:</span>
+                        <span className="detail-value">
+                          {lead.poolIds && lead.poolIds.length > 0 
+                            ? lead.poolIds.join(', ') 
+                            : 'None'}
+                        </span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Date Added:</span>
+                        <span className="detail-value">
+                          {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Lead Age:</span>
+                        <span className="detail-value">{lead.leadAge || 0} days</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Status:</span>
+                        <span className="detail-value">
+                          <span
+                            className={`status-badge ${lead.status?.toLowerCase() || 'unknown'}`}
+                          >
+                            {lead.status || 'Unknown'}
+                          </span>
+                        </span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Brand:</span>
+                        <span className="detail-value">{lead.brand || 'N/A'}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Source:</span>
+                        <span className="detail-value">{lead.source || 'N/A'}</span>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
 
-              {lead.notes && (
+              {lead.additionalData && Object.keys(lead.additionalData).length > 0 && (
                 <div className="detail-card">
-                  <h2 className="detail-card-title">Notes</h2>
+                  <h2 className="detail-card-title">Additional Information</h2>
                   <div className="detail-card-content">
-                    <p className="lead-notes">{lead.notes}</p>
+                    {Object.entries(lead.additionalData).map(([key, value]) => (
+                      <div key={key} className="detail-item">
+                        <span className="detail-label">{key}:</span>
+                        <span className="detail-value">{value}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
