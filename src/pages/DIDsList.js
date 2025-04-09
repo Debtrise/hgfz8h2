@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import apiService from "../services/apiService";
-import LoadingSpinner from "../components/LoadingSpinner";
 import "./ListPages.css";
 
 const DIDsList = () => {
@@ -25,6 +24,17 @@ const DIDsList = () => {
   });
   const [error, setError] = useState(null);
   const [didPools, setDidPools] = useState([]);
+  const [showLoading, setShowLoading] = useState(true);
+
+  // Show loading icon when component mounts
+  useEffect(() => {
+    // Set a timeout to hide the loading icon after 2 seconds
+    const timer = setTimeout(() => {
+      setShowLoading(false);
+    }, 2000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch DIDs when filters or pagination changes
   useEffect(() => {
@@ -230,9 +240,12 @@ const DIDsList = () => {
         </div>
 
         <div className="content-body">
-          {isLoading ? (
+          {showLoading ? (
             <div className="loading-state">
-              <LoadingSpinner size="medium" text="Loading DIDs..." />
+              <div className="loading-container">
+                <img src={require("../assets/loading-icon.png")} alt="Loading" className="loading-icon" />
+                <p className="loading-text">Loading DIDs...</p>
+              </div>
             </div>
           ) : dids.length > 0 ? (
             <div className="table-container">

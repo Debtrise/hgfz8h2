@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import apiService from "../services/apiService";
 import "./ListPages.css";
-import LoadingSpinner from "../components/LoadingSpinner";
+import LoadingIcon from '../components/LoadingIcon';
 
 const LeadAssignments = () => {
   const navigate = useNavigate();
@@ -149,7 +149,7 @@ const LeadAssignments = () => {
       <div className="page-container">
         <div className="content-container">
           <div className="loading-state">
-            <LoadingSpinner size="large" text="Loading leads..." />
+            <p className="loading-text">Loading leads...</p>
           </div>
         </div>
       </div>

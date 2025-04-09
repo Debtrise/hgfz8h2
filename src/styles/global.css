@@ -68,11 +68,12 @@
 
 /* Base Styles */
 body {
+  font-family: var(--font-primary);
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  padding: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--main-background);
+  background-color: #f0f2f5;
   color: var(--text-primary);
 }
 
@@ -174,5 +175,99 @@ input:focus, select:focus, textarea:focus {
 
 .mb-3 {
   margin-bottom: var(--spacing-lg);
+}
+
+/* Loading states */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.loading-wrapper {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main loading container that covers everything except navbar */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: var(--sidebar-width);
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  z-index: 9999;
+}
+
+.loading-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+}
+
+.loading-icon {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 1rem;
+  opacity: 0;
+  animation: fadeIn 0.5s ease-in-out forwards,
+             fadeOut 0.3s ease-in-out 1s forwards;
+}
+
+.loading-text {
+  color: var(--text-primary);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  margin-top: 0.5rem;
+  text-align: center;
+  opacity: 0;
+  animation: fadeIn 0.5s ease-in-out 0.3s forwards,
+             fadeOut 0.3s ease-in-out 1s forwards;
+}
+
+/* When sidebar is collapsed */
+@media (max-width: 768px) {
+  .loading-overlay {
+    left: var(--sidebar-width-collapsed);
+  }
+}
+
+/* Ensure ALL content is hidden while loading */
+.loading-wrapper > :not(.loading-overlay) {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+}
+
+.loading-wrapper > :not(.loading-overlay).visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Ensure page header is included in fade effect */
+.page-header {
+  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
 }
 

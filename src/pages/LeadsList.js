@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import apiService from "../services/apiService";
 import "./ListPages.css";
-import LoadingSpinner from "../components/LoadingSpinner";
 
 const LeadsList = () => {
   const navigate = useNavigate();
@@ -234,7 +233,9 @@ const LeadsList = () => {
       <div className="page-container">
         <div className="content-container">
           <div className="loading-state">
-            <LoadingSpinner size="large" text="Loading leads..." />
+            <div className="loading-container">
+              <p className="loading-text">Loading leads...</p>
+            </div>
           </div>
         </div>
       </div>

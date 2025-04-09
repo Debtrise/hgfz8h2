@@ -104,4 +104,42 @@
 .mix-update-button:disabled {
   background-color: #d6ebf5;
   cursor: not-allowed;
+}
+
+/* New styles for config details */
+.data-mix-subtitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 20px;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.config-input {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 13px;
+  /* width: auto; /* Let it size based on content or parent */ 
+}
+
+.range-inputs {
+  display: flex;
+  align-items: center;
+}
+
+.range-inputs input {
+  width: 50px; /* Adjust width as needed */
+  padding: 4px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.range-inputs span {
+  margin: 0 5px;
+  color: var(--text-secondary);
 } 

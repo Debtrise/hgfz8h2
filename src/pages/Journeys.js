@@ -34,6 +34,7 @@ import {
   BranchesOutlined
 } from '@ant-design/icons';
 import JourneyBuilderList from '../components/JourneyBuilderList';
+import LoadingIcon from '../components/LoadingIcon';
 import { 
   getAllJourneys, 
   deleteJourney, 
@@ -52,7 +53,6 @@ const Journeys = () => {
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
   const [showFavorites, setShowFavorites] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedJourney, setSelectedJourney] = useState(null);
@@ -125,38 +125,12 @@ const Journeys = () => {
       const journeyToDuplicate = journeys.find(j => j.id === id);
       if (journeyToDuplicate) {
         const clonedJourney = await cloneJourney(id, `${journeyToDuplicate.name} (Copy)`);
-        setJourneys([...journeys, clonedJourney.journey]);
+        setJourneys([...journeys, clonedJourney]);
         message.success('Journey cloned successfully');
       }
     } catch (error) {
       console.error('Error cloning journey:', error);
       message.error('Failed to clone journey');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleFavorite = async (id) => {
-    try {
-      setLoading(true);
-      const journey = journeys.find(j => j.id === id);
-      if (journey) {
-        // Update the journey with the new favorite status
-        const updatedJourney = await updateJourney(id, {
-          ...journey,
-          favorite: !journey.favorite
-        });
-        
-        // Update the journey in the list
-        setJourneys(journeys.map(j =>
-          j.id === id ? updatedJourney : j
-        ));
-        
-        message.success(`Journey ${journey.favorite ? 'removed from' : 'added to'} favorites`);
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-      message.error('Failed to update favorite status');
     } finally {
       setLoading(false);
     }
@@ -198,28 +172,22 @@ const Journeys = () => {
       key: 'status',
       render: (status) => (
         <Tag color={
-          status === 'active' ? 'success' :
-          status === 'paused' ? 'warning' :
-          status === 'archived' ? 'default' : 'processing'
+          status === 'ACTIVE' ? 'success' :
+          status === 'PAUSED' ? 'warning' :
+          status === 'DRAFT' ? 'default' : 'processing'
         }>
-          {status.toUpperCase()}
+          {status}
         </Tag>
       ),
     },
     {
-      title: 'Steps',
-      dataIndex: 'step_count',
-      key: 'step_count',
-      render: (count) => (
-        <Statistic value={count} suffix="steps" />
-      ),
-    },
-    {
-      title: 'Campaigns',
-      dataIndex: 'campaign_count',
-      key: 'campaign_count',
-      render: (count) => (
-        <Statistic value={count} suffix="campaigns" />
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      render: (type) => (
+        <Tag color="blue">
+          {type}
+        </Tag>
       ),
     },
     {
@@ -240,14 +208,13 @@ const Journeys = () => {
           />
           <Button
             type="text"
-            icon={<CopyOutlined />}
-            onClick={() => handleDuplicateJourney(record.id)}
+            icon={<DeleteOutlined />}
+            onClick={() => handleDeleteJourney(record.id)}
           />
           <Button
             type="text"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDeleteJourney(record.id)}
+            icon={<CopyOutlined />}
+            onClick={() => handleDuplicateJourney(record.id)}
           />
         </Space>
       ),
@@ -257,9 +224,8 @@ const Journeys = () => {
   const filteredJourneys = journeys.filter(journey => {
     const matchesSearch = journey.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || journey.status === statusFilter;
-    const matchesType = typeFilter === 'all' || journey.type === typeFilter;
     const matchesFavorites = !showFavorites || journey.favorite;
-    return matchesSearch && matchesStatus && matchesType && matchesFavorites;
+    return matchesSearch && matchesStatus && matchesFavorites;
   });
 
   // Calculate statistics
@@ -273,8 +239,16 @@ const Journeys = () => {
   // Render the journey list view
   const renderJourneyList = () => {
     return (
-      <>
-        <Card className="journeys-table-container">
+      <LoadingIcon text="Loading journeys..." isLoading={loading}>
+        <Card 
+          className="journeys-table-container" 
+          style={{ 
+            background: 'transparent',
+            maxWidth: '1200px',
+            margin: '0 auto',
+            width: '100%'
+          }}
+        >
           <div className="table-header">
             <Space>
               <Search
@@ -294,16 +268,6 @@ const Journeys = () => {
                 <Option value="paused">Paused</Option>
                 <Option value="archived">Archived</Option>
               </Select>
-              <Select
-                value={typeFilter}
-                onChange={setTypeFilter}
-                style={{ width: 120 }}
-              >
-                <Option value="all">All Types</Option>
-                <Option value="welcome">Welcome</Option>
-                <Option value="followup">Follow-up</Option>
-                <Option value="nurture">Nurture</Option>
-              </Select>
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -318,7 +282,7 @@ const Journeys = () => {
             columns={columns}
             dataSource={filteredJourneys}
             rowKey="id"
-            loading={loading}
+            loading={false}
             pagination={{
               pageSize: 10,
               showSizeChanger: true,
@@ -338,7 +302,7 @@ const Journeys = () => {
         >
           <p>Are you sure you want to delete this journey? This action cannot be undone.</p>
         </Modal>
-      </>
+      </LoadingIcon>
     );
   };
 
@@ -349,34 +313,7 @@ const Journeys = () => {
 
   return (
     <div className="journeys-page">
-      <Tabs 
-        activeKey={activeTab} 
-        onChange={setActiveTab}
-        className="journeys-tabs"
-      >
-        <TabPane 
-          tab={
-            <span>
-              <BranchesOutlined />
-              Journeys
-            </span>
-          } 
-          key="list"
-        >
-          {renderJourneyList()}
-        </TabPane>
-        <TabPane 
-          tab={
-            <span>
-              <EditOutlined />
-              Journey Builder
-            </span>
-          } 
-          key="builder"
-        >
-          {renderJourneyBuilder()}
-        </TabPane>
-      </Tabs>
+      {renderJourneyList()}
     </div>
   );
 };

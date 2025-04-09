@@ -58,7 +58,6 @@ const Campaigns = () => {
 
   // State for campaigns data
   const [campaigns, setCampaigns] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
   // Pagination state
@@ -136,7 +135,6 @@ const Campaigns = () => {
   };
 
   const fetchCampaigns = async () => {
-    setIsLoading(true);
     setError(null);
     try {
       // Prepare query parameters based on filters
@@ -199,8 +197,6 @@ const Campaigns = () => {
       setCampaigns(mockResponse.data.campaigns);
       setTotalItems(mockResponse.data.total);
       setTotalPages(Math.ceil(mockResponse.data.total / itemsPerPage));
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -275,42 +271,17 @@ const Campaigns = () => {
   // Change page
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  // Render loading skeleton
-  if (isLoading) {
-    return (
-      <div className="page-container">
-        <div className="content-container">
-          <div className="content-header">
-            <h1 className="page-title">Campaigns</h1>
-            <div className="skeleton skeleton-button"></div>
-          </div>
-          <div className="content-body">
-            <div className="skeleton skeleton-search"></div>
-            <div className="skeleton-filters">
-              <div className="skeleton skeleton-filter"></div>
-              <div className="skeleton skeleton-filter"></div>
-              <div className="skeleton skeleton-filter"></div>
-            </div>
-            {[1, 2, 3].map((item) => (
-              <div key={item} className="skeleton skeleton-campaign-item"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="page-container">
       <div className="content-container">
         <div className="content-header">
           <h1 className="page-title">Campaigns</h1>
-          <button className="update-button" onClick={handleCreateCampaign}>
+          <button className="button-blue" onClick={handleCreateCampaign}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            Create Campaign
+            Create
           </button>
         </div>
 

@@ -1,0 +1,38 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 0;
+  padding: 20px;
+  transition: margin-left 0.3s ease;
+}
+
+.main-content.sidebar-open {
+  margin-left: 250px;
+}
+
+.main-content.sidebar-open.sidebar-collapsed {
+  margin-left: 80px;
+}
+
+.main-content.full-width {
+  margin-left: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+  }
+  
+  .main-content.sidebar-open {
+    margin-left: 250px;
+  }
+  
+  .main-content.sidebar-open.sidebar-collapsed {
+    margin-left: 80px;
+  }
+} 

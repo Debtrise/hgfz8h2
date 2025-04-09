@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
 import './DIDEdit.css';
-import LoadingSpinner from '../components/LoadingSpinner';
+import LoadingIcon from '../components/LoadingIcon';
 
 const DIDEdit = () => {
   const { id } = useParams();
@@ -96,18 +96,6 @@ const DIDEdit = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="page-container">
-        <div className="content-container">
-          <div className="loading-state">
-            <LoadingSpinner size="large" text="Loading DID details..." />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (!did) {
     return (
       <div className="page-container">
@@ -127,92 +115,94 @@ const DIDEdit = () => {
   }
 
   return (
-    <div className="page-container">
-      <div className="content-container">
-        <div className="content-header">
-          <div className="header-left">
-            <button 
-              className="back-button"
-              onClick={() => navigate(`/did-pools/${did.poolId}`)}
-            >
-              <i className="fas fa-arrow-left"></i>
-              Back to DID Pool
-            </button>
-            <h1 className="page-title">Edit DID</h1>
-          </div>
-          <div className="header-actions">
-            <button 
-              className="button-danger"
-              onClick={handleDelete}
-            >
-              Delete DID
-            </button>
-          </div>
-        </div>
-
-        {error && (
-          <div className="error-message">
-            {error}
-            <button className="dismiss-button" onClick={() => setError(null)}>×</button>
-          </div>
-        )}
-
-        <div className="content-body">
-          <form onSubmit={handleSubmit} className="edit-form">
-            <div className="form-group">
-              <label htmlFor="number">Phone Number *</label>
-              <input
-                type="tel"
-                id="number"
-                name="number"
-                value={formData.number}
-                onChange={handleInputChange}
-                required
-                placeholder="Enter phone number"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="status">Status</label>
-              <select
-                id="status"
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label htmlFor="notes">Notes</label>
-              <textarea
-                id="notes"
-                name="notes"
-                value={formData.notes}
-                onChange={handleInputChange}
-                placeholder="Enter notes"
-                rows="3"
-              />
-            </div>
-            <div className="form-actions">
+    <LoadingIcon text="Loading DID details..." isLoading={isLoading}>
+      <div className="page-container">
+        <div className="content-container">
+          <div className="content-header">
+            <div className="header-left">
               <button 
-                type="button" 
-                className="button-secondary"
+                className="back-button"
                 onClick={() => navigate(`/did-pools/${did.poolId}`)}
               >
-                Cancel
+                <i className="fas fa-arrow-left"></i>
+                Back to DID Pool
               </button>
+              <h1 className="page-title">Edit DID</h1>
+            </div>
+            <div className="header-actions">
               <button 
-                type="submit" 
-                className="button-primary"
+                className="button-danger"
+                onClick={handleDelete}
               >
-                Save Changes
+                Delete DID
               </button>
             </div>
-          </form>
+          </div>
+
+          {error && (
+            <div className="error-message">
+              {error}
+              <button className="dismiss-button" onClick={() => setError(null)}>×</button>
+            </div>
+          )}
+
+          <div className="content-body">
+            <form onSubmit={handleSubmit} className="edit-form">
+              <div className="form-group">
+                <label htmlFor="number">Phone Number *</label>
+                <input
+                  type="tel"
+                  id="number"
+                  name="number"
+                  value={formData.number}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Enter phone number"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="status">Status</label>
+                <select
+                  id="status"
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="notes">Notes</label>
+                <textarea
+                  id="notes"
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                  placeholder="Enter notes"
+                  rows="3"
+                />
+              </div>
+              <div className="form-actions">
+                <button 
+                  type="button" 
+                  className="button-secondary"
+                  onClick={() => navigate(`/did-pools/${did.poolId}`)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="button-primary"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
+    </LoadingIcon>
   );
 };
 

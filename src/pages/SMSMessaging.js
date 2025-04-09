@@ -14,7 +14,6 @@ import {
   FiFileText
 } from 'react-icons/fi';
 import './styles/SMSMessaging.css';
-import LoadingSpinner from '../components/LoadingSpinner';
 
 // API Configuration
 const API_BASE_URL = 'https://sms-blaster-api-154842307047.us-central1.run.app'; // Updated with actual Cloud Run URL
@@ -234,7 +233,7 @@ const SMSMessaging = () => {
     <div className="sms-messaging-container">
       {loading ? (
         <div className="loading-container">
-          <LoadingSpinner size="large" text="Loading messages..." />
+          <p className="loading-text">Loading messages...</p>
         </div>
       ) : error ? (
         <div className="error-container">

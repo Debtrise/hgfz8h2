@@ -1,5 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import {
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  MarkerType,
+  Handle,
+  useReactFlow,
+  ReactFlowProvider 
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 import { 
   Card, 
   Button, 
@@ -34,9 +47,12 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   ClockCircleOutlined,
-  CopyOutlined
+  CopyOutlined,
+  ForkOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined,
+  FullscreenOutlined
 } from '@ant-design/icons';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { 
   getJourneyById, 
   createJourney, 
@@ -57,34 +73,241 @@ const { TextArea } = Input;
 const { Option } = Select;
 const { TabPane } = Tabs;
 
-const JourneyBuilderList = () => {
+// Lazy load the ReactFlow component for better initial load time
+const ReactFlow = lazy(() => import('reactflow').then(module => ({ default: module.default })));
+
+// Custom node components with memo for better performance
+const EmailNode = React.memo(({ data }) => {
+  const { actionConfig, stepNumber } = data;
+  return (
+    <div className="node email-node">
+      <Handle type="target" position="left" />
+      <div className="node-header">
+        <MailOutlined /> Email <span className="step-number">{stepNumber}</span>
+      </div>
+      <div className="node-content">
+        <div><strong>Subject:</strong> {actionConfig.subject || ''}</div>
+        <div><strong>Template:</strong> {actionConfig.template_id || ''}</div>
+        {actionConfig.variables && (
+          <div>
+            <strong>Variables:</strong> 
+            {typeof actionConfig.variables === 'object' 
+              ? (Object.keys(actionConfig.variables).length > 0 
+                  ? Object.keys(actionConfig.variables).join(', ') 
+                  : '{}')
+              : (actionConfig.variables === '{}' || actionConfig.variables === '' 
+                  ? '{}' 
+                  : actionConfig.variables)
+            }
+          </div>
+        )}
+      </div>
+      <Handle type="source" position="right" />
+    </div>
+  );
+});
+
+const CallNode = React.memo(({ data }) => {
+  const { actionConfig, stepNumber } = data;
+  return (
+    <div className="node call-node">
+      <Handle type="target" position="left" />
+      <div className="node-header">
+        <PhoneOutlined /> Call <span className="step-number">{stepNumber}</span>
+      </div>
+      <div className="node-content">
+        <div><strong>Script:</strong> {actionConfig.script_id || ''}</div>
+        <div><strong>Max Attempts:</strong> {actionConfig.max_attempts || 3}</div>
+        {actionConfig.voicemail_message_id && (
+          <div><strong>Voicemail:</strong> {actionConfig.voicemail_message_id}</div>
+        )}
+        {actionConfig.transfer_extension && (
+          <div><strong>Transfer:</strong> {actionConfig.transfer_extension}</div>
+        )}
+      </div>
+      <Handle type="source" position="right" />
+    </div>
+  );
+});
+
+const SMSNode = React.memo(({ data }) => {
+  const { actionConfig, stepNumber } = data;
+  return (
+    <div className="node sms-node">
+      <Handle type="target" position="left" />
+      <div className="node-header">
+        <MessageOutlined /> SMS <span className="step-number">{stepNumber}</span>
+      </div>
+      <div className="node-content">
+        <div><strong>Message:</strong> {actionConfig.message || ''}</div>
+        <div><strong>Template:</strong> {actionConfig.template_id || ''}</div>
+        {actionConfig.variables && (
+          <div>
+            <strong>Variables:</strong> 
+            {typeof actionConfig.variables === 'object' 
+              ? (Object.keys(actionConfig.variables).length > 0 
+                  ? Object.keys(actionConfig.variables).join(', ') 
+                  : '{}')
+              : (actionConfig.variables === '{}' || actionConfig.variables === '' 
+                  ? '{}' 
+                  : actionConfig.variables)
+            }
+          </div>
+        )}
+      </div>
+      <Handle type="source" position="right" />
+    </div>
+  );
+});
+
+const WaitNode = React.memo(({ data }) => {
+  const { actionConfig, stepNumber } = data;
+  return (
+    <div className="node wait-node">
+      <Handle type="target" position="left" />
+      <div className="node-header">
+        <ClockCircleOutlined /> Wait <span className="step-number">{stepNumber}</span>
+      </div>
+      <div className="node-content">
+        <div><strong>Delay:</strong> {actionConfig.delay_minutes || 0} minutes</div>
+      </div>
+      <Handle type="source" position="right" />
+    </div>
+  );
+});
+
+const ConditionNode = React.memo(({ data }) => {
+  const { actionConfig, stepNumber } = data;
+  return (
+    <div className="node condition-node">
+      <Handle type="target" position="left" />
+      <div className="node-header">
+        <BranchesOutlined /> Condition <span className="step-number">{stepNumber}</span>
+      </div>
+      <div className="node-content">
+        <div><strong>Type:</strong> {actionConfig.conditionType || ''}</div>
+        <div>
+          <strong>Config:</strong> 
+          {typeof actionConfig.conditionConfig === 'object' 
+            ? (Object.keys(actionConfig.conditionConfig).length > 0 
+                ? JSON.stringify(actionConfig.conditionConfig, null, 2).replace(/[{}]/g, '') 
+                : '{}')
+            : (actionConfig.conditionConfig === '{}' || actionConfig.conditionConfig === '' 
+                ? '{}' 
+                : actionConfig.conditionConfig)
+          }
+        </div>
+      </div>
+      <Handle type="source" position="right" id="true" />
+      <Handle type="source" position="bottom" id="false" />
+    </div>
+  );
+});
+
+// Node types configuration
+const nodeTypes = {
+  email: EmailNode,
+  call: CallNode,
+  sms: SMSNode,
+  wait: WaitNode,
+  condition: ConditionNode,
+};
+
+// Create a separate component for the flow content
+const JourneyBuilderFlow = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
-  const [journeyForm] = Form.useForm();
   
+  // Add journey state back
   const [journey, setJourney] = useState(null);
-  const [steps, setSteps] = useState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [loading, setLoading] = useState(false);
   const [editDrawerVisible, setEditDrawerVisible] = useState(false);
-  const [journeyDrawerVisible, setJourneyDrawerVisible] = useState(false);
-  const [editingStep, setEditingStep] = useState(null);
+  const [selectedNode, setSelectedNode] = useState(null);
   const [activeTab, setActiveTab] = useState('steps');
-  const [testModalVisible, setTestModalVisible] = useState(false);
-  const [testForm] = Form.useForm();
-  const [testingStep, setTestingStep] = useState(null);
-  const [testResults, setTestResults] = useState(null);
+  const [journeyName, setJourneyName] = useState('New Journey');
+  const [isEditingName, setIsEditingName] = useState(false);
   
-  // Action types with their respective icons
+  // Create a ref for the React Flow instance
+  const reactFlowWrapper = useRef(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
+
+  // Define action types with their icons
   const actionTypes = [
     { value: 'email', label: 'Email', icon: <MailOutlined /> },
     { value: 'call', label: 'Call', icon: <PhoneOutlined /> },
     { value: 'sms', label: 'SMS', icon: <MessageOutlined /> },
-    { value: 'wait', label: 'Wait', icon: <HistoryOutlined /> }
+    { value: 'wait', label: 'Wait', icon: <HistoryOutlined /> },
+    { value: 'condition', label: 'Condition', icon: <BranchesOutlined /> },
+    { value: 'end', label: 'End', icon: <CheckCircleOutlined /> }
   ];
 
-  // Fetch journey data if editing an existing journey
+  // Memoize the nodeTypes to prevent unnecessary re-renders
+  const nodeTypes = useMemo(() => ({
+    email: EmailNode,
+    call: CallNode,
+    sms: SMSNode,
+    wait: WaitNode,
+    condition: ConditionNode,
+  }), []);
+
+  // Update journey name when journey data changes
+  useEffect(() => {
+    if (journey) {
+      setJourneyName(journey.name || 'New Journey');
+    }
+  }, [journey]);
+
+  // Handle journey name save
+  const handleJourneyNameSave = async () => {
+    if (journeyName.trim() === '') {
+      message.error('Journey name cannot be empty');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      if (id) {
+        // Update existing journey
+        await updateJourney(id, {
+          name: journeyName,
+          description: journey?.description || '',
+          status: journey?.status || 'draft'
+        });
+        
+        setJourney({
+          ...journey,
+          name: journeyName
+        });
+        
+        message.success('Journey name updated successfully');
+      } else {
+        // For new journeys, just update the local state
+        setJourney({
+          ...journey,
+          name: journeyName
+        });
+      }
+    } catch (error) {
+      console.error('Error updating journey name:', error);
+      message.error('Failed to update journey name');
+    } finally {
+      setLoading(false);
+      setIsEditingName(false);
+    }
+  };
+
+  // Handle journey name cancel
+  const handleJourneyNameCancel = () => {
+    setJourneyName(journey?.name || 'New Journey');
+    setIsEditingName(false);
+  };
+
+  // Fetch journey data
   useEffect(() => {
     const fetchJourney = async () => {
       if (id) {
@@ -92,14 +315,35 @@ const JourneyBuilderList = () => {
           setLoading(true);
           const data = await getJourneyById(id);
           setJourney(data);
-          setSteps(data.steps || []);
           
-          // Set form values for journey details
-          journeyForm.setFieldsValue({
-            name: data.name,
-            description: data.description,
-            status: data.status
-          });
+          // Position nodes horizontally (left to right) with more spacing for wider modules
+          setNodes(data.steps.map((step, index) => ({
+            id: step.id.toString(),
+            type: step.action_type ? step.action_type.toLowerCase() : step.actionType.toLowerCase(),
+            position: { x: 100 + (index * 500), y: 100 }, // Increased horizontal spacing for wider modules
+            data: {
+              ...step,
+              actionType: step.action_type ? step.action_type.toLowerCase() : step.actionType.toLowerCase(),
+              actionConfig: step.action_config || step.actionConfig,
+              label: `${(step.action_type || step.actionType).charAt(0).toUpperCase() + (step.action_type || step.actionType).slice(1).toLowerCase()} ${index + 1}`,
+              stepNumber: index + 1,
+              onChange: (field, value) => handleNodeDataChange(step.id, field, value)
+            }
+          })));
+
+          // Update edge connections for horizontal layout
+          setEdges(data.steps.slice(0, -1).map((step, index) => ({
+            id: `e${step.id}-${data.steps[index + 1].id}`,
+            source: step.id.toString(),
+            target: data.steps[index + 1].id.toString(),
+            type: 'straight',
+            animated: true,
+            style: { stroke: '#bbb', strokeWidth: 1.5 },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: '#bbb'
+            }
+          })));
         } catch (error) {
           console.error('Error fetching journey:', error);
           message.error('Failed to load journey');
@@ -110,586 +354,445 @@ const JourneyBuilderList = () => {
     };
 
     fetchJourney();
-  }, [id, journeyForm]);
+  }, [id]);
 
-  // Handle drag and drop reordering
-  const handleDragEnd = async (result) => {
-    if (!result.destination) return;
-    
-    const items = Array.from(steps);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    
-    // Update sequence order
-    const updatedItems = items.map((item, index) => ({
-      ...item,
-      sequenceOrder: index + 1
-    }));
-    
-    setSteps(updatedItems);
-    
-    // If we have an ID, update the backend
+  // Handle node data changes
+  const handleNodeDataChange = async (nodeId, field, value) => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === nodeId.toString()) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              [field]: value
+            }
+          };
+        }
+        return node;
+      })
+    );
+
     if (id) {
       try {
         setLoading(true);
-        const stepIds = updatedItems.map(item => item.id);
-        await reorderJourneySteps(id, stepIds);
-        message.success('Steps reordered successfully');
-      } catch (error) {
-        console.error('Error reordering steps:', error);
-        message.error('Failed to reorder steps');
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
-  // Add a new step
-  const handleAddStep = async () => {
-    const newStep = {
-      id: `step-${Date.now()}`,
-      sequenceOrder: steps.length + 1,
-      actionType: 'email',
-      actionConfig: {},
-      delayMinutes: 0,
-      conditionType: null,
-      conditionConfig: null
-    };
-    
-    setSteps([...steps, newStep]);
-    
-    // If we have an ID, add to the backend
-    if (id) {
-      try {
-        setLoading(true);
-        const stepData = {
-          actionType: newStep.actionType,
-          actionConfig: newStep.actionConfig,
-          delayMinutes: newStep.delayMinutes,
-          sequenceOrder: newStep.sequenceOrder
+        // Format the data according to the API requirements
+        const updateData = {
+          actionType: field === 'actionType' ? value : undefined,
+          actionConfig: field === 'actionConfig' ? value : undefined,
+          [field]: value
         };
         
-        const response = await addJourneyStep(id, stepData);
-        
-        // Update the step with the ID from the backend
-        const updatedSteps = steps.map(step => 
-          step.id === newStep.id ? { ...step, id: response.id } : step
-        );
-        
-        setSteps(updatedSteps);
-        message.success('Step added successfully');
-      } catch (error) {
-        console.error('Error adding step:', error);
-        message.error('Failed to add step');
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
-  // Add multiple steps at once
-  const handleAddBulkSteps = async (newSteps) => {
-    if (id) {
-      try {
-        setLoading(true);
-        const stepsData = newSteps.map(step => ({
-          actionType: step.actionType,
-          actionConfig: step.actionConfig,
-          delayMinutes: step.delayMinutes,
-          sequenceOrder: step.sequenceOrder
-        }));
-        
-        const response = await addBulkJourneySteps(id, stepsData);
-        
-        // Update steps with IDs from the backend
-        const updatedSteps = steps.map(step => {
-          const matchingStep = response.find(s => s.sequence_order === step.sequenceOrder);
-          return matchingStep ? { ...step, id: matchingStep.id } : step;
+        // Remove undefined fields
+        Object.keys(updateData).forEach(key => {
+          if (updateData[key] === undefined) delete updateData[key];
         });
         
-        setSteps(updatedSteps);
-        message.success('Steps added successfully');
+        await updateJourneyStep(id, nodeId, updateData);
+        message.success('Step updated successfully');
       } catch (error) {
-        console.error('Error adding bulk steps:', error);
-        message.error('Failed to add steps');
+        console.error('Error updating step:', error);
+        message.error('Failed to update step');
       } finally {
         setLoading(false);
       }
-    } else {
-      setSteps([...steps, ...newSteps]);
     }
   };
 
-  // Open the edit drawer for a step
-  const handleEditStep = (step) => {
-    setEditingStep(step);
-    editForm.setFieldsValue({
-      actionType: step.actionType,
-      ...step.actionConfig,
-      delayMinutes: step.delayMinutes,
-      conditionType: step.conditionType,
-      ...step.conditionConfig
-    });
+  // Optimize edge connection handling
+  const onConnect = useCallback(
+    (params) => {
+      setEdges((eds) => addEdge({
+        ...params,
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#333333', strokeWidth: 2 },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: '#333333'
+        }
+      }, eds));
+    },
+    [setEdges]
+  );
+
+  // Handle node click
+  const onNodeClick = useCallback((event, node) => {
+    setSelectedNode(node);
     setEditDrawerVisible(true);
+    editForm.setFieldsValue(node.data);
+  }, [editForm]);
+
+  // Handle node drag and drop
+  const onDragOver = useCallback((event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  // Add a function to generate a smaller numeric ID
+  const generateNumericId = () => {
+    // Generate a random number between 1000 and 9999
+    return Math.floor(Math.random() * 9000) + 1000;
   };
 
-  // Delete a step
-  const handleDeleteStep = async (stepId) => {
-    setSteps(steps.filter(step => step.id !== stepId));
-    
-    // If we have an ID and the step has a real ID (not a temporary one), delete from the backend
-    if (id && !stepId.toString().includes('step-')) {
-      try {
-        setLoading(true);
-        await deleteJourneyStep(id, stepId);
-        message.success('Step deleted successfully');
-      } catch (error) {
-        console.error('Error deleting step:', error);
-        message.error('Failed to delete step');
-      } finally {
-        setLoading(false);
+  // Memory-optimized onDrop function with horizontal positioning
+  const onDrop = useCallback(
+    (event) => {
+      event.preventDefault();
+
+      const type = event.dataTransfer.getData('application/reactflow');
+      if (!type || !reactFlowInstance) {
+        return;
       }
+
+      // Validate node type
+      const validTypes = ['email', 'call', 'sms', 'wait', 'condition', 'end'];
+      if (!validTypes.includes(type)) {
+        message.error(`Invalid node type: ${type}`);
+        return;
+      }
+
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+
+      // Check if this is the first module being dropped
+      const currentNodes = reactFlowInstance.getNodes();
+      const stepNumber = currentNodes.length + 1;
+      let xPosition = 100; // Set a consistent starting x position
+      let yPosition = 100; // Set a consistent starting y position
+
+      if (currentNodes.length > 0) {
+        const rightmostNode = currentNodes.reduce((rightmost, node) => 
+          (node.position.x > rightmost.position.x) ? node : rightmost
+        , currentNodes[0]);
+        xPosition = rightmostNode.position.x + 500; // Increased spacing for wider modules
+        yPosition = rightmostNode.position.y; // Align vertically with the rightmost node
+      }
+
+      // Get initial configuration for the node type
+      const actionConfig = getInitialActionConfig(type);
+      if (!actionConfig) {
+        message.error(`Failed to get configuration for node type: ${type}`);
+        return;
+      }
+
+      // Create node in a performance-optimized way
+      const newNode = {
+        id: generateNumericId().toString(),
+        type,
+        position: { x: xPosition, y: yPosition },
+        data: {
+          label: type.charAt(0).toUpperCase() + type.slice(1),
+          actionConfig,
+          stepNumber,
+          actionType: type.toLowerCase()
+        },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+      
+      // If there are existing nodes, connect the new node to the rightmost node
+      if (currentNodes.length > 0) {
+        const rightmostNode = currentNodes.reduce((rightmost, node) => 
+          (node.position.x > rightmost.position.x) ? node : rightmost
+        , currentNodes[0]);
+        
+        setEdges((eds) => eds.concat({
+          id: `e${rightmostNode.id}-${newNode.id}`,
+          source: rightmostNode.id,
+          target: newNode.id,
+          type: 'straight',
+          animated: false,
+          style: { stroke: '#bbb', strokeWidth: 1.5 },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: '#bbb'
+          }
+        }));
+      }
+    },
+    [reactFlowInstance, setNodes, setEdges, reactFlowWrapper]
+  );
+
+  const getInitialActionConfig = (type) => {
+    switch (type.toLowerCase()) {
+      case 'email':
+        return {
+          subject: '',
+          template_id: '',
+          variables: JSON.stringify({})
+        };
+      case 'call':
+        return {
+          script_id: '',
+          max_attempts: 3,
+          voicemail_message_id: '',
+          transfer_extension: ''
+        };
+      case 'sms':
+        return {
+          message: '',
+          template_id: '',
+          variables: JSON.stringify({})
+        };
+      case 'wait':
+        return {
+          delay_minutes: 60
+        };
+      case 'condition':
+        return {
+          conditionType: 'contact_property',
+          conditionConfig: JSON.stringify({})
+        };
+      case 'end':
+        return {};
+      default:
+        return null;
     }
   };
 
-  // Save step changes
-  const handleSaveStep = async () => {
+  const handleSaveNode = async () => {
     try {
       const values = await editForm.validateFields();
       
-      // Format the step data according to the API requirements
-      const updatedStep = {
-        ...editingStep,
-        actionType: values.actionType,
-        actionConfig: getActionConfig(values),
-        delayMinutes: values.delayMinutes || 0,
-        conditionType: values.conditionType || null,
-        conditionConfig: getConditionConfig(values)
-      };
+      // Update the node data based on the node type
+      const updatedData = { ...selectedNode.data };
+      let actionType = selectedNode.type.toLowerCase();
+      let actionConfig = {};
       
-      // Update the step in the list
-      const updatedSteps = steps.map(step => 
-        step.id === editingStep.id ? updatedStep : step
-      );
+      switch (actionType) {
+        case 'email':
+          actionConfig = {
+            subject: values.actionConfig.subject,
+            template_id: values.actionConfig.template_id,
+            variables: typeof values.actionConfig.variables === 'string' ? 
+              values.actionConfig.variables : JSON.stringify(values.actionConfig.variables || {})
+          };
+          break;
+        case 'call':
+          actionConfig = {
+            script_id: values.actionConfig.script_id,
+            max_attempts: parseInt(values.actionConfig.max_attempts) || 3,
+            voicemail_message_id: values.actionConfig.voicemail_message_id || '',
+            transfer_extension: values.actionConfig.transfer_extension || ''
+          };
+          break;
+        case 'sms':
+          actionConfig = {
+            message: values.actionConfig.message,
+            template_id: values.actionConfig.template_id || '',
+            variables: typeof values.actionConfig.variables === 'string' ? 
+              values.actionConfig.variables : JSON.stringify(values.actionConfig.variables || {})
+          };
+          break;
+        case 'wait':
+          // Ensure delay_minutes is a valid number and at least 1
+          const delayMinutes = parseInt(values.actionConfig.delay_minutes);
+          if (isNaN(delayMinutes) || delayMinutes < 1) {
+            message.error('Delay minutes must be a valid number greater than or equal to 1');
+            return;
+          }
+          actionConfig = {
+            delay_minutes: delayMinutes
+          };
+          break;
+        case 'condition':
+          actionConfig = {
+            conditionType: values.actionConfig.conditionType,
+            conditionConfig: typeof values.actionConfig.conditionConfig === 'string' ? 
+              values.actionConfig.conditionConfig : JSON.stringify(values.actionConfig.conditionConfig || {})
+          };
+          break;
+      }
       
-      setSteps(updatedSteps);
+      updatedData.actionConfig = actionConfig;
+      updatedData.actionType = actionType;
       
-      // If we have an ID and the step has a real ID (not a temporary one), update the backend
-      if (id && !editingStep.id.toString().includes('step-')) {
-        setLoading(true);
+      // Update the node in the flow
+      const updatedNodes = nodes.map((node) => {
+        if (node.id === selectedNode.id) {
+          return {
+            ...node,
+            data: updatedData
+          };
+        }
+        return node;
+      });
+      
+      setNodes(updatedNodes);
+      
+      // If this is an existing step, update it in the backend
+      if (id && selectedNode.data.id) {
         const stepData = {
-          actionType: updatedStep.actionType,
-          actionConfig: updatedStep.actionConfig,
-          delayMinutes: updatedStep.delayMinutes,
-          sequenceOrder: updatedStep.sequenceOrder
+          actionType: actionType,
+          actionConfig: actionConfig,
+          sequenceOrder: selectedNode.data.stepNumber
         };
         
-        await updateJourneyStep(id, editingStep.id, stepData);
-        message.success('Step updated successfully');
-        setLoading(false);
+        // Add delayMinutes for wait nodes
+        if (actionType === 'wait') {
+          stepData.delayMinutes = parseInt(actionConfig.delay_minutes);
+        }
+        
+        await updateJourneyStep(id, selectedNode.data.id, stepData);
       }
       
       setEditDrawerVisible(false);
-      setEditingStep(null);
-      editForm.resetFields();
+      message.success('Node configuration saved successfully');
     } catch (error) {
-      console.error('Error saving step:', error);
+      console.error('Error saving node:', error);
+      message.error('Failed to save node configuration');
     }
   };
 
-  // Get action configuration based on action type
-  const getActionConfig = (values) => {
-    switch (values.actionType) {
-      case 'email':
-        return {
-          subject: values.subject,
-          template_id: values.template_id,
-          variables: values.variables || {}
-        };
-      case 'call':
-        return {
-          script_id: values.script_id,
-          max_attempts: values.max_attempts,
-          voicemail_message_id: values.voicemail_message_id,
-          transfer_extension: values.transfer_extension
-        };
-      case 'sms':
-        return {
-          message: values.message,
-          template_id: values.template_id,
-          variables: values.variables || {}
-        };
-      default:
-        return {};
-    }
-  };
-
-  // Get condition configuration based on condition type
-  const getConditionConfig = (values) => {
-    if (!values.conditionType) return null;
+  // Add this function to set the React Flow instance with performance optimizations
+  const onInit = useCallback((instance) => {
+    setReactFlowInstance(instance);
     
-    switch (values.conditionType) {
-      case 'time':
-        if (values.timeConditionType === 'scheduled') {
-          return {
-            scheduledTime: values.scheduledTime
-          };
-        } else {
-          return {
-            durationMinutes: values.durationMinutes
-          };
-        }
-      default:
-        return null;
-    }
-  };
-
-  // Open journey details drawer
-  const handleEditJourneyDetails = () => {
-    setJourneyDrawerVisible(true);
-  };
-
-  // Save journey details
-  const handleSaveJourneyDetails = async () => {
-    try {
-      const values = await journeyForm.validateFields();
+    // Apply initial settings for better performance
+    setTimeout(() => {
+      // Use fitView to set initial view
+      instance.fitView({ padding: 100 });
       
-      if (id) {
-        // Update existing journey
-        await updateJourney(id, {
-          name: values.name,
-          description: values.description,
-          status: values.status
-        });
-        
-        setJourney({
-          ...journey,
-          name: values.name,
-          description: values.description,
-          status: values.status
-        });
-        
-        message.success('Journey details updated successfully');
+      // Get current viewport values
+      const { x, y } = instance.getViewport();
+      
+      // Set viewport with a more zoomed out level
+      instance.setViewport({
+        x: x,
+        y: y,
+        zoom: 0.5 // Set a reasonable zoom level
+      });
+
+      // Zoom out three times
+      for (let i = 0; i < 3; i++) {
+        instance.zoomOut();
       }
-      
-      setJourneyDrawerVisible(false);
-    } catch (error) {
-      console.error('Error saving journey details:', error);
-      message.error('Failed to save journey details');
-    }
-  };
+    }, 100);
+  }, []);
 
-  // Save the entire journey
+  // Disable wheel zoom completely for better performance
+  const onWheel = useCallback((event) => {
+    event.preventDefault();
+  }, []);
+
   const handleSaveJourney = async () => {
     try {
-      setLoading(true);
+      // Get all nodes and edges from the flow
+      const flowNodes = nodes;
+      const flowEdges = edges;
+
+      // Validate that we have at least one node
+      if (flowNodes.length === 0) {
+        message.error('Journey must have at least one step');
+        return;
+      }
+
+      // First create/update the journey without steps
+      const journeyData = {
+        name: journeyName,
+        description: journey?.description || '',
+        status: journey?.status || 'draft'
+      };
+
+      console.log('Saving journey with data:', JSON.stringify(journeyData, null, 2));
+
+      let journeyId;
       
-      // Format steps for API
-      const formattedSteps = steps.map(step => ({
-        actionType: step.actionType,
-        actionConfig: step.actionConfig,
-        delayMinutes: step.delayMinutes,
-        sequenceOrder: step.sequenceOrder
-      }));
-      
+      // Update or create journey
       if (id) {
-        // Update existing journey
-        await updateJourney(id, {
-          name: journey?.name || 'New Journey',
-          description: journey?.description || 'Journey description',
-          status: journey?.status || 'draft'
-        });
-        
-        // Add all steps in bulk
-        if (formattedSteps.length > 0) {
-          await addBulkJourneySteps(id, formattedSteps);
-        }
-        
+        await updateJourney(id, journeyData);
+        journeyId = id;
         message.success('Journey updated successfully');
       } else {
-        // Create new journey
-        const journeyData = {
-          name: journey?.name || 'New Journey',
-          description: journey?.description || 'Journey description',
-          status: journey?.status || 'draft',
-          steps: formattedSteps
-        };
-        
-        const createdJourney = await createJourney(journeyData);
+        const newJourney = await createJourney(journeyData);
+        journeyId = newJourney.id;
         message.success('Journey created successfully');
-        
-        // Navigate to the new journey
-        navigate(`/journeys/${createdJourney.id}`);
+      }
+
+      // Then add steps one by one
+      if (journeyId) {
+        for (const [index, node] of flowNodes.entries()) {
+          // Skip end nodes as they don't need to be saved
+          if (node.type === 'end') continue;
+
+          // Get action type from node data or type, ensuring it's lowercase
+          const actionType = (node.data.actionType || node.type).toLowerCase();
+          
+          // Validate action type
+          const allowedTypes = ['email', 'call', 'sms', 'wait', 'condition'];
+          if (!allowedTypes.includes(actionType)) {
+            throw new Error(`Invalid action type "${actionType}" for step ${index + 1}`);
+          }
+
+          // Format action config based on node type
+          let actionConfig = { ...node.data.actionConfig };
+          let delayMinutes = null;
+          
+          // Special handling for wait nodes
+          if (actionType === 'wait') {
+            delayMinutes = parseInt(actionConfig.delay_minutes);
+            if (isNaN(delayMinutes) || delayMinutes < 1) {
+              throw new Error('Wait node must have a valid delay_minutes value greater than or equal to 1');
+            }
+          }
+
+          // Create step data with required fields in the correct format for the API
+          const stepData = {
+            actionType: actionType,
+            actionConfig: actionConfig,
+            sequenceOrder: index + 1
+          };
+
+          // Add delayMinutes for wait nodes
+          if (actionType === 'wait' && delayMinutes !== null) {
+            stepData.delayMinutes = delayMinutes;
+          }
+
+          // If step already exists, update it
+          if (node.data.id) {
+            await updateJourneyStep(journeyId, node.data.id, stepData);
+          } else {
+            // Otherwise create a new step
+            const newStep = await addJourneyStep(journeyId, stepData);
+            // Update the node with the new step ID
+            setNodes((nds) =>
+              nds.map((n) => {
+                if (n.id === node.id) {
+                  return {
+                    ...n,
+                    data: {
+                      ...n.data,
+                      id: newStep.id
+                    }
+                  };
+                }
+                return n;
+              })
+            );
+          }
+        }
+      }
+
+      // If this was a new journey, navigate to the new journey page
+      if (!id && journeyId) {
+        navigate(`/journeys/${journeyId}`);
       }
     } catch (error) {
       console.error('Error saving journey:', error);
-      message.error('Failed to save journey');
-    } finally {
-      setLoading(false);
+      message.error(error.message || 'Failed to save journey');
     }
-  };
-
-  // Get icon for action type
-  const getActionIcon = (type) => {
-    const action = actionTypes.find(a => a.value === type);
-    return action ? action.icon : <BranchesOutlined />;
-  };
-
-  // Render step configuration fields based on action type
-  const renderStepConfigFields = () => {
-    const actionType = editForm.getFieldValue('actionType');
-    
-    switch (actionType) {
-      case 'email':
-        return (
-          <>
-            <Form.Item
-              name="subject"
-              label="Subject"
-              rules={[{ required: true, message: 'Please enter email subject' }]}
-            >
-              <Input placeholder="Email subject" />
-            </Form.Item>
-            <Form.Item
-              name="template_id"
-              label="Template"
-              rules={[{ required: true, message: 'Please select email template' }]}
-            >
-              <Select placeholder="Select email template">
-                <Option value="1">Welcome Email</Option>
-                <Option value="2">Follow-up Email</Option>
-                <Option value="3">Reminder Email</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item
-              name="variables"
-              label="Variables"
-            >
-              <Input placeholder="Template variables (JSON)" />
-            </Form.Item>
-          </>
-        );
-      case 'call':
-        return (
-          <>
-            <Form.Item
-              name="script_id"
-              label="Script"
-              rules={[{ required: true, message: 'Please select call script' }]}
-            >
-              <Select placeholder="Select call script">
-                <Option value="1">Welcome Call</Option>
-                <Option value="2">Follow-up Call</Option>
-                <Option value="3">Reminder Call</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item
-              name="max_attempts"
-              label="Max Attempts"
-              initialValue={3}
-            >
-              <InputNumber min={1} max={5} />
-            </Form.Item>
-            <Form.Item
-              name="voicemail_message_id"
-              label="Voicemail Message"
-            >
-              <Select placeholder="Select voicemail message" allowClear>
-                <Option value="1">Standard Voicemail</Option>
-                <Option value="2">Urgent Voicemail</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item
-              name="transfer_extension"
-              label="Transfer Extension"
-            >
-              <Input placeholder="Extension number" />
-            </Form.Item>
-          </>
-        );
-      case 'sms':
-        return (
-          <>
-            <Form.Item
-              name="message"
-              label="SMS Message"
-              rules={[{ required: true, message: 'Please enter SMS message' }]}
-            >
-              <TextArea rows={3} placeholder="Enter SMS message..." />
-            </Form.Item>
-            <Form.Item
-              name="template_id"
-              label="Template"
-            >
-              <Select placeholder="Select SMS template" allowClear>
-                <Option value="1">Welcome SMS</Option>
-                <Option value="2">Follow-up SMS</Option>
-                <Option value="3">Reminder SMS</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item
-              name="variables"
-              label="Variables"
-            >
-              <Input placeholder="Template variables (JSON)" />
-            </Form.Item>
-          </>
-        );
-      case 'wait':
-        return (
-          <Form.Item
-            name="delayMinutes"
-            label="Wait Time (minutes)"
-            rules={[{ required: true, message: 'Please enter wait time' }]}
-            initialValue={60}
-          >
-            <InputNumber min={1} max={1440} />
-          </Form.Item>
-        );
-      default:
-        return null;
-    }
-  };
-
-  // Render condition configuration fields
-  const renderConditionFields = () => {
-    const conditionType = editForm.getFieldValue('conditionType');
-    
-    if (!conditionType) return null;
-    
-    switch (conditionType) {
-      case 'time':
-        return (
-          <>
-            <Form.Item
-              name="timeConditionType"
-              label="Time Condition"
-              rules={[{ required: true, message: 'Please select time condition type' }]}
-            >
-              <Select placeholder="Select time condition">
-                <Option value="scheduled">Scheduled Time</Option>
-                <Option value="duration">Time Duration</Option>
-              </Select>
-            </Form.Item>
-            
-            {editForm.getFieldValue('timeConditionType') === 'scheduled' && (
-              <Form.Item
-                name="scheduledTime"
-                label="Time (HH:MM)"
-                rules={[{ required: true, message: 'Please enter scheduled time' }]}
-              >
-                <Input placeholder="14:30" />
-              </Form.Item>
-            )}
-            
-            {editForm.getFieldValue('timeConditionType') === 'duration' && (
-              <Form.Item
-                name="durationMinutes"
-                label="Duration (minutes)"
-                rules={[{ required: true, message: 'Please enter duration' }]}
-              >
-                <InputNumber min={1} max={1440} />
-              </Form.Item>
-            )}
-          </>
-        );
-      default:
-        return null;
-    }
-  };
-
-  // Render step card
-  const renderStepCard = (step, index) => {
-    return (
-      <Draggable key={step.id} draggableId={step.id.toString()} index={index}>
-        {(provided) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.draggableProps}
-            {...provided.dragHandleProps}
-            className="step-card"
-          >
-            <div className="step-card-header">
-              <div className="step-card-title">
-                {getActionIcon(step.actionType)}
-                <span>Step {step.sequenceOrder}</span>
-              </div>
-              <Space>
-                <Button 
-                  type="text" 
-                  icon={<EditOutlined />} 
-                  onClick={() => handleEditStep(step)}
-                />
-                <Button 
-                  type="text" 
-                  danger 
-                  icon={<DeleteOutlined />} 
-                  onClick={() => handleDeleteStep(step.id)}
-                />
-              </Space>
-            </div>
-            <div className="step-card-content">
-              <Text strong>{step.actionType ? step.actionType.charAt(0).toUpperCase() + step.actionType.slice(1) : 'Unknown Action'}</Text>
-              {step.delayMinutes > 0 && (
-                <Text type="secondary">Wait: {step.delayMinutes} minutes</Text>
-              )}
-              {step.conditionType && (
-                <Text type="secondary">Condition: {step.conditionType}</Text>
-              )}
-            </div>
-          </div>
-        )}
-      </Draggable>
-    );
-  };
-
-  // Render journey statistics
-  const renderStatistics = () => {
-    if (!journey?.stats) return null;
-    
-    const { total_leads, active_leads, completed_leads } = journey.stats;
-    
-    return (
-      <Row gutter={16}>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="Total Leads"
-              value={total_leads}
-              prefix={<BranchesOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="Active Leads"
-              value={active_leads}
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="Completed Leads"
-              value={completed_leads}
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-      </Row>
-    );
   };
 
   // Handle journey cloning
   const handleCloneJourney = async () => {
     try {
       setLoading(true);
-      const values = await journeyForm.validateFields();
-      const clonedJourney = await cloneJourney(id, `${values.name} (Copy)`);
+      // Clone journey with current name + (Copy)
+      const clonedJourney = await cloneJourney(id, `${journeyName} (Copy)`);
       message.success('Journey cloned successfully');
       navigate(`/journeys/${clonedJourney.journey.id}`);
     } catch (error) {
@@ -700,26 +803,178 @@ const JourneyBuilderList = () => {
     }
   };
 
-  // Handle step testing
-  const handleTestStep = async (step) => {
-    setTestingStep(step);
-    setTestModalVisible(true);
-    testForm.resetFields();
+  // Render node configuration fields based on node type
+  const renderConfigFields = (type, form) => {
+    switch (type) {
+      case 'email':
+        return (
+          <>
+            <Form.Item
+              name={['actionConfig', 'subject']}
+              label="Subject"
+              rules={[{ required: true, message: 'Please enter email subject' }]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              name={['actionConfig', 'template_id']}
+              label="Template"
+              rules={[{ required: true, message: 'Please select email template' }]}
+            >
+              <Select>
+                <Select.Option value="template1">Welcome Email</Select.Option>
+                <Select.Option value="template2">Follow-up Email</Select.Option>
+                <Select.Option value="template3">Reminder Email</Select.Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name={['actionConfig', 'variables']}
+              label="Variables"
+            >
+              <Input.TextArea rows={4} placeholder="Enter variables in JSON format" />
+            </Form.Item>
+          </>
+        );
+
+      case 'call':
+        return (
+          <>
+            <Form.Item
+              name={['actionConfig', 'script_id']}
+              label="Script"
+              rules={[{ required: true, message: 'Please select call script' }]}
+            >
+              <Select>
+                <Select.Option value="script1">Initial Call</Select.Option>
+                <Select.Option value="script2">Follow-up Call</Select.Option>
+                <Select.Option value="script3">Support Call</Select.Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name={['actionConfig', 'max_attempts']}
+              label="Max Attempts"
+              rules={[{ required: true, message: 'Please enter max attempts' }]}
+            >
+              <InputNumber min={1} max={5} />
+            </Form.Item>
+            <Form.Item
+              name={['actionConfig', 'voicemail_message_id']}
+              label="Voicemail Message"
+            >
+              <Select allowClear>
+                <Select.Option value="vm1">Standard Voicemail</Select.Option>
+                <Select.Option value="vm2">Custom Voicemail</Select.Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name={['actionConfig', 'transfer_extension']}
+              label="Transfer Extension"
+            >
+              <Input placeholder="Enter extension number" />
+            </Form.Item>
+          </>
+        );
+
+      case 'sms':
+        return (
+          <>
+            <Form.Item
+              name={['actionConfig', 'message']}
+              label="Message"
+              rules={[{ required: true, message: 'Please enter SMS message' }]}
+            >
+              <Input.TextArea rows={4} />
+            </Form.Item>
+            <Form.Item
+              name={['actionConfig', 'template_id']}
+              label="Template"
+            >
+              <Select allowClear>
+                <Select.Option value="sms1">Welcome SMS</Select.Option>
+                <Select.Option value="sms2">Reminder SMS</Select.Option>
+                <Select.Option value="sms3">Alert SMS</Select.Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name={['actionConfig', 'variables']}
+              label="Variables"
+            >
+              <Input.TextArea rows={4} placeholder="Enter variables in JSON format" />
+            </Form.Item>
+          </>
+        );
+
+      case 'wait':
+        return (
+          <Form.Item
+            name={['actionConfig', 'delay_minutes']}
+            label="Delay (minutes)"
+            rules={[
+              { required: true, message: 'Please enter delay duration' },
+              { type: 'number', min: 1, message: 'Delay must be at least 1 minute' },
+              { type: 'integer', message: 'Delay must be a whole number' }
+            ]}
+          >
+            <InputNumber 
+              min={1} 
+              max={1440} 
+              placeholder="Enter delay in minutes"
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+        );
+
+      case 'condition':
+        return (
+          <>
+            <Form.Item
+              name={['actionConfig', 'conditionType']}
+              label="Condition Type"
+              rules={[{ required: true, message: 'Please select condition type' }]}
+            >
+              <Select>
+                <Select.Option value="response">Response Based</Select.Option>
+                <Select.Option value="time">Time Based</Select.Option>
+                <Select.Option value="custom">Custom Logic</Select.Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name={['actionConfig', 'conditionConfig']}
+              label="Condition Configuration"
+              rules={[{ required: true, message: 'Please enter condition configuration' }]}
+            >
+              <Input.TextArea rows={4} placeholder="Enter condition configuration in JSON format" />
+            </Form.Item>
+          </>
+        );
+
+      default:
+        return null;
+    }
   };
 
-  const handleTestSubmit = async () => {
-    try {
-      setLoading(true);
-      const values = await testForm.validateFields();
-      const results = await testJourneyStep(id, testingStep.id, values);
-      setTestResults(results);
-      message.success('Step test completed successfully');
-    } catch (error) {
-      console.error('Error testing step:', error);
-      message.error('Failed to test step');
-    } finally {
-      setLoading(false);
-    }
+  // Add a function to handle zooming out with a specific zoom level
+  const handleZoomOut = () => {
+    if (!reactFlowInstance) return;
+    // Get current viewport
+    const { x, y, zoom } = reactFlowInstance.getViewport();
+    // Set a new viewport with a lower zoom level
+    reactFlowInstance.setViewport({ x, y, zoom: Math.max(0.1, zoom - 0.5) });
+  };
+  
+  // Add a function to handle zooming in
+  const handleZoomIn = () => {
+    if (!reactFlowInstance) return;
+    // Get current viewport
+    const { x, y, zoom } = reactFlowInstance.getViewport();
+    // Set a new viewport with a higher zoom level
+    reactFlowInstance.setViewport({ x, y, zoom: Math.min(2, zoom + 0.5) });
+  };
+  
+  // Add a function to reset zoom to fit all nodes
+  const handleFitView = () => {
+    if (!reactFlowInstance) return;
+    reactFlowInstance.fitView({ padding: 0.2 });
   };
 
   return (
@@ -728,16 +983,113 @@ const JourneyBuilderList = () => {
         <Card className="journey-header-card">
           <div className="journey-header">
             <div>
-              <Title level={2}>{journey?.name || 'New Journey'}</Title>
-              <Text type="secondary">{journey?.description || 'Journey description'}</Text>
+              {isEditingName ? (
+                <div className="journey-name-edit">
+                  <Input
+                    value={journeyName}
+                    onChange={(e) => setJourneyName(e.target.value)}
+                    onPressEnter={handleJourneyNameSave}
+                    onBlur={handleJourneyNameSave}
+                    autoFocus
+                  />
+                  <Space>
+                    <Button size="small" onClick={handleJourneyNameCancel}>
+                      Cancel
+                    </Button>
+                    <Button size="small" type="primary" onClick={handleJourneyNameSave}>
+                      Save
+                    </Button>
+                  </Space>
+                </div>
+              ) : (
+                <Title 
+                  level={2} 
+                  onClick={() => setIsEditingName(true)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {journeyName} <EditOutlined style={{ fontSize: '16px' }} />
+                </Title>
+              )}
+              
+              <Row gutter={16} style={{ marginTop: '10px' }} className="journey-header-details">
+                <Col span={12}>
+                  <Form layout="vertical" initialValues={{ description: journey?.description || '' }}>
+                    <Form.Item label="Description" style={{ marginBottom: '8px' }}>
+                      <TextArea 
+                        rows={2} 
+                        placeholder="Enter journey description" 
+                        defaultValue={journey?.description || ''}
+                        onBlur={(e) => {
+                          if (journey?.description !== e.target.value) {
+                            if (id) {
+                              updateJourney(id, {
+                                name: journeyName,
+                                description: e.target.value,
+                                status: journey?.status || 'draft'
+                              }).then(() => {
+                                setJourney({
+                                  ...journey,
+                                  description: e.target.value
+                                });
+                                message.success('Description updated');
+                              });
+                            } else {
+                              setJourney({
+                                ...journey,
+                                description: e.target.value
+                              });
+                            }
+                          }
+                        }}
+                      />
+                    </Form.Item>
+                  </Form>
+                </Col>
+                <Col span={12}>
+                  <Form layout="vertical" initialValues={{ status: journey?.status || 'draft' }}>
+                    <Form.Item label="Status" style={{ marginBottom: '8px' }}>
+                      <Select 
+                        defaultValue={journey?.status || 'draft'}
+                        style={{ width: '100%' }}
+                        onChange={(value) => {
+                          if (journey?.status !== value) {
+                            if (id) {
+                              updateJourney(id, {
+                                name: journeyName,
+                                description: journey?.description || '',
+                                status: value
+                              }).then(() => {
+                                setJourney({
+                                  ...journey,
+                                  status: value
+                                });
+                                message.success('Status updated');
+                              });
+                            } else {
+                              setJourney({
+                                ...journey,
+                                status: value
+                              });
+                            }
+                          }
+                        }}
+                      >
+                        <Option value="draft">Draft</Option>
+                        <Option value="active">Active</Option>
+                        <Option value="paused">Paused</Option>
+                        <Option value="archived">Archived</Option>
+                      </Select>
+                    </Form.Item>
+                  </Form>
+                </Col>
+              </Row>
             </div>
             <Space>
-              <Button 
-                icon={<EditOutlined />} 
-                onClick={handleEditJourneyDetails}
-              >
-                Edit Details
-              </Button>
+              <Button.Group>
+                <Button icon={<ZoomInOutlined />} onClick={handleZoomIn} />
+                <Button icon={<ZoomOutOutlined />} onClick={handleZoomOut} />
+                <Button icon={<FullscreenOutlined />} onClick={handleFitView} />
+              </Button.Group>
               {id && (
                 <Button
                   icon={<CopyOutlined />}
@@ -750,6 +1102,7 @@ const JourneyBuilderList = () => {
                 type="primary" 
                 icon={<SaveOutlined />} 
                 onClick={handleSaveJourney}
+                loading={loading}
               >
                 Save Journey
               </Button>
@@ -757,268 +1110,130 @@ const JourneyBuilderList = () => {
           </div>
         </Card>
 
-        <Tabs activeKey={activeTab} onChange={setActiveTab} className="journey-tabs">
-          <TabPane tab="Steps" key="steps">
-            <Card className="journey-steps-card">
-              <div className="steps-header">
-                <Title level={4}>Journey Steps</Title>
-                <Button 
-                  type="primary" 
-                  icon={<PlusOutlined />} 
-                  onClick={handleAddStep}
+        <div className="journey-builder-content">
+          <div className="node-palette">
+            <Title level={5}>Modules</Title>
+            <div className="node-palette-items">
+              {actionTypes.map((type) => (
+                <div
+                  key={type.value}
+                  className="node-palette-item"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('application/reactflow', type.value);
+                    e.dataTransfer.effectAllowed = 'move';
+                  }}
                 >
-                  Add Step
-                </Button>
-              </div>
-              
-              <DragDropContext onDragEnd={handleDragEnd}>
-                <Droppable droppableId="steps">
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className="steps-container"
-                    >
-                      {steps.length > 0 ? (
-                        steps.map((step, index) => renderStepCard(step, index))
-                      ) : (
-                        <div className="empty-steps">
-                          <Text type="secondary">No steps added yet. Click "Add Step" to begin.</Text>
-                        </div>
-                      )}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
-            </Card>
-          </TabPane>
-          
-          <TabPane tab="Performance" key="performance">
-            <Card className="journey-info-card">
-              <Title level={4}>Journey Performance</Title>
-              {journey?.stats ? (
-                <>
-                  {renderStatistics()}
-                </>
-              ) : (
-                <div className="empty-stats">
-                  <Text type="secondary">
-                    Performance tracking data will be displayed once the journey has active leads.
-                  </Text>
+                  {type.icon}
+                  <span>{type.label}</span>
                 </div>
-              )}
-            </Card>
-          </TabPane>
-        </Tabs>
+              ))}
+            </div>
+          </div>
 
-        {/* Test Step Modal */}
-        <Modal
-          title="Test Journey Step"
-          open={testModalVisible}
-          onOk={handleTestSubmit}
-          onCancel={() => {
-            setTestModalVisible(false);
-            setTestingStep(null);
-            setTestResults(null);
-            testForm.resetFields();
+          <div className="flow-container" ref={reactFlowWrapper}>
+            <Suspense fallback={<div style={{ height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}><Spin tip="Loading flow editor..." /></div>}>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onNodeClick={onNodeClick}
+                onDragOver={onDragOver}
+                onDrop={onDrop}
+                onWheel={onWheel}
+                onInit={onInit}
+                nodeTypes={nodeTypes}
+                defaultViewport={{ x: 0, y: 0, zoom: 0.4 }}
+                minZoom={0.2}
+                maxZoom={2}
+                fitView
+                defaultEdgeOptions={{
+                  type: 'straight',
+                  animated: false,
+                  style: { stroke: '#bbb', strokeWidth: 1.5 },
+                  markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    color: '#bbb'
+                  }
+                }}
+                connectionMode="loose"
+                snapToGrid={true}
+                snapGrid={[20, 20]}
+                elevateNodesOnSelect={true}
+                nodesDraggable={true}
+                nodesConnectable={true}
+                zoomOnScroll={false}
+                zoomOnPinch={true}
+                zoomOnDoubleClick={false}
+                panOnDrag={true}
+                selectionOnDrag={false}
+                panOnScroll={false}
+                preventScrolling={true}
+              >
+                <Controls showInteractive={false} />
+                <MiniMap 
+                  style={{ height: 120 }} 
+                  zoomable={true} 
+                  pannable={true}
+                  nodeColor={(node) => {
+                    return '#ffffff';
+                  }}
+                  maskColor="rgba(240, 240, 240, 0.7)"
+                  borderRadius={5}
+                />
+              </ReactFlow>
+            </Suspense>
+          </div>
+        </div>
+
+        {/* Node Edit Drawer */}
+        <Drawer
+          title={`Edit ${selectedNode?.type || ''} Node`}
+          placement="right"
+          onClose={() => {
+            setEditDrawerVisible(false);
+            setSelectedNode(null);
+            editForm.resetFields();
           }}
-          width={600}
+          open={editDrawerVisible}
+          width={400}
+          extra={
+            <Space>
+              <Button onClick={() => {
+                setEditDrawerVisible(false);
+                setSelectedNode(null);
+                editForm.resetFields();
+              }}>
+                Cancel
+              </Button>
+              <Button type="primary" onClick={handleSaveNode}>
+                Save
+              </Button>
+            </Space>
+          }
         >
           <Form
-            form={testForm}
+            form={editForm}
             layout="vertical"
+            initialValues={selectedNode?.data}
           >
-            {testingStep?.action_type === 'call' && (
-              <Form.Item
-                name="testPhone"
-                label="Test Phone Number"
-                rules={[{ required: true, message: 'Please enter a test phone number' }]}
-              >
-                <Input placeholder="Enter test phone number" />
-              </Form.Item>
-            )}
-            
-            {testingStep?.action_type === 'sms' && (
-              <Form.Item
-                name="testPhone"
-                label="Test Phone Number"
-                rules={[{ required: true, message: 'Please enter a test phone number' }]}
-              >
-                <Input placeholder="Enter test phone number" />
-              </Form.Item>
-            )}
-            
-            {testingStep?.action_type === 'email' && (
-              <Form.Item
-                name="testEmail"
-                label="Test Email Address"
-                rules={[
-                  { required: true, message: 'Please enter a test email address' },
-                  { type: 'email', message: 'Please enter a valid email address' }
-                ]}
-              >
-                <Input placeholder="Enter test email address" />
-              </Form.Item>
-            )}
+            {renderConfigFields(selectedNode?.type, editForm)}
           </Form>
-
-          {testResults && (
-            <div className="test-results">
-              <Divider>Test Results</Divider>
-              <Alert
-                message={testResults.message}
-                description={
-                  <div>
-                    <p><strong>Action Type:</strong> {testResults.details.actionType}</p>
-                    {testResults.details.recipient && (
-                      <p><strong>Recipient:</strong> {testResults.details.recipient}</p>
-                    )}
-                    {testResults.details.message && (
-                      <p><strong>Message:</strong> {testResults.details.message}</p>
-                    )}
-                    {testResults.details.subject && (
-                      <p><strong>Subject:</strong> {testResults.details.subject}</p>
-                    )}
-                    {testResults.details.delayMinutes && (
-                      <p><strong>Delay:</strong> {testResults.details.delayMinutes} minutes</p>
-                    )}
-                  </div>
-                }
-                type="success"
-                showIcon
-              />
-            </div>
-          )}
-        </Modal>
+        </Drawer>
       </Spin>
-
-      {/* Step Edit Drawer */}
-      <Drawer
-        title="Edit Step"
-        placement="right"
-        onClose={() => {
-          setEditDrawerVisible(false);
-          setEditingStep(null);
-          editForm.resetFields();
-        }}
-        open={editDrawerVisible}
-        width={500}
-        extra={
-          <Space>
-            <Button onClick={() => {
-              setEditDrawerVisible(false);
-              setEditingStep(null);
-              editForm.resetFields();
-            }}>
-              Cancel
-            </Button>
-            <Button type="primary" onClick={handleSaveStep}>
-              Save
-            </Button>
-          </Space>
-        }
-      >
-        <Form
-          form={editForm}
-          layout="vertical"
-        >
-          <Form.Item
-            name="actionType"
-            label="Action Type"
-            rules={[{ required: true, message: 'Please select action type' }]}
-          >
-            <Select placeholder="Select action type">
-              {actionTypes.map(type => (
-                <Option key={type.value} value={type.value}>
-                  <Space>
-                    {type.icon}
-                    <span>{type.label}</span>
-                  </Space>
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-          
-          {renderStepConfigFields()}
-          
-          <Divider orientation="left">Conditions</Divider>
-          
-          <Form.Item
-            name="conditionType"
-            label="Condition Type"
-          >
-            <Select 
-              placeholder="Select condition type" 
-              allowClear
-            >
-              <Option value="time">Time</Option>
-            </Select>
-          </Form.Item>
-          
-          {renderConditionFields()}
-        </Form>
-      </Drawer>
-
-      {/* Journey Details Drawer */}
-      <Drawer
-        title="Journey Details"
-        placement="right"
-        onClose={() => {
-          setJourneyDrawerVisible(false);
-          journeyForm.resetFields();
-        }}
-        open={journeyDrawerVisible}
-        width={500}
-        extra={
-          <Space>
-            <Button onClick={() => {
-              setJourneyDrawerVisible(false);
-              journeyForm.resetFields();
-            }}>
-              Cancel
-            </Button>
-            <Button type="primary" onClick={handleSaveJourneyDetails}>
-              Save
-            </Button>
-          </Space>
-        }
-      >
-        <Form
-          form={journeyForm}
-          layout="vertical"
-        >
-          <Form.Item
-            name="name"
-            label="Journey Name"
-            rules={[{ required: true, message: 'Please enter journey name' }]}
-          >
-            <Input placeholder="Enter journey name" />
-          </Form.Item>
-          
-          <Form.Item
-            name="description"
-            label="Description"
-          >
-            <TextArea rows={4} placeholder="Enter journey description" />
-          </Form.Item>
-          
-          <Form.Item
-            name="status"
-            label="Status"
-            rules={[{ required: true, message: 'Please select journey status' }]}
-          >
-            <Select placeholder="Select journey status">
-              <Option value="draft">Draft</Option>
-              <Option value="active">Active</Option>
-              <Option value="paused">Paused</Option>
-              <Option value="archived">Archived</Option>
-            </Select>
-          </Form.Item>
-        </Form>
-      </Drawer>
     </div>
   );
 };
 
-export default JourneyBuilderList; 
+// Main component that wraps the flow with ReactFlowProvider
+const JourneyBuilderList = () => {
+  return (
+    <ReactFlowProvider>
+      <JourneyBuilderFlow />
+    </ReactFlowProvider>
+  );
+};
+
+export default JourneyBuilderList;

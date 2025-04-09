@@ -1,14 +1,20 @@
 // Example in your Header or Layout component
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { Button } from 'antd';
+import AuthService from '../services/AuthService';
+import './Header.css';
 
 const Header = () => {
-  const handleSignOut = () => {
-    // Clear any stored auth data
-    localStorage.removeItem("authToken");
+  const navigate = useNavigate();
 
-    // Redirect to login page
-    navigate("/Login");
+  const handleSignOut = async () => {
+    try {
+      await AuthService.logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
@@ -16,9 +22,7 @@ const Header = () => {
       <div className="header-left"></div>
       <div>
         <span className="user-name">Steven Hernandez</span>
-        <button className="sign-out-btn" onClick={handleSignOut}>
-          Sign out
-        </button>
+        <Button onClick={handleSignOut}>Sign Out</Button>
       </div>
     </header>
   );

@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import React from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   HomeOutlined,
   FlagOutlined,
@@ -7,118 +7,103 @@ import {
   TeamOutlined,
   PhoneOutlined,
   SettingOutlined,
-  CustomerServiceOutlined,
-  BarChartOutlined,
-  UserOutlined,
-  AudioOutlined,
-  FileTextOutlined,
-  ApiOutlined,
-  ApartmentOutlined,
-  DownOutlined,
-  RightOutlined,
-  SafetyOutlined,
-  LinkOutlined,
-  MailOutlined,
-  MessageOutlined,
   DatabaseOutlined,
-  BranchesOutlined
+  LogoutOutlined,
+  BranchesOutlined,
+  MenuFoldOutlined,
+  NumberOutlined,
 } from "@ant-design/icons";
 import { useSidebar } from '../context/SidebarContext';
 import './Sidebar.css';
 import { Menu } from 'antd';
+import AuthService from '../services/AuthService';
 
 const Sidebar = () => {
-  const { isOpen, toggleSidebar } = useSidebar();
+  const { isOpen, toggleSidebar, isCollapsed, toggleCollapse } = useSidebar();
   const location = useLocation();
-  const [expandedSections, setExpandedSections] = useState({
-    leads: true,
-    callCenter: false,
-    resources: false,
-    settings: false,
-    journeys: false
-  });
-  const [activeItem, setActiveItem] = useState('');
+  const navigate = useNavigate();
+  const [openKeys, setOpenKeys] = React.useState(['did-section']);
+  const [activeItem, setActiveItem] = React.useState('');
 
-  const toggleSection = (section) => {
-    setExpandedSections({
-      ...expandedSections,
-      [section]: !expandedSections[section]
-    });
+  const handleLogout = async () => {
+    try {
+      await AuthService.logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
-  const handleItemClick = (item) => {
-    setActiveItem(item);
-  };
-
-  const isActive = (path) => {
-    return location.pathname === path;
-  };
-
-  const isLeadsSectionActive = () => {
-    return location.pathname.startsWith('/leads') || location.pathname.startsWith('/lead-pools');
-  };
-
-  const isJourneysSectionActive = () => {
-    return location.pathname.startsWith('/journeys');
+  const onOpenChange = (keys) => {
+    setOpenKeys(keys);
   };
 
   return (
-    <div className={`sidebar ${isOpen ? 'open' : ''}`}>
+    <div className={`sidebar ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
-        <h2>Menu</h2>
-        <button className="close-button" onClick={toggleSidebar}>
-          &times;
-        </button>
+        <div className="logo-container">
+          {isCollapsed ? (
+            <img 
+              src="/logo-small.png" 
+              alt="Logo" 
+              className="logo-small clickable" 
+              onClick={() => {
+                toggleCollapse();
+                if (!isOpen) toggleSidebar();
+              }}
+            />
+          ) : (
+            <img src="/logo.png" alt="Logo" className="logo-full" />
+          )}
+        </div>
+        <div className="sidebar-controls">
+          {!isCollapsed && (
+            <button className="collapse-button" onClick={toggleCollapse}>
+              <MenuFoldOutlined />
+            </button>
+          )}
+        </div>
       </div>
       <nav className="sidebar-nav">
         <Menu
           mode="inline"
           selectedKeys={[activeItem]}
-          openKeys={expandedSections}
-          onOpenChange={(keys) => setExpandedSections(keys)}
+          openKeys={openKeys}
+          onOpenChange={onOpenChange}
+          inlineCollapsed={isCollapsed}
+          theme="dark"
         >
-          <Menu.Item key="dashboard">
+          <Menu.Item key="dashboard" icon={<HomeOutlined />}>
             <Link to="/dashboard">Dashboard</Link>
           </Menu.Item>
 
-          <Menu.SubMenu
-            key="leads"
-            icon={<TeamOutlined />}
-            title="Leads Management"
-            className={isLeadsSectionActive() ? 'active-section' : ''}
-          >
-            <Menu.Item key="lead-management">
-              <Link to="/lead-management">Lead Management</Link>
-            </Menu.Item>
-            <Menu.Item key="lead-assignments">
-              <Link to="/leads/assignments">Lead Assignments</Link>
-            </Menu.Item>
-          </Menu.SubMenu>
-
-          <Menu.SubMenu
-            key="journeys"
-            icon={<BranchesOutlined />}
-            title="Journeys"
-            className={isJourneysSectionActive() ? 'active-section' : ''}
-          >
-            <Menu.Item key="journey-builder">
-              <Link to="/journeys/builder">Journey Builder</Link>
-            </Menu.Item>
-            <Menu.Item key="journey-list">
-              <Link to="/journeys">All Journeys</Link>
-            </Menu.Item>
-          </Menu.SubMenu>
-
-          <Menu.Item key="call-center">
-            <Link to="/call-center">Call Center</Link>
+          <Menu.Item key="campaigns" icon={<FlagOutlined />}>
+            <Link to="/campaigns">Campaigns</Link>
           </Menu.Item>
 
-          <Menu.Item key="resources">
-            <Link to="/resources">Resources</Link>
+          <Menu.Item key="lead-journey" icon={<BranchesOutlined />}>
+            <Link to="/journeys">Lead Journey</Link>
           </Menu.Item>
 
-          <Menu.Item key="settings">
+          <Menu.Item key="leads" icon={<TeamOutlined />}>
+            <Link to="/lead-management">Leads</Link>
+          </Menu.Item>
+
+          <Menu.Item key="did-pools" icon={<DatabaseOutlined />}>
+            <Link to="/did-pools">DID Pools</Link>
+          </Menu.Item>
+
+          <Menu.Item key="settings" icon={<SettingOutlined />}>
             <Link to="/settings">Settings</Link>
+          </Menu.Item>
+
+          <Menu.Item 
+            key="logout" 
+            icon={<LogoutOutlined />} 
+            onClick={handleLogout}
+            className="logout-item"
+          >
+            Logout
           </Menu.Item>
         </Menu>
       </nav>

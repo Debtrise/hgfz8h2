@@ -33,7 +33,6 @@ import {
   Bar
 } from 'recharts';
 import '../styles/SMSBlaster.css';
-import LoadingSpinner from '../components/LoadingSpinner';
 import apiService from "../services/apiService";
 
 const { Title } = Typography;
@@ -214,8 +213,8 @@ const SMSBlaster = () => {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-        <LoadingSpinner size="large" text="Loading campaigns..." />
+      <div className="loading-container">
+        <p className="loading-text">Loading campaigns...</p>
       </div>
     );
   }

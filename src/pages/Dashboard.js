@@ -4,15 +4,16 @@ import {
   UserOutlined,
   PhoneOutlined,
   ClockCircleOutlined,
-  CheckCircleOutlined,
+  TeamOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
   ReloadOutlined,
   SettingOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  LoadingOutlined
 } from '@ant-design/icons';
-import { Button, Select, DatePicker, message } from 'antd';
+import { Button, Select, DatePicker, message, Spin } from 'antd';
 import {
   AreaChart,
   Area,
@@ -32,55 +33,170 @@ import { callAnalyticsService } from '../services/callAnalyticsService';
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
+// API endpoints
+const API_BASE_URL = 'http://35.208.29.228:4000';
+const DIALER_API_URL = 'https://dialer-api-154842307047.us-west2.run.app';
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [chartsLoading, setChartsLoading] = useState(true);
+  const [agentStatusLoading, setAgentStatusLoading] = useState(true);
+  const [queueLoading, setQueueLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [timeRange, setTimeRange] = useState('today');
   const [dateRange, setDateRange] = useState([moment().startOf('day'), moment().endOf('day')]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [dashboardData, setDashboardData] = useState({
     hourlyData: null,
     dateRangeData: null,
-    availableAgents: { current: 27, total: 80 },
-    leadsInQueue: 14351,
-    totalDials: 124839,
-    connectionRate: 8,
-    dncs: 47,
-    smsSent: 32310,
-    smsReplies: 94,
-    emailsSent: 20741,
-    bounceRate: 3,
-    emailReplies: 35,
+    availableAgents: { current: 0, total: 0 },
+    leadsInQueue: 0,
+    totalDials: 0,
+    connectionRate: 0,
+    dncs: 0,
+    smsSent: 0,
+    smsReplies: 0,
+    emailsSent: 0,
+    bounceRate: 0,
+    emailReplies: 0,
   });
 
   useEffect(() => {
     fetchDashboardData();
+    fetchQueueData();
     // Set up polling for real-time data every 5 minutes
     const interval = setInterval(fetchRealTimeData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [timeRange, dateRange]);
 
+  // Separate effect for agent status updates every second
+  useEffect(() => {
+    // Initial fetch with loading indicator
+    setAgentStatusLoading(true);
+    fetchAgentStatus(true);
+    
+    // Set up interval to fetch every second without loading indicator
+    const agentStatusInterval = setInterval(() => fetchAgentStatus(false), 1000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(agentStatusInterval);
+  }, []);
+
+  // Separate effect for queue updates every 3 seconds
+  useEffect(() => {
+    // Initial fetch with loading indicator
+    setQueueLoading(true);
+    fetchQueueData(true);
+    
+    // Set up interval to fetch every 3 seconds without loading indicator
+    const queueInterval = setInterval(() => fetchQueueData(false), 3000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(queueInterval);
+  }, []);
+
+  const fetchAgentStatus = async (showLoading = false) => {
+    if (showLoading) {
+      setAgentStatusLoading(true);
+    }
+    
+    try {
+      const agentStatusResponse = await fetch(`${DIALER_API_URL}/getAgentStatus`);
+      if (agentStatusResponse.ok) {
+        const agentStatus = await agentStatusResponse.json();
+        // Handle the new response format with agents_waiting and agents_logged_in
+        if (agentStatus) {
+          const availableAgents = agentStatus.agents_waiting || 0;
+          const totalAgents = agentStatus.agents_logged_in || 0;
+          setDashboardData(prev => ({
+            ...prev,
+            availableAgents: { current: availableAgents, total: totalAgents }
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching agent status:', error);
+    } finally {
+      if (showLoading) {
+        setAgentStatusLoading(false);
+      }
+    }
+  };
+
+  const fetchQueueData = async (showLoading = false) => {
+    if (showLoading) {
+      setQueueLoading(true);
+    }
+    
+    try {
+      const queueCountsResponse = await fetch(`${DIALER_API_URL}/getDialerQueueCounts`);
+      if (queueCountsResponse.ok) {
+        const queueCounts = await queueCountsResponse.json();
+        if (queueCounts) {
+          setDashboardData(prev => ({
+            ...prev,
+            leadsInQueue: queueCounts.totalCount || 0
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching queue counts:', error);
+    } finally {
+      if (showLoading) {
+        setQueueLoading(false);
+      }
+    }
+  };
+
   const fetchDashboardData = async () => {
     setLoading(true);
+    setStatsLoading(true);
+    setChartsLoading(true);
     try {
       let data;
       if (timeRange === 'custom') {
-        data = await callAnalyticsService.getDateRangeData(
-          dateRange[0].format('YYYY-MM-DD'),
-          dateRange[1].format('YYYY-MM-DD')
-        );
-        setDashboardData(prev => ({
-          ...prev,
-          dateRangeData: data
-        }));
+        // Use direct API call for date range data
+        const response = await fetch(`${API_BASE_URL}/api/calls/range?startDate=${dateRange[0].format('YYYY-MM-DD')}&endDate=${dateRange[1].format('YYYY-MM-DD')}`);
+        if (response.ok) {
+          const result = await response.json();
+          data = result.data || [];
+          setDashboardData(prev => ({
+            ...prev,
+            dateRangeData: data
+          }));
+        }
       } else {
-        data = await callAnalyticsService.getHourlyData();
-        // Ensure data is an array before setting it
-        const hourlyData = Array.isArray(data) ? data : [];
-        setDashboardData(prev => ({
-          ...prev,
-          hourlyData
-        }));
+        // Use the same range endpoint with today's date for both start and end
+        const today = moment().format('YYYY-MM-DD');
+        const response = await fetch(`${API_BASE_URL}/api/calls/range?startDate=${today}&endDate=${today}`);
+        if (response.ok) {
+          const result = await response.json();
+          data = result.data || [];
+          // Ensure data is an array before setting it
+          const hourlyData = Array.isArray(data) ? data : [];
+          setDashboardData(prev => ({
+            ...prev,
+            hourlyData
+          }));
+        }
+      }
+      
+      // Fetch today's summary for total calls from main API
+      try {
+        const todaySummaryResponse = await fetch(`${API_BASE_URL}/api/stats/today`);
+        if (todaySummaryResponse.ok) {
+          const todaySummary = await todaySummaryResponse.json();
+          if (todaySummary && todaySummary.data) {
+            setDashboardData(prev => ({
+              ...prev,
+              totalDials: todaySummary.data.totalCalls || 0
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching today summary:', error);
       }
     } catch (error) {
       message.error('Failed to fetch dashboard data');
@@ -92,17 +208,21 @@ const Dashboard = () => {
       }));
     } finally {
       setLoading(false);
+      setStatsLoading(false);
+      setChartsLoading(false);
     }
   };
 
   const fetchRealTimeData = async () => {
     try {
-      const isHealthy = await callAnalyticsService.getHealthCheck();
-      if (!isHealthy) {
+      // Check health using the main API
+      const healthResponse = await fetch(`${API_BASE_URL}/api/health`);
+      if (!healthResponse.ok) {
         console.warn('API health check failed');
         return;
       }
       await fetchDashboardData();
+      await fetchQueueData();
     } catch (error) {
       console.error('Error fetching real-time data:', error);
     }
@@ -119,12 +239,13 @@ const Dashboard = () => {
     {
       title: 'Total Calls',
       value: Array.isArray(dashboardData.hourlyData) && dashboardData.hourlyData.length > 0
-        ? dashboardData.hourlyData.find(h => h.hour_of_day_pdt === 'Total')?.total_outbound_attempts || '0'
-        : '0',
+        ? dashboardData.hourlyData.find(h => h.hour_of_day_pdt === 'Total')?.total_outbound_attempts || dashboardData.totalDials || '0'
+        : dashboardData.totalDials || '0',
       icon: <PhoneOutlined />,
       trend: 'Today',
       trendUp: true,
-      type: 'primary'
+      type: 'primary',
+      loading: statsLoading
     },
     {
       title: 'Answered Calls',
@@ -134,7 +255,8 @@ const Dashboard = () => {
       icon: <UserOutlined />,
       trend: 'Today',
       trendUp: true,
-      type: 'success'
+      type: 'success',
+      loading: statsLoading
     },
     {
       title: 'Calls Over 5 Min',
@@ -144,17 +266,17 @@ const Dashboard = () => {
       icon: <ClockCircleOutlined />,
       trend: 'Today',
       trendUp: true,
-      type: 'warning'
+      type: 'warning',
+      loading: statsLoading
     },
     {
-      title: 'Total Transfers',
-      value: Array.isArray(dashboardData.hourlyData) && dashboardData.hourlyData.length > 0
-        ? dashboardData.hourlyData.find(h => h.hour_of_day_pdt === 'Total')?.total_transfers || '0'
-        : '0',
-      icon: <CheckCircleOutlined />,
+      title: 'Agent Availability',
+      value: `${dashboardData.availableAgents.current}/${dashboardData.availableAgents.total}`,
+      icon: <TeamOutlined />,
       trend: 'Today',
       trendUp: true,
-      type: 'success'
+      type: 'success',
+      loading: agentStatusLoading
     }
   ];
 
@@ -166,7 +288,7 @@ const Dashboard = () => {
           time: hour.hour_of_day_pdt,
           totalCalls: hour.total_outbound_attempts,
           answeredCalls: hour.answered_calls,
-          successfulTransfers: hour.successful_transfers,
+          agentAvailability: hour.agent_availability || 0,
           machineDetectionRate: hour.machine_detection_rate_pct
         }))
     : [];
@@ -179,28 +301,57 @@ const Dashboard = () => {
           time: hour.hour_of_day_pdt,
           calls: hour.total_outbound_attempts,
           answered: hour.answered_calls,
-          transfers: hour.total_transfers,
+          agentAvailability: hour.agent_availability || 0,
           freshDialer: hour.freshdialer_calls,
           p1Dialer: hour.p1dialer_calls
         }))
     : [];
 
   // Handle dialer settings update
-  const handleDialerUpdate = (settings) => {
-    console.log("Updating dialer settings:", settings);
-    // In a real app, this would send the settings to your backend
-    alert(
-      `Dialer settings updated: Speed=${settings.speed}, Min Agents=${settings.minAgents}`
-    );
+  const handleDialerUpdate = async (settings) => {
+    try {
+      const response = await fetch(`${DIALER_API_URL}/updateDialerControl`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          speed: settings.speed,
+          min_agent_availability: settings.minAgents
+        })
+      });
+      
+      if (response.ok) {
+        message.success('Dialer settings updated successfully');
+      } else {
+        throw new Error('Failed to update dialer settings');
+      }
+    } catch (error) {
+      console.error('Error updating dialer settings:', error);
+      message.error('Failed to update dialer settings');
+    }
   };
 
   // Add a handler for data mix updates
-  const handleDataMixUpdate = (mixSettings) => {
-    console.log("Updating data mix settings:", mixSettings);
-    // In a real app, this would send the settings to your backend
-    alert(
-      `Data mix updated: Fresh=${mixSettings.freshMix}%, Mid=${mixSettings.midMix}%, Aged=${mixSettings.agedMix}%`
-    );
+  const handleDataMixUpdate = async (mixSettings) => {
+    try {
+      const response = await fetch(`${DIALER_API_URL}/updateDataMix`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(mixSettings)
+      });
+      
+      if (response.ok) {
+        message.success('Data mix updated successfully');
+      } else {
+        throw new Error('Failed to update data mix');
+      }
+    } catch (error) {
+      console.error('Error updating data mix:', error);
+      message.error('Failed to update data mix');
+    }
   };
 
   return (
@@ -230,7 +381,10 @@ const Dashboard = () => {
             )}
             <Button 
               icon={<ReloadOutlined />}
-              onClick={fetchDashboardData}
+              onClick={() => {
+                fetchDashboardData();
+                fetchQueueData();
+              }}
               loading={loading}
             >
               Refresh
@@ -282,7 +436,9 @@ const Dashboard = () => {
               </div>
               <h3 className="control-title">Queue Status</h3>
             </div>
-            <QueueStatusControl />
+            <Spin spinning={queueLoading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
+              <QueueStatusControl />
+            </Spin>
           </div>
         </div>
 
@@ -295,7 +451,9 @@ const Dashboard = () => {
                 </div>
                 <h3 className="stat-title">{stat.title}</h3>
               </div>
-              <p className="stat-value">{stat.value}</p>
+              <Spin spinning={stat.loading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
+                <p className="stat-value">{stat.value}</p>
+              </Spin>
               <div className="stat-footer">
                 <span className={`stat-trend ${stat.trendUp ? 'trend-up' : 'trend-down'}`}>
                   {stat.trendUp ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
@@ -315,42 +473,44 @@ const Dashboard = () => {
                 <Button icon={<SettingOutlined />} />
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={callVolumeData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
-                <Area 
-                  yAxisId="left"
-                  type="monotone" 
-                  dataKey="totalCalls" 
-                  name="Total Calls"
-                  stroke="#1890ff" 
-                  fill="#1890ff" 
-                  fillOpacity={0.6} 
-                />
-                <Area 
-                  yAxisId="left"
-                  type="monotone" 
-                  dataKey="answeredCalls" 
-                  name="Answered Calls"
-                  stroke="#52c41a" 
-                  fill="#52c41a" 
-                  fillOpacity={0.6} 
-                />
-                <Area 
-                  yAxisId="right"
-                  type="monotone" 
-                  dataKey="machineDetectionRate" 
-                  name="Machine Detection Rate"
-                  stroke="#722ed1" 
-                  fill="#722ed1" 
-                  fillOpacity={0.6} 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <Spin spinning={chartsLoading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={callVolumeData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="totalCalls" 
+                    name="Total Calls"
+                    stroke="#1890ff" 
+                    fill="#1890ff" 
+                    fillOpacity={0.6} 
+                  />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="answeredCalls" 
+                    name="Answered Calls"
+                    stroke="#52c41a" 
+                    fill="#52c41a" 
+                    fillOpacity={0.6} 
+                  />
+                  <Area 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="machineDetectionRate" 
+                    name="Machine Detection Rate"
+                    stroke="#722ed1" 
+                    fill="#722ed1" 
+                    fillOpacity={0.6} 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Spin>
           </div>
           <div className="chart-card">
             <div className="chart-header">
@@ -359,42 +519,44 @@ const Dashboard = () => {
                 <Button icon={<SettingOutlined />} />
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={realTimeData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
-                <Area 
-                  yAxisId="left"
-                  type="monotone" 
-                  dataKey="calls" 
-                  name="Total Calls"
-                  stroke="#eb2f96" 
-                  fill="#eb2f96" 
-                  fillOpacity={0.6} 
-                />
-                <Area 
-                  yAxisId="left"
-                  type="monotone" 
-                  dataKey="answered" 
-                  name="Answered Calls"
-                  stroke="#faad14" 
-                  fill="#faad14" 
-                  fillOpacity={0.6} 
-                />
-                <Area 
-                  yAxisId="right"
-                  type="monotone" 
-                  dataKey="transfers" 
-                  name="Transfers"
-                  stroke="#13c2c2" 
-                  fill="#13c2c2" 
-                  fillOpacity={0.6} 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <Spin spinning={chartsLoading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={realTimeData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="calls" 
+                    name="Total Calls"
+                    stroke="#eb2f96" 
+                    fill="#eb2f96" 
+                    fillOpacity={0.6} 
+                  />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="answered" 
+                    name="Answered Calls"
+                    stroke="#faad14" 
+                    fill="#faad14" 
+                    fillOpacity={0.6} 
+                  />
+                  <Area 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="agentAvailability" 
+                    name="Agent Availability"
+                    stroke="#13c2c2" 
+                    fill="#13c2c2" 
+                    fillOpacity={0.6} 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Spin>
           </div>
         </div>
       </div>

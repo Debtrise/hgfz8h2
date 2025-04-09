@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
 import './UserManagement.css';
-import LoadingSpinner from '../components/LoadingSpinner';
+import LoadingIcon from '../components/LoadingIcon';
 
 const UserManagement = () => {
   const navigate = useNavigate();
@@ -260,104 +260,97 @@ const UserManagement = () => {
     );
   };
 
-  // Render loading state
-  if (loading && users.length === 0) {
-    return (
-      <div className="user-management-container">
-        <LoadingSpinner size="large" text="Loading users..." />
-      </div>
-    );
-  }
-
   return (
-    <div className="user-management-container">
-      <div className="page-header">
-        <h1>User Management</h1>
-        <button 
-          className="create-button"
-          onClick={handleCreateUser}
-        >
-          Create New User
-        </button>
-      </div>
-      
-      {error && (
-        <div className="error-message">
-          {error}
+    <LoadingIcon text="Loading users..." isLoading={loading}>
+      <div className="user-management-container">
+        <div className="page-header">
+          <h1>User Management</h1>
           <button 
-            className="dismiss-button"
-            onClick={() => setError(null)}
+            className="create-button"
+            onClick={handleCreateUser}
           >
-            &times;
+            Create New User
           </button>
         </div>
-      )}
-      
-      <div className="users-table-container">
-        <table className="users-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.length > 0 ? (
-              users.map(user => (
-                <tr key={user.id}>
-                  <td>{`${user.firstName} ${user.lastName}`}</td>
-                  <td>{user.email}</td>
-                  <td>
-                    <span className={`role-badge ${user.role}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${user.status}`}>
-                      {user.status}
-                    </span>
-                  </td>
-                  <td className="action-buttons">
-                    <button
-                      className="edit-button"
-                      onClick={() => handleEditUser(user)}
-                      title="Edit User"
-                    >
-                      <i className="fas fa-edit"></i>
-                    </button>
-                    <button
-                      className={`toggle-button ${user.status === 'active' ? 'deactivate' : 'activate'}`}
-                      onClick={() => handleToggleStatus(user.id, user.status)}
-                      title={user.status === 'active' ? 'Deactivate User' : 'Activate User'}
-                    >
-                      <i className={`fas fa-${user.status === 'active' ? 'ban' : 'check'}`}></i>
-                    </button>
-                    <button
-                      className="delete-button"
-                      onClick={() => handleDeleteUser(user.id)}
-                      title="Delete User"
-                    >
-                      <i className="fas fa-trash"></i>
-                    </button>
+        
+        {error && (
+          <div className="error-message">
+            {error}
+            <button 
+              className="dismiss-button"
+              onClick={() => setError(null)}
+            >
+              &times;
+            </button>
+          </div>
+        )}
+        
+        <div className="users-table-container">
+          <table className="users-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.length > 0 ? (
+                users.map(user => (
+                  <tr key={user.id}>
+                    <td>{`${user.firstName} ${user.lastName}`}</td>
+                    <td>{user.email}</td>
+                    <td>
+                      <span className={`role-badge ${user.role}`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${user.status}`}>
+                        {user.status}
+                      </span>
+                    </td>
+                    <td className="action-buttons">
+                      <button
+                        className="edit-button"
+                        onClick={() => handleEditUser(user)}
+                        title="Edit User"
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
+                      <button
+                        className={`toggle-button ${user.status === 'active' ? 'deactivate' : 'activate'}`}
+                        onClick={() => handleToggleStatus(user.id, user.status)}
+                        title={user.status === 'active' ? 'Deactivate User' : 'Activate User'}
+                      >
+                        <i className={`fas fa-${user.status === 'active' ? 'ban' : 'check'}`}></i>
+                      </button>
+                      <button
+                        className="delete-button"
+                        onClick={() => handleDeleteUser(user.id)}
+                        title="Delete User"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="no-data">
+                    No users found. Create a new user to get started.
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5" className="no-data">
-                  No users found. Create a new user to get started.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
+        
+        {renderUserModal()}
       </div>
-      
-      {renderUserModal()}
-    </div>
+    </LoadingIcon>
   );
 };
 

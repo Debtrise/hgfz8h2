@@ -3,14 +3,24 @@ import React, { createContext, useContext, useState } from 'react';
 const SidebarContext = createContext();
 
 export const SidebarProvider = ({ children }) => {
-  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
-  const toggleSidebarMode = () => {
-    setIsDemoMode(prev => !prev);
+  const toggleCollapse = () => {
+    setIsCollapsed(prev => !prev);
+  };
+
+  const toggleSidebar = () => {
+    setIsOpen(prev => !prev);
   };
 
   return (
-    <SidebarContext.Provider value={{ isDemoMode, toggleSidebarMode }}>
+    <SidebarContext.Provider value={{ 
+      isCollapsed,
+      toggleCollapse,
+      isOpen,
+      toggleSidebar
+    }}>
       {children}
     </SidebarContext.Provider>
   );

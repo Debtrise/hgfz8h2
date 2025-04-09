@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
 import './ListPages.css';
-import LoadingSpinner from '../components/LoadingSpinner';
 
 const LeadPoolLeads = () => {
   const { id } = useParams();

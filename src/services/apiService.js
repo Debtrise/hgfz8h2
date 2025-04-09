@@ -18,29 +18,47 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    console.log('API Request:', {
+    // More detailed logging
+    console.log('API Request Interceptor:', {
       url: config.url,
       method: config.method,
-      hasToken: !!token,
-      tenantId: getTenantId()
+      initialHeaders: { ...config.headers }, // Log headers before modification
+      initialParams: { ...config.params },   // Log params before modification
+      retrievedToken: token // Log the raw token value
     });
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // Log if no token is found
+      console.log(`No token found in localStorage for request to ${config.url}`);
     }
-    
-    // Add tenant_id to all requests except auth endpoints and leads endpoints
-    if (!config.url.startsWith('/auth') && !config.url.startsWith('/leads')) {
+
+    // Add tenant_id to all requests except auth, leads, and dataMix endpoints
+    const isDataMixUrl = config.url.includes('/getDataMix') || config.url.includes('/updateDataMix');
+    if (!config.url.startsWith('/auth') && !config.url.startsWith('/leads') && !isDataMixUrl) {
       config.params = {
         ...config.params,
         tenant_id: getTenantId()
       };
     }
-    
+
+    // Log the final state before sending
+    console.log('Modified API Request:', {
+      url: config.url,
+      finalHeaders: { ...config.headers },
+      finalParams: { ...config.params }
+    });
+
     return config;
   },
   (error) => {
-    console.error('API Request Error:', error);
+    // More specific error logging
+    console.error('API Request Interceptor Error:', {
+      message: error.message,
+      config: error.config,
+      stack: error.stack // Include stack trace if available
+    });
     return Promise.reject(error);
   }
 );
@@ -878,6 +896,33 @@ const apiService = {
     delete: (id) => api.delete(`/users/${id}`),
     toggleStatus: (id, status) => api.patch(`/users/${id}/status`, { status }),
     changePassword: (id, data) => api.post(`/users/${id}/change-password`, data),
+  },
+
+  // Data Mix endpoints
+  dataMix: {
+    get: async () => {
+      try {
+        // Use hardcoded URL for this specific endpoint
+        const response = await api.get('https://dialer-api-154842307047.us-west2.run.app/getDataMix');
+        // Assuming the API returns low_mix, mid_mix, high_mix etc.
+        // Map to frontend naming convention if necessary, e.g., freshMix: response.data.low_mix
+        return response.data; 
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    update: async (data) => {
+      try {
+        // Ensure data matches the API endpoint's expected format
+        // Use hardcoded URL for this specific endpoint
+        const response = await api.post('https://dialer-api-154842307047.us-west2.run.app/updateDataMix', data);
+        return response.data;
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
   },
 };
 

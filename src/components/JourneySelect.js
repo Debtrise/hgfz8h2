@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./JourneySelect.css";
 import apiService from "../services/apiService";
-import { Select, Button, Modal, Form, Input, message, Space, Typography } from 'antd';
+import { Select, Button, Modal, Form, Input, message, Space, Typography, DatePicker } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { getAllJourneys, createJourney, deleteJourney } from '../services/journeyService';
 
@@ -144,29 +144,25 @@ const JourneySelect = ({
   };
 
   // Add a new journey
-  const handleCreateJourney = async () => {
+  const handleCreateJourney = async (values) => {
     try {
-      const values = await form.validateFields();
-      
-      const journeyData = {
+      const newJourney = {
         name: values.name,
         description: values.description,
-        status: 'draft'
+        type: values.type,
+        status: 'DRAFT',
+        schedule: {
+          start_date: values.startDate.toISOString(),
+          end_date: values.endDate.toISOString(),
+          timezone: values.timezone
+        }
       };
-      
-      const newJourney = await createJourney(journeyData);
-      
-      setJourneys([...journeys, newJourney]);
-      onChange(newJourney.id);
+
+      await createJourney(newJourney);
+      message.success('Journey created successfully');
       setModalVisible(false);
       form.resetFields();
-      
-      message.success('Journey created successfully');
-      
-      // Update the parent component
-      if (updateJourneys) {
-        updateJourneys([...journeys, newJourney]);
-      }
+      fetchJourneys();
     } catch (error) {
       console.error('Error creating journey:', error);
       message.error('Failed to create journey');
@@ -380,31 +376,77 @@ const JourneySelect = ({
       {/* New Journey Modal */}
       <Modal
         title="Create New Journey"
-        open={modalVisible}
-        onOk={handleCreateJourney}
-        onCancel={() => {
-          setModalVisible(false);
-          form.resetFields();
-        }}
-        confirmLoading={isSubmitting}
+        visible={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={null}
       >
         <Form
           form={form}
+          onFinish={handleCreateJourney}
           layout="vertical"
         >
           <Form.Item
             name="name"
             label="Journey Name"
-            rules={[{ required: true, message: 'Please enter journey name' }]}
+            rules={[{ required: true, message: 'Please enter a journey name' }]}
           >
-            <Input placeholder="Enter journey name" />
+            <Input />
           </Form.Item>
-          
+
           <Form.Item
             name="description"
             label="Description"
           >
-            <Input.TextArea rows={4} placeholder="Enter journey description" />
+            <Input.TextArea />
+          </Form.Item>
+
+          <Form.Item
+            name="type"
+            label="Journey Type"
+            rules={[{ required: true, message: 'Please select a journey type' }]}
+          >
+            <Select>
+              <Select.Option value="EMAIL">Email</Select.Option>
+              <Select.Option value="CALL">Call</Select.Option>
+              <Select.Option value="SMS">SMS</Select.Option>
+              <Select.Option value="MIXED">Mixed</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="startDate"
+            label="Start Date"
+            rules={[{ required: true, message: 'Please select a start date' }]}
+          >
+            <DatePicker showTime />
+          </Form.Item>
+
+          <Form.Item
+            name="endDate"
+            label="End Date"
+            rules={[{ required: true, message: 'Please select an end date' }]}
+          >
+            <DatePicker showTime />
+          </Form.Item>
+
+          <Form.Item
+            name="timezone"
+            label="Timezone"
+            rules={[{ required: true, message: 'Please select a timezone' }]}
+          >
+            <Select>
+              <Select.Option value="UTC">UTC</Select.Option>
+              <Select.Option value="America/New_York">Eastern Time</Select.Option>
+              <Select.Option value="America/Chicago">Central Time</Select.Option>
+              <Select.Option value="America/Denver">Mountain Time</Select.Option>
+              <Select.Option value="America/Los_Angeles">Pacific Time</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit">
+              Create Journey
+            </Button>
           </Form.Item>
         </Form>
       </Modal>
