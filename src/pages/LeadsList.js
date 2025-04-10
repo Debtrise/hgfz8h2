@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import apiService from "../services/apiService";
-import "./ListPages.css";
+import './LeadsList.css';
 
 const LeadsList = () => {
   const navigate = useNavigate();
@@ -326,37 +326,58 @@ const LeadsList = () => {
           </div>
 
           {/* Filters */}
-          <div className="filter-row">
-            <div className="filter-group">
-              <label>Lead Pool:</label>
-              <div className="select-wrapper">
-                <select
-                  name="leadPool"
-                  value={filters.leadPool}
-                  onChange={handleFilterChange}
+          <div className="search-filter-container">
+            <div className="search-box">
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search leads..."
+                value={searchTerm}
+                onChange={handleSearch}
+              />
+              {searchTerm && (
+                <button 
+                  className="clear-search"
+                  onClick={() => setSearchTerm('')}
                 >
-                  {getLeadPoolOptions().map((option) => (
-                    <option key={option} value={option}>
-                      {option === "all" ? "All Lead Pools" : option}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  ×
+                </button>
+              )}
             </div>
-            <div className="filter-group">
-              <label>Status:</label>
-              <div className="select-wrapper">
-                <select
-                  name="status"
-                  value={filters.status}
-                  onChange={handleFilterChange}
-                >
-                  {getStatusOptions().map((option) => (
-                    <option key={option} value={option}>
-                      {option === "all" ? "All Statuses" : option.charAt(0).toUpperCase() + option.slice(1)}
-                    </option>
-                  ))}
-                </select>
+            <div className="filter-container">
+              <div className="filter-group">
+                <label htmlFor="leadPool">Lead Pool:</label>
+                <div className="select-wrapper">
+                  <select
+                    id="leadPool"
+                    name="leadPool"
+                    value={filters.leadPool}
+                    onChange={handleFilterChange}
+                  >
+                    {getLeadPoolOptions().map((option) => (
+                      <option key={option} value={option}>
+                        {option === "all" ? "All Lead Pools" : option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="filter-group">
+                <label htmlFor="status">Status:</label>
+                <div className="select-wrapper">
+                  <select
+                    id="status"
+                    name="status"
+                    value={filters.status}
+                    onChange={handleFilterChange}
+                  >
+                    {getStatusOptions().map((option) => (
+                      <option key={option} value={option}>
+                        {option === "all" ? "All Statuses" : option.charAt(0).toUpperCase() + option.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>

@@ -15,7 +15,10 @@ import {
   faBuilding, 
   faGlobe, 
   faCalendarAlt,
-  faSpinner
+  faSpinner,
+  faPhone,
+  faCheckCircle,
+  faTimesCircle
 } from '@fortawesome/free-solid-svg-icons';
 
 const DIDPools = () => {
@@ -40,13 +43,20 @@ const DIDPools = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [brandFilter, setBrandFilter] = useState('all');
+  const [sortOption, setSortOption] = useState('name_asc');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Fetch DID pools, brands, and sources on component mount
   useEffect(() => {
     fetchDidPools();
     fetchBrands();
     fetchSources();
-  }, []);
+  }, [currentPage, itemsPerPage, searchTerm, statusFilter, brandFilter, sortOption]);
 
   const fetchBrands = async () => {
     try {
@@ -70,7 +80,16 @@ const DIDPools = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await apiService.didPools.getAll();
+      const params = {
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        brand: brandFilter !== 'all' ? brandFilter : undefined,
+        sort: sortOption
+      };
+      
+      const response = await apiService.didPools.getAll(params);
       
       if (response && response.data) {
         const pools = Array.isArray(response.data) ? response.data : [];
@@ -99,14 +118,20 @@ const DIDPools = () => {
         );
         
         setDidPools(poolsWithDetails);
+        setTotalItems(poolsWithDetails.length);
+        setTotalPages(Math.ceil(poolsWithDetails.length / itemsPerPage));
       } else {
         setError('Failed to load DID pools. Invalid response format.');
         setDidPools([]);
+        setTotalItems(0);
+        setTotalPages(1);
       }
     } catch (err) {
       console.error('Error fetching DID pools:', err);
       setError('Failed to load DID pools. Please try again later.');
       setDidPools([]);
+      setTotalItems(0);
+      setTotalPages(1);
     } finally {
       setIsLoading(false);
     }
@@ -188,6 +213,36 @@ const DIDPools = () => {
   // Get unique brands for filter dropdown
   const uniqueBrands = [...new Set(didPools.map(pool => pool.brand).filter(Boolean))];
 
+  // Calculate pagination
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredPools.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  // Handle sort change
+  const handleSortChange = (e) => {
+    setSortOption(e.target.value);
+    setCurrentPage(1); // Reset to first page when sort changes
+  };
+
+  const handleToggleActive = async (id) => {
+    setError(null);
+    try {
+      const response = await apiService.didPools.toggleActive(id);
+      
+      if (response) {
+        fetchDidPools();
+      } else {
+        setError('Failed to toggle status. Invalid response format.');
+      }
+    } catch (err) {
+      console.error('Error toggling status:', err);
+      setError('Failed to toggle status. Please try again.');
+    }
+  };
+
   return (
     <LoadingIcon text="Loading DID pools..." isLoading={isLoading}>
       <div className="page-container">
@@ -222,7 +277,10 @@ const DIDPools = () => {
                   type="text"
                   placeholder="Search pools by name, description, brand, or source..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1); // Reset to first page when search changes
+                  }}
                   className="search-input"
                 />
                 {searchTerm && (
@@ -241,7 +299,10 @@ const DIDPools = () => {
                   <select
                     id="statusFilter"
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
+                    onChange={(e) => {
+                      setStatusFilter(e.target.value);
+                      setCurrentPage(1); // Reset to first page when filter changes
+                    }}
                     className="filter-select"
                   >
                     <option value="all">All Statuses</option>
@@ -255,7 +316,10 @@ const DIDPools = () => {
                   <select
                     id="brandFilter"
                     value={brandFilter}
-                    onChange={(e) => setBrandFilter(e.target.value)}
+                    onChange={(e) => {
+                      setBrandFilter(e.target.value);
+                      setCurrentPage(1); // Reset to first page when filter changes
+                    }}
                     className="filter-select"
                   >
                     <option value="all">All Brands</option>
@@ -264,110 +328,104 @@ const DIDPools = () => {
                     ))}
                   </select>
                 </div>
+                
+                <div className="filter-group">
+                  <label htmlFor="sortOption">Sort By</label>
+                  <select
+                    id="sortOption"
+                    value={sortOption}
+                    onChange={handleSortChange}
+                    className="filter-select"
+                  >
+                    <option value="name_asc">Name (A-Z)</option>
+                    <option value="name_desc">Name (Z-A)</option>
+                    <option value="date_asc">Date (Oldest)</option>
+                    <option value="date_desc">Date (Newest)</option>
+                    <option value="dids_asc">DIDs (Low to High)</option>
+                    <option value="dids_desc">DIDs (High to Low)</option>
+                  </select>
+                </div>
               </div>
             </div>
             
-            {/* Results Summary */}
-            <div className="results-summary">
-              <FontAwesomeIcon icon={faDatabase} />
-              <p>
-                Showing <strong>{filteredPools.length}</strong> of <strong>{didPools.length}</strong> DID pools
-                {searchTerm && ` matching "${searchTerm}"`}
-                {statusFilter !== 'all' && ` with status "${statusFilter}"`}
-                {brandFilter !== 'all' && ` from brand "${brandFilter}"`}
-              </p>
+            {/* Stats Summary */}
+            <div className="stats-summary">
+              <div className="stat-card">
+                <div className="stat-content">
+                  <div className="stat-value">{totalItems}</div>
+                  <div className="stat-label">Total DIDs</div>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-content">
+                  <div className="stat-value">
+                    {didPools.filter(pool => pool.status === 'active').length}
+                  </div>
+                  <div className="stat-label">Active Pools</div>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-content">
+                  <div className="stat-value">
+                    {didPools.filter(pool => pool.status === 'inactive').length}
+                  </div>
+                  <div className="stat-label">Inactive Pools</div>
+                </div>
+              </div>
             </div>
 
-            {isLoading ? (
-              <div className="loading-state">
-                <div className="loading-spinner"></div>
-                <p>Loading DID pools...</p>
-              </div>
-            ) : filteredPools.length > 0 ? (
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Description</th>
-                      <th>Brand</th>
-                      <th>Source</th>
-                      <th>Status</th>
-                      <th>Total DIDs</th>
-                      <th>Created At</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPools.map(pool => (
-                      <tr key={pool.id}>
-                        <td>
-                          <div className="pool-name-cell">
-                            <FontAwesomeIcon icon={faDatabase} />
-                            <span className="pool-name">{pool.name}</span>
-                          </div>
-                        </td>
-                        <td>{pool.description || 'No description'}</td>
-                        <td>
-                          <div className="brand-cell">
-                            <FontAwesomeIcon icon={faBuilding} />
-                            <span className="brand-name">{pool.brand || 'N/A'}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="source-cell">
-                            <FontAwesomeIcon icon={faGlobe} />
-                            <span className="source-name">{pool.source || 'N/A'}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`status-badge ${pool.status?.toLowerCase()}`}>
-                            {pool.status || 'Unknown'}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="dids-count">
-                            <span className="dids-count-value">{pool.totalDids || 0}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="date-cell">
-                            <FontAwesomeIcon icon={faCalendarAlt} />
-                            <span className="date-value">
-                              {pool.createdAt ? new Date(pool.createdAt).toLocaleString() : 'N/A'}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="action-buttons">
+            {/* DID Pools List */}
+            {currentItems.length > 0 ? (
+              <div className="did-pools-list">
+                {currentItems.map(pool => (
+                  <div className="did-pool-item" key={pool.id}>
+                    <div className="did-pool-info" onClick={() => viewDidPoolDetails(pool.id)}>
+                      <h2 className="did-pool-name">{pool.name}</h2>
+                      <p className="did-pool-description">{pool.description || 'No description'}</p>
+                      <div className="did-pool-tags">
+                        <span className="did-pool-tag">{pool.brand || 'No brand'}</span>
+                        <span className="did-pool-tag">{pool.totalDids} DIDs</span>
+                      </div>
+                    </div>
+                    <div className="did-pool-status">
+                      <div className="status-date">
+                        Status: {pool.status}
+                      </div>
+                      <div className="did-pool-actions">
+                        <div className="view-edit-actions">
                           <button 
                             className="action-button view-button"
-                            onClick={() => viewDidPoolDetails(pool.id)}
-                            title="View Details"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              viewDidPoolDetails(pool.id);
+                            }}
+                            title="View details"
                           >
                             <FontAwesomeIcon icon={faEye} />
-                            View
                           </button>
                           <button 
                             className="action-button edit-button"
-                            onClick={() => navigate(`/did-pools/${pool.id}/edit`)}
-                            title="Edit Pool"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/did-pools/${pool.id}/edit`);
+                            }}
+                            title="Edit"
                           >
                             <FontAwesomeIcon icon={faEdit} />
-                            Edit
                           </button>
-                          <button 
-                            className="action-button delete-button"
-                            onClick={() => handleDeleteDidPool(pool.id)}
-                            title="Delete Pool"
-                          >
-                            <FontAwesomeIcon icon={faTrash} />
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                        <label className="toggle-switch" title={pool.status === "active" ? "Deactivate pool" : "Activate pool"}>
+                          <input
+                            type="checkbox"
+                            checked={pool.status === "active"}
+                            onChange={() => handleToggleActive(pool.id)}
+                          />
+                          <span className="toggle-slider"></span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="empty-state">
@@ -394,6 +452,56 @@ const DIDPools = () => {
                     Create DID Pool
                   </button>
                 )}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button 
+                  className="pagination-button"
+                  onClick={() => paginate(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                >
+                  &lt;
+                </button>
+                
+                {/* Dynamic page numbers */}
+                {Array.from({ length: Math.min(totalPages, 5) }).map((_, index) => {
+                  // Calculate the page number to display
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    // Less than 5 pages, show all
+                    pageNum = index + 1;
+                  } else if (currentPage <= 3) {
+                    // Near the start
+                    pageNum = index + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    // Near the end
+                    pageNum = totalPages - 4 + index;
+                  } else {
+                    // In the middle
+                    pageNum = currentPage - 2 + index;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      className={`pagination-button ${currentPage === pageNum ? 'active' : ''}`}
+                      onClick={() => paginate(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                
+                <button 
+                  className="pagination-button"
+                  onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  &gt;
+                </button>
               </div>
             )}
           </div>

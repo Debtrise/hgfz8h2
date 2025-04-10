@@ -1,3 +1,6 @@
+/* Import common styles for consistency */
+@import './styles/common.css';
+
 /* Import global styles */
 @import './styles/global.css';
 

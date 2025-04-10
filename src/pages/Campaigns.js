@@ -276,7 +276,7 @@ const Campaigns = () => {
       <div className="content-container">
         <div className="content-header">
           <h1 className="page-title">Campaigns</h1>
-          <button className="button-blue" onClick={handleCreateCampaign}>
+          <button className="button-primary" onClick={handleCreateCampaign}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -295,72 +295,65 @@ const Campaigns = () => {
           )}
 
           {/* Search and filters section */}
-          <div className="search-container">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search campaigns..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1); // Reset to first page when search changes
-              }}
-            />
-          </div>
-
-          <div className="filter-row">
-            <div className="filter-group">
-              <label htmlFor="source">Source:</label>
-              <div className="select-wrapper">
-                <select 
-                  id="source" 
-                  value={sourceFilter}
-                  onChange={(e) => {
-                    setSourceFilter(e.target.value);
-                    setCurrentPage(1); // Reset to first page when filter changes
-                  }}
+          <div className="search-filter-container">
+            <div className="search-box">
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search campaigns..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // Reset to first page when search changes
+                }}
+              />
+              {searchTerm && (
+                <button 
+                  className="clear-search"
+                  onClick={() => setSearchTerm('')}
                 >
-                  <option value="all">All Sources</option>
-                  {sourceOptions.map((source, index) => (
-                    <option key={index} value={source}>{source}</option>
-                  ))}
-                </select>
-              </div>
+                  ×
+                </button>
+              )}
             </div>
-
-            <div className="filter-group">
-              <label htmlFor="brand">Brand:</label>
-              <div className="select-wrapper">
-                <select 
-                  id="brand" 
-                  value={brandFilter}
-                  onChange={(e) => {
-                    setBrandFilter(e.target.value);
-                    setCurrentPage(1); // Reset to first page when filter changes
-                  }}
-                >
-                  <option value="all">All Brands</option>
-                  {brandOptions.map((brand, index) => (
-                    <option key={index} value={brand}>{brand}</option>
-                  ))}
-                </select>
+            
+            <div className="filter-container">
+              <div className="filter-group">
+                <label htmlFor="source">Source:</label>
+                <div className="select-wrapper">
+                  <select 
+                    id="source" 
+                    value={sourceFilter}
+                    onChange={(e) => {
+                      setSourceFilter(e.target.value);
+                      setCurrentPage(1); // Reset to first page when filter changes
+                    }}
+                  >
+                    <option value="all">All Sources</option>
+                    {sourceOptions.map((source, index) => (
+                      <option key={index} value={source}>{source}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
 
-            <div className="filter-group">
-              <label htmlFor="sort">Sort By:</label>
-              <div className="select-wrapper">
-                <select 
-                  id="sort" 
-                  value={sortOption}
-                  onChange={handleSortChange}
-                >
-                  <option value="name_asc">Name (A-Z)</option>
-                  <option value="name_desc">Name (Z-A)</option>
-                  <option value="date_asc">Date (Oldest)</option>
-                  <option value="date_desc">Date (Newest)</option>
-                  <option value="conversion_rate">Conversion Rate</option>
-                </select>
+              <div className="filter-group">
+                <label htmlFor="brand">Brand:</label>
+                <div className="select-wrapper">
+                  <select 
+                    id="brand" 
+                    value={brandFilter}
+                    onChange={(e) => {
+                      setBrandFilter(e.target.value);
+                      setCurrentPage(1); // Reset to first page when filter changes
+                    }}
+                  >
+                    <option value="all">All Brands</option>
+                    {brandOptions.map((brand, index) => (
+                      <option key={index} value={brand}>{brand}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -391,16 +384,16 @@ const Campaigns = () => {
           </div>
 
           {/* Campaigns list */}
-          <div className="campaigns-list">
-            {campaigns.length > 0 ? (
-              campaigns.map((campaign) => (
+          {campaigns.length > 0 ? (
+            <div className="campaigns-list">
+              {campaigns.map((campaign) => (
                 <div className="campaign-item" key={campaign.id}>
                   <div className="campaign-info" onClick={() => handleViewCampaign(campaign.id)}>
                     <h2 className="campaign-name">{campaign.name}</h2>
                     <p className="campaign-description">{campaign.description || 'No description'}</p>
                     <div className="campaign-tags">
-                      <span className="campaign-tag">{campaign.brand}</span>
-                      <span className="campaign-tag">{campaign.source}</span>
+                      <span className="campaign-tag">{campaign.brand || 'No brand'}</span>
+                      <span className="campaign-tag">{campaign.source || 'No source'}</span>
                       <span className="campaign-tag">
                         {campaign.metrics?.conversionRate || 0}% conv.
                       </span>
@@ -408,58 +401,67 @@ const Campaigns = () => {
                   </div>
                   <div className="campaign-status">
                     <div className="status-date">
-                      {campaign.status === "active" ? 'Active since' : 'Inactive since'}: {new Date(campaign.createdAt).toLocaleDateString()}
+                      Active since: {new Date(campaign.createdAt).toLocaleDateString()}
                     </div>
-                    <label className="toggle-switch" title={campaign.status === "active" ? "Deactivate campaign" : "Activate campaign"}>
-                      <input
-                        type="checkbox"
-                        checked={campaign.status === "active"}
-                        onChange={() => handleToggleActive(campaign.id)}
-                        disabled={togglingId === campaign.id}
-                      />
-                      <span className={`toggle-slider ${togglingId === campaign.id ? 'toggling' : ''}`}></span>
-                    </label>
                     <div className="campaign-actions">
-                      <button 
-                        className="action-button"
-                        onClick={() => handleViewCampaign(campaign.id)}
-                        title="View campaign details"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                      </button>
-                      <button 
-                        className="action-button edit-button"
-                        onClick={() => handleEditCampaign(campaign.id)}
-                        title="Edit campaign"
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                      </button>
-                      <button 
-                        className="action-button delete-button"
-                        onClick={() => handleDeleteCampaign(campaign.id)}
-                        title="Delete campaign"
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
+                      <div className="view-edit-actions">
+                        <button 
+                          className="action-button view-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewCampaign(campaign.id);
+                          }}
+                          title="View details"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                        </button>
+                        <button 
+                          className="action-button edit-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditCampaign(campaign.id);
+                          }}
+                          title="Edit"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                          </svg>
+                        </button>
+                      </div>
+                      <label className="toggle-switch" title={campaign.status === "active" ? "Deactivate campaign" : "Activate campaign"}>
+                        <input
+                          type="checkbox"
+                          checked={campaign.status === "active"}
+                          onChange={() => handleToggleActive(campaign.id)}
+                          disabled={togglingId === campaign.id}
+                        />
+                        <span className={`toggle-slider ${togglingId === campaign.id ? 'toggling' : ''}`}></span>
+                      </label>
                     </div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="empty-state">
-                <p>No campaigns found. Try adjusting your search or filters.</p>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              </svg>
+              <h3>No campaigns found</h3>
+              <p>No campaigns found matching your search criteria.</p>
+              <button className="button-primary" onClick={handleCreateCampaign}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Create Campaign
+              </button>
+            </div>
+          )}
 
           {/* Pagination */}
           {totalPages > 1 && (

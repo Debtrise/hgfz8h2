@@ -58,6 +58,7 @@ const Journeys = () => {
   const [selectedJourney, setSelectedJourney] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('list');
+  const [error, setError] = useState(null);
 
   // State for journeys data
   const [journeys, setJourneys] = useState([]);
@@ -181,16 +182,6 @@ const Journeys = () => {
       ),
     },
     {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      render: (type) => (
-        <Tag color="blue">
-          {type}
-        </Tag>
-      ),
-    },
-    {
       title: 'Created',
       dataIndex: 'created_at',
       key: 'created_at',
@@ -232,77 +223,82 @@ const Journeys = () => {
   const totalJourneys = journeys.length;
   const activeJourneys = journeys.filter(j => j.status === 'active').length;
   const totalContacts = journeys.reduce((sum, j) => sum + (j.active_leads_count || 0), 0);
-  const averageCompletion = journeys.length > 0 
-    ? Math.round(journeys.reduce((sum, j) => sum + (j.step_count ? (j.active_leads_count / j.step_count) * 100 : 0), 0) / journeys.length)
-    : 0;
 
   // Render the journey list view
   const renderJourneyList = () => {
     return (
-      <LoadingIcon text="Loading journeys..." isLoading={loading}>
-        <Card 
-          className="journeys-table-container" 
-          style={{ 
-            background: 'transparent',
-            maxWidth: '1200px',
-            margin: '0 auto',
-            width: '100%'
-          }}
-        >
-          <div className="table-header">
-            <Space>
-              <Search
-                placeholder="Search journeys"
-                allowClear
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ width: 200 }}
-              />
-              <Select
-                value={statusFilter}
-                onChange={setStatusFilter}
-                style={{ width: 120 }}
-              >
-                <Option value="all">All Status</Option>
-                <Option value="active">Active</Option>
-                <Option value="draft">Draft</Option>
-                <Option value="paused">Paused</Option>
-                <Option value="archived">Archived</Option>
-              </Select>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleCreateJourney}
-              >
-                New Journey
-              </Button>
-            </Space>
+      <div className="page-container">
+        <div className="content-container">
+          <div className="content-header">
+            <h1 className="page-title">Journeys</h1>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreateJourney}
+            >
+              New Journey
+            </Button>
           </div>
 
-          <Table
-            columns={columns}
-            dataSource={filteredJourneys}
-            rowKey="id"
-            loading={false}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} journeys`,
-            }}
-          />
-        </Card>
+          {error && (
+            <div className="error-message">
+              {error}
+              <Button className="error-dismiss" onClick={() => setError(null)}>×</Button>
+            </div>
+          )}
 
-        <Modal
-          title="Delete Journey"
-          open={deleteModalVisible}
-          onOk={confirmDelete}
-          onCancel={() => {
-            setDeleteModalVisible(false);
-            setSelectedJourney(null);
-          }}
-        >
-          <p>Are you sure you want to delete this journey? This action cannot be undone.</p>
-        </Modal>
-      </LoadingIcon>
+          <div className="content-body">
+            <div className="search-filter-container">
+              <div className="search-box">
+                <Search
+                  placeholder="Search journeys"
+                  allowClear
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ width: 200 }}
+                />
+              </div>
+              <div className="filter-container">
+                <Select
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  style={{ width: 120 }}
+                >
+                  <Option value="all">All Status</Option>
+                  <Option value="active">Active</Option>
+                  <Option value="draft">Draft</Option>
+                  <Option value="paused">Paused</Option>
+                  <Option value="archived">Archived</Option>
+                </Select>
+              </div>
+            </div>
+
+            <div className="stats-summary">
+              <div className="stat-card">
+                <div className="stat-title">Total Journeys</div>
+                <div className="stat-value">{totalJourneys}</div>
+                <div className="stat-subtitle">{activeJourneys} active</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-title">Total Contacts</div>
+                <div className="stat-value">{totalContacts}</div>
+                <div className="stat-subtitle">Across all journeys</div>
+              </div>
+            </div>
+
+            <Table
+              columns={columns}
+              dataSource={filteredJourneys}
+              rowKey="id"
+              loading={loading}
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+                showTotal: (total) => `Total ${total} journeys`,
+              }}
+            />
+          </div>
+        </div>
+      </div>
     );
   };
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
-import './ListPages.css';
+import './LeadManagement.css';
 import LoadingIcon from '../components/LoadingIcon';
 
 const LeadManagement = () => {
@@ -119,39 +119,43 @@ const LeadManagement = () => {
   };
 
   return (
-    <LoadingIcon text="Loading lead management data..." isLoading={isLoading}>
-      <div className="page-container">
-        <div className="content-container">
-          <div className="content-header">
-            <h1 className="page-title">Lead Management</h1>
-            <div className="header-actions">
-              <button 
-                className="button-primary"
-                onClick={handleCreatePool}
-              >
-                Create Lead Pool
-              </button>
-              <button 
-                className="button-secondary"
-                onClick={handleImportLeads}
-              >
-                Import Leads
-              </button>
-            </div>
+    <div className="page-container">
+      <div className="content-container">
+        <div className="content-header">
+          <h1 className="page-title">Lead Management</h1>
+          <div className="header-actions">
+            <button 
+              className="button-primary"
+              onClick={handleCreatePool}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Create Lead Pool
+            </button>
+            <button 
+              className="button-secondary"
+              onClick={handleImportLeads}
+            >
+              Import Leads
+            </button>
           </div>
+        </div>
 
+        <div className="content-body">
           {error && (
             <div className="error-message">
               {error}
-              <button className="dismiss-button" onClick={() => setError(null)}>×</button>
+              <button className="error-dismiss" onClick={() => setError(null)}>×</button>
             </div>
           )}
 
-          <div className="content-body">
-            {/* Filters */}
-            <div className="filters-container">
-              <div className="filter-group">
-                <label htmlFor="brand">Brand:</label>
+          {/* Search and Filters */}
+          <div className="search-filter-container">
+            <div className="filter-group">
+              <label htmlFor="brand">Brand:</label>
+              <div className="select-wrapper">
                 <select
                   id="brand"
                   name="brand"
@@ -165,68 +169,54 @@ const LeadManagement = () => {
                   ))}
                 </select>
               </div>
-              
-              <div className="filter-group">
-                <label htmlFor="source">Source:</label>
-                <select
-                  id="source"
-                  name="source"
-                  value={filters.source}
-                  onChange={handleFilterChange}
-                  className="filter-select"
-                >
-                  <option value="all">All Sources</option>
-                  {sources.map(source => (
-                    <option key={source.id} value={source.name}>{source.name}</option>
-                  ))}
-                </select>
-              </div>
             </div>
+          </div>
 
-            {/* Stats Overview */}
-            <div className="stats-grid">
-              <div className="stat-card">
-                <div className="stat-title">Total Leads</div>
-                <div className="stat-value">{stats.totalLeads.toLocaleString()}</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-title">Active Pools</div>
-                <div className="stat-value">{stats.activePools}</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-title">Leads Today</div>
-                <div className="stat-value">{stats.leadsToday.toLocaleString()}</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-title">Conversion Rate</div>
-                <div className="stat-value">{stats.conversionRate}%</div>
-              </div>
+          {/* Stats Overview */}
+          <div className="stats-summary">
+            <div className="stat-card">
+              <div className="stat-title">Total Leads</div>
+              <div className="stat-value">{stats.totalLeads.toLocaleString()}</div>
             </div>
+            <div className="stat-card">
+              <div className="stat-title">Active Pools</div>
+              <div className="stat-value">{stats.activePools}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-title">Leads Today</div>
+              <div className="stat-value">{stats.leadsToday.toLocaleString()}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-title">Conversion Rate</div>
+              <div className="stat-value">{stats.conversionRate}%</div>
+            </div>
+          </div>
 
-            {/* Recent Lead Pools */}
-            <div className="section-container">
-              <div className="section-header">
-                <h2>Recent Lead Pools</h2>
-                <button 
-                  className="button-text"
-                  onClick={handleViewAllPools}
-                >
-                  View All Pools
-                </button>
-              </div>
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Description</th>
-                      <th>Lead Count</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentPools.map(pool => (
+          {/* Recent Lead Pools */}
+          <div className="section-container">
+            <div className="section-header">
+              <h2>Recent Lead Pools</h2>
+              <button 
+                className="button-text"
+                onClick={handleViewAllPools}
+              >
+                View All Pools
+              </button>
+            </div>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Lead Count</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentPools.length > 0 ? (
+                    recentPools.map(pool => (
                       <tr key={pool.id}>
                         <td>{pool.name}</td>
                         <td>{pool.description || 'No description'}</td>
@@ -243,59 +233,73 @@ const LeadManagement = () => {
                               onClick={() => navigate(`/lead-pools/${pool.id}`)}
                               title="View Details"
                             >
-                              <i className="fas fa-eye"></i>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                              </svg>
                             </button>
                             <button
                               className="action-button edit-button"
                               onClick={() => navigate(`/lead-pools/${pool.id}/edit`)}
                               title="Edit"
                             >
-                              <i className="fas fa-edit"></i>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                              </svg>
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Recent Leads */}
-            <div className="section-container">
-              <div className="section-header">
-                <h2>Recent Leads</h2>
-                <button 
-                  className="button-text"
-                  onClick={handleViewAllLeads}
-                >
-                  View All Leads
-                </button>
-              </div>
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
+                    ))
+                  ) : (
                     <tr>
-                      <th>Name</th>
-                      <th>Phone</th>
-                      <th>Email</th>
-                      <th>Status</th>
-                      <th>Pool</th>
-                      <th>Actions</th>
+                      <td colSpan="5" className="empty-state">
+                        <p>No lead pools found</p>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {recentLeads.map(lead => (
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Recent Leads */}
+          <div className="section-container">
+            <div className="section-header">
+              <h2>Recent Leads</h2>
+              <button 
+                className="button-text"
+                onClick={handleViewAllLeads}
+              >
+                View All Leads
+              </button>
+            </div>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Pool</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentLeads.length > 0 ? (
+                    recentLeads.map(lead => (
                       <tr key={lead.id}>
-                        <td>{`${lead.firstName} ${lead.lastName}`}</td>
-                        <td>{lead.phone}</td>
-                        <td>{lead.email}</td>
+                        <td>{`${lead.firstName || ''} ${lead.lastName || ''}`}</td>
+                        <td>{lead.phone || 'N/A'}</td>
+                        <td>{lead.email || 'N/A'}</td>
                         <td>
-                          <span className={`status-badge ${lead.status}`}>
-                            {lead.status}
+                          <span className={`status-badge ${lead.status?.toLowerCase() || 'unknown'}`}>
+                            {lead.status || 'Unknown'}
                           </span>
                         </td>
-                        <td>{lead.pool_name}</td>
+                        <td>{lead.pool_name || 'None'}</td>
                         <td>
                           <div className="action-buttons">
                             <button
@@ -303,27 +307,39 @@ const LeadManagement = () => {
                               onClick={() => navigate(`/leads/${lead.id}`)}
                               title="View Details"
                             >
-                              <i className="fas fa-eye"></i>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                              </svg>
                             </button>
                             <button
                               className="action-button edit-button"
                               onClick={() => navigate(`/leads/${lead.id}/edit`)}
                               title="Edit"
                             >
-                              <i className="fas fa-edit"></i>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                              </svg>
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="empty-state">
+                        <p>No leads found</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       </div>
-    </LoadingIcon>
+    </div>
   );
 };
 
