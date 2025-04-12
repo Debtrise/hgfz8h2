@@ -40,23 +40,9 @@ const CampaignBuilder = () => {
   const [didPools, setDidPools] = useState([]);
   const [journeys, setJourneys] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [brands, setBrands] = useState([]);
+  const [sources, setSources] = useState([]);
   
-  // Predefined brands
-  const predefinedBrands = [
-    { id: "brand1", name: "Brand1", description: "-", logo: null, color: null, leadCount: 28 },
-    { id: "brand2", name: "Brand2", description: "-", logo: null, color: null, leadCount: 153 },
-    { id: "default", name: "Default Brand", description: "-", logo: null, color: null, leadCount: 0 }
-  ];
-  
-  // Predefined sources
-  const predefinedSources = [
-    { id: "facebook", name: "Facebook Ads", description: "Leads from Facebook advertising campaigns" },
-    { id: "google", name: "Google Ads", description: "Leads from Google advertising campaigns" },
-    { id: "email", name: "Email Campaign", description: "Leads from email marketing campaigns" },
-    { id: "referral", name: "Referral", description: "Leads from referral programs" },
-    { id: "organic", name: "Organic", description: "Leads from organic traffic" }
-  ];
-
   // Load resources
   useEffect(() => {
     const loadResources = async () => {
@@ -96,10 +82,34 @@ const CampaignBuilder = () => {
           console.error('Error loading journeys:', err);
         }
 
+        // Fetch brands
+        let brandsData = [];
+        try {
+          const brandsResponse = await apiService.brands.getAll();
+          console.log('Brands response:', brandsResponse);
+          brandsData = Array.isArray(brandsResponse.data) ? brandsResponse.data : [];
+          setBrands(brandsData);
+        } catch (err) {
+          console.error('Error loading brands:', err);
+        }
+
+        // Fetch sources
+        let sourcesData = [];
+        try {
+          const sourcesResponse = await apiService.sources.getAll();
+          console.log('Sources response:', sourcesResponse);
+          sourcesData = Array.isArray(sourcesResponse.data) ? sourcesResponse.data : [];
+          setSources(sourcesData);
+        } catch (err) {
+          console.error('Error loading sources:', err);
+        }
+
         console.log('Resources loaded successfully:', {
           leadPools: leadPoolsData.length,
           didPools: didPoolsData.length,
-          journeys: journeysData.length
+          journeys: journeysData.length,
+          brands: brandsData.length,
+          sources: sourcesData.length
         });
 
         setLeadPools(leadPoolsData);
@@ -422,9 +432,9 @@ const CampaignBuilder = () => {
           onChange={handleInputChange}
         >
           <option value="">Select a brand</option>
-          {predefinedBrands.map(brand => (
+          {brands.map(brand => (
             <option key={brand.id} value={brand.id}>
-              {brand.name} {brand.leadCount > 0 ? `(${brand.leadCount} leads)` : ''}
+              {brand.name} {brand.lead_count > 0 ? `(${brand.lead_count} leads)` : ''}
             </option>
           ))}
         </select>
@@ -440,7 +450,7 @@ const CampaignBuilder = () => {
           onChange={handleInputChange}
         >
           <option value="">Select a source</option>
-          {predefinedSources.map(source => (
+          {sources.map(source => (
             <option key={source.id} value={source.id}>{source.name}</option>
           ))}
         </select>

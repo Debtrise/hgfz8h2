@@ -21,6 +21,9 @@ import {
   faTimesCircle
 } from '@fortawesome/free-solid-svg-icons';
 
+// Import api instance for debugging
+import { api } from '../services/apiService';
+
 const DIDPools = () => {
   const navigate = useNavigate();
   const [didPools, setDidPools] = useState([]);
@@ -89,46 +92,90 @@ const DIDPools = () => {
         sort: sortOption
       };
       
+      console.log('Fetching DID pools with params:', params);
       const response = await apiService.didPools.getAll(params);
+      console.log('Raw DID pools response:', response);
       
-      if (response && response.data) {
-        const pools = Array.isArray(response.data) ? response.data : [];
-        
-        // Fetch detailed information for each pool to get accurate data
-        const poolsWithDetails = await Promise.all(
-          pools.map(async (pool) => {
-            try {
-              const poolDetails = await apiService.didPools.getById(pool.id);
-              return {
-                ...pool,
-                brand: poolDetails.data?.brand || pool.brand || 'N/A',
-                source: poolDetails.data?.source || pool.source || 'N/A',
-                totalDids: poolDetails.data?.dids?.length || 0
-              };
-            } catch (err) {
-              console.error(`Error fetching details for pool ${pool.id}:`, err);
-              return {
-                ...pool,
-                brand: pool.brand || 'N/A',
-                source: pool.source || 'N/A',
-                totalDids: 0
-              };
+      // Check if response exists and has data
+      if (!response) {
+        console.warn('No response received from API');
+        setError('No response received from server');
+        return;
+      }
+
+      // Log the URL and response to debug the API connection
+      console.log('API URL used:', api?.defaults?.baseURL || 'Unknown baseURL');
+      console.log('Full response object:', response);
+
+      // Handle different response formats
+      let pools = [];
+      
+      // Log the raw response to inspect the data structure
+      console.log('Raw DID pools response object:', JSON.stringify(response));
+      
+      if (Array.isArray(response)) {
+        console.log('Response is an array');
+        pools = response;
+      } else if (response.data) {
+        console.log('Response has data property:', response.data);
+        if (Array.isArray(response.data)) {
+          console.log('Response.data is an array');
+          pools = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          console.log('Response.data.data is an array');
+          pools = response.data.data;
+        } else {
+          console.log('Response.data is not an array and does not have data array property');
+          // Try to find any array in the response
+          for (const key in response.data) {
+            if (Array.isArray(response.data[key])) {
+              console.log(`Found array in response.data.${key}`);
+              pools = response.data[key];
+              break;
             }
-          })
-        );
-        
-        setDidPools(poolsWithDetails);
-        setTotalItems(poolsWithDetails.length);
-        setTotalPages(Math.ceil(poolsWithDetails.length / itemsPerPage));
-      } else {
-        setError('Failed to load DID pools. Invalid response format.');
+          }
+        }
+      }
+
+      console.log('Extracted pools:', pools);
+      
+      if (pools.length === 0) {
+        console.log('No pools found');
         setDidPools([]);
         setTotalItems(0);
         setTotalPages(1);
+        return;
       }
+
+      // Normalize the pool data to handle both snake_case and camelCase
+      const normalizedPools = pools.map(pool => ({
+        id: pool.id,
+        name: pool.name || '[Unnamed Pool]',
+        description: pool.description || '',
+        status: pool.status || 'active',
+        createdAt: pool.created_at || pool.createdAt || new Date().toISOString(),
+        brand: pool.brand || 'N/A',
+        source: pool.source || 'N/A',
+        totalDids: pool.did_count || pool.didCount || 0
+      }));
+
+      console.log('Normalized pools:', normalizedPools);
+      setDidPools(normalizedPools);
+      setTotalItems(normalizedPools.length);
+      setTotalPages(Math.ceil(normalizedPools.length / itemsPerPage));
     } catch (err) {
       console.error('Error fetching DID pools:', err);
-      setError('Failed to load DID pools. Please try again later.');
+      // Add more detailed error logging
+      console.error('Error details:', {
+        message: err.message,
+        stack: err.stack,
+        response: err.response ? {
+          status: err.response.status,
+          data: err.response.data,
+          headers: err.response.headers
+        } : 'No response'
+      });
+      setError('Failed to load DID pools. Please try again later. Error: ' + err.message);
       setDidPools([]);
       setTotalItems(0);
       setTotalPages(1);
@@ -248,13 +295,22 @@ const DIDPools = () => {
       <div className="page-container">
         <div className="content-container">
           <div className="content-header">
-            <h1 className="page-title">DID Pools</h1>
+            <div className="header-left">
+              <h1 className="page-title">DID Pools</h1>
+            </div>
             <div className="header-actions">
               <button 
-                className="button-primary"
+                className="btn btn-secondary"
+                onClick={() => navigate('/dids')}
+              >
+                <FontAwesomeIcon icon={faPhone} className="icon-left" />
+                Manage DIDs
+              </button>
+              <button 
+                className="btn btn-primary"
                 onClick={() => setShowCreateModal(true)}
               >
-                <FontAwesomeIcon icon={faPlus} />
+                <FontAwesomeIcon icon={faPlus} className="icon-left" />
                 Create DID Pool
               </button>
             </div>

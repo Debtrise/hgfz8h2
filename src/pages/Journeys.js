@@ -308,9 +308,9 @@ const Journeys = () => {
   };
 
   return (
-    <div className="journeys-page">
-      {renderJourneyList()}
-    </div>
+    <LoadingIcon isLoading={loading} text="Loading journeys...">
+      {activeTab === 'list' ? renderJourneyList() : renderJourneyBuilder()}
+    </LoadingIcon>
   );
 };
 

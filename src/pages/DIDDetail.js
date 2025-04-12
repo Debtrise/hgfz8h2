@@ -34,10 +34,10 @@ const DIDDetail = () => {
       const response = await apiService.dids.getById(id);
       setDid(response.data);
       setFormData({
-        phoneNumber: response.data.phoneNumber,
-        status: response.data.status,
-        source: response.data.source,
-        notes: response.data.notes
+        phoneNumber: response.data.phone_number || response.data.phoneNumber || '',
+        status: response.data.status || 'active',
+        source: response.data.source || '',
+        notes: response.data.notes || ''
       });
       // Fetch usage statistics and call history
       const usageResponse = await apiService.usageStats.getByDID(id);
@@ -63,7 +63,13 @@ const DIDDetail = () => {
     e.preventDefault();
     try {
       setIsLoading(true);
-      await apiService.dids.update(id, formData);
+      const apiData = {
+        phoneNumber: formData.phoneNumber,
+        status: formData.status,
+        source: formData.source,
+        notes: formData.notes
+      };
+      await apiService.dids.update(id, apiData);
       await fetchDID();
       setShowEditModal(false);
     } catch (err) {
@@ -152,7 +158,7 @@ const DIDDetail = () => {
               <i className="back-icon"></i>
               <span>Back to DIDs</span>
             </button>
-            <h1 className="page-title">{did.phoneNumber}</h1>
+            <h1 className="page-title">{did.phone_number || did.phoneNumber}</h1>
           </div>
           <div className="header-actions">
             <button 
@@ -179,7 +185,7 @@ const DIDDetail = () => {
                 <div className="detail-card-content">
                   <div className="detail-item">
                     <span className="detail-label">Phone Number:</span>
-                    <span className="detail-value">{did.phoneNumber}</span>
+                    <span className="detail-value">{did.phone_number || did.phoneNumber}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Status:</span>
@@ -208,16 +214,16 @@ const DIDDetail = () => {
                   <div className="detail-item">
                     <span className="detail-label">Last Used:</span>
                     <span className="detail-value">
-                      {new Date(did.lastUsed).toLocaleString()}
+                      {new Date(did.last_used || did.lastUsed).toLocaleString()}
                     </span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Total Calls:</span>
-                    <span className="detail-value">{did.totalCalls}</span>
+                    <span className="detail-value">{did.total_calls || did.totalCalls || 0}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Success Rate:</span>
-                    <span className="detail-value">{did.successRate}%</span>
+                    <span className="detail-value">{did.success_rate || did.successRate || 0}%</span>
                   </div>
                 </div>
               </div>

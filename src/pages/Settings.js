@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import {
   UserOutlined,
@@ -8,22 +8,34 @@ import {
   DatabaseOutlined,
   SafetyCertificateOutlined,
   TeamOutlined,
-  ContactsOutlined
+  ContactsOutlined,
+  ArrowLeftOutlined
 } from '@ant-design/icons';
 import "../styles/new/settings.css";
 import Integrations from "./Integrations";
 import UserManagement from "./UserManagement";
 import { FaUser, FaShieldAlt, FaBell, FaUsers, FaBuilding, FaCog, FaChartLine, FaPhone, FaHeadset, FaTag, FaFilter } from 'react-icons/fa';
 import BrandSourceManagement from './BrandSourceManagement';
+import LoadingIcon from '../components/LoadingIcon';
 
 const Settings = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname;
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    // Simulate loading of settings data
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [path]);
 
   const renderBackButton = () => (
     <Link to="/settings" className="back-button">
-      <FaArrowLeft /> Back to Settings
+      <ArrowLeftOutlined /> Back to Settings
     </Link>
   );
 
@@ -292,13 +304,28 @@ const Settings = () => {
                   Configure
                 </Link>
               </div>
+
+              <div className="settings-card">
+                <div className="settings-card-title">
+                  <ApiOutlined className="icon" />
+                  Webhook Configuration
+                </div>
+                <p className="settings-card-description">
+                  Set up and manage webhooks for automated lead ingestion.
+                </p>
+                <button className="button-blue" onClick={() => navigate('/leads/webhooks')}>Configure</button>
+              </div>
             </div>
           </div>
         );
     }
   };
 
-  return renderSection();
+  return (
+    <LoadingIcon isLoading={loading} text="Loading settings...">
+      {renderSection()}
+    </LoadingIcon>
+  );
 };
 
 export default Settings;

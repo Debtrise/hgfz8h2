@@ -60,9 +60,11 @@ import DIDPoolDetail from './pages/DIDPoolDetail';
 import DIDDetail from './pages/DIDDetail';
 import DIDPoolDetails from "./pages/DIDPoolDetails";
 import DIDEdit from "./pages/DIDEdit";
+import DIDs from './pages/DIDs';
 
 import ImportLeads from './pages/ImportLeads';
 import LeadAssignments from './pages/LeadAssignments';
+import WebhookIngestion from './pages/WebhookIngestion';
 
 // Import Journey pages
 import Journeys from "./pages/Journeys";
@@ -119,6 +121,7 @@ function App() {
                 <Route path="leads/:id" element={<PrivateRoute><LeadDetail /></PrivateRoute>} />
                 <Route path="leads/import" element={<PrivateRoute><ImportLeads /></PrivateRoute>} />
                 <Route path="leads/assignments" element={<PrivateRoute><LeadAssignments /></PrivateRoute>} />
+                <Route path="leads/webhooks" element={<PrivateRoute><WebhookIngestion /></PrivateRoute>} />
                 
                 {/* Lead Management route */}
                 <Route path="lead-management" element={<PrivateRoute><LeadManagement /></PrivateRoute>} />
@@ -131,7 +134,7 @@ function App() {
                 {/* DID Pool routes */}
                 <Route path="did-pools" element={<PrivateRoute><DIDPools /></PrivateRoute>} />
                 <Route path="did-pools/:id" element={<PrivateRoute><DIDPoolDetails /></PrivateRoute>} />
-                <Route path="dids" element={<PrivateRoute><DIDDetail /></PrivateRoute>} />
+                <Route path="dids" element={<PrivateRoute><DIDs /></PrivateRoute>} />
                 <Route path="dids/:id" element={<PrivateRoute><DIDDetail /></PrivateRoute>} />
                 <Route path="dids/:id/edit" element={<PrivateRoute><DIDEdit /></PrivateRoute>} />
 

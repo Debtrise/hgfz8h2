@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import apiService from "../services/apiService";
 import './LeadsList.css';
+import LoadingIcon from '../components/LoadingIcon';
 
 const LeadsList = () => {
   const navigate = useNavigate();
@@ -233,9 +234,7 @@ const LeadsList = () => {
       <div className="page-container">
         <div className="content-container">
           <div className="loading-state">
-            <div className="loading-container">
-              <p className="loading-text">Loading leads...</p>
-            </div>
+            <LoadingIcon text="Loading leads..." />
           </div>
         </div>
       </div>
@@ -275,6 +274,12 @@ const LeadsList = () => {
               />
               <i className="search-icon"></i>
             </div>
+            <button
+              className="button-secondary"
+              onClick={() => navigate('/leads/webhooks')}
+            >
+              Setup Webhooks
+            </button>
             <button
               className="button-blue"
               onClick={handleExportLeads}

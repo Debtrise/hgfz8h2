@@ -1,49 +1,7 @@
 /* CampaignBuilder.css - Modernized Design System */
 :root {
   /* Color Palette */
-  --primary: #3a84af;
-  --primary-light: #5199c3;
-  --primary-dark: #2a6b8f;
-  --success: #10b981;
-  --success-light: #34d399;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --danger-light: #f87171;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --text-tertiary: #999999;
-  --bg-primary: #ffffff;
-  --bg-secondary: #f5f7fa;
-  --bg-tertiary: #e9ecef;
-  --border-color: #e8e8e8;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-full: 9999px;
-  --transition-fast: 0.2s ease;
-  --transition-normal: 0.3s ease;
-  --transition-slow: 0.5s ease;
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --font-size-xs: 12px;
-  --font-size-sm: 14px;
-  --font-size-md: 16px;
-  --font-size-lg: 18px;
-  --font-size-xl: 24px;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-}
-
-/* Base Styles */
-* {
+  
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -1030,21 +988,6 @@ body {
   border-color: #9ca3af;
 }
 
-.button-primary {
-  padding: 0.75rem 1.5rem;
-  background-color: #3b82f6;
-  border: none;
-  border-radius: 6px;
-  color: white;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.button-primary:hover {
-  background-color: #2563eb;
-}
-
 .button-primary:disabled,
 .button-outline:disabled {
   opacity: 0.5;
@@ -1070,14 +1013,7 @@ body {
   gap: 1rem;
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e5e7eb;
-  border-radius: 50%;
-  border-top-color: #3b82f6;
-  animation: spin 1s linear infinite;
-}
+
 
 @keyframes spin {
   to {

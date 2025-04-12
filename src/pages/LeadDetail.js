@@ -21,11 +21,37 @@ const LeadDetail = () => {
       setIsLoading(true);
       setError(null);
       try {
+        // Validate the ID
+        if (!id || isNaN(id)) {
+          throw new Error("Invalid lead ID");
+        }
+
         // Fetch lead details
         const leadResponse = await apiService.leads.getById(id);
         console.log("Lead response:", leadResponse);
-        setLead(leadResponse);
-        setEditedLead(leadResponse);
+
+        if (!leadResponse) {
+          throw new Error("No lead data received");
+        }
+
+        // Map the lead data to match the expected format
+        const mappedLead = {
+          id: leadResponse.id,
+          firstName: leadResponse.first_name || leadResponse.firstName || '',
+          lastName: leadResponse.last_name || leadResponse.lastName || '',
+          email: leadResponse.email || '',
+          phone: leadResponse.phone || leadResponse.phone_number || '',
+          status: leadResponse.status || 'unknown',
+          brand: leadResponse.brand || '',
+          source: leadResponse.source || '',
+          createdAt: leadResponse.created_at || leadResponse.createdAt || new Date().toISOString(),
+          leadAge: leadResponse.lead_age || Math.floor((new Date() - new Date(leadResponse.created_at || leadResponse.createdAt || new Date())) / (1000 * 60 * 60 * 24)),
+          poolIds: leadResponse.pool_ids || leadResponse.poolIds || [],
+          additionalData: leadResponse.additional_data || leadResponse.additionalData || {}
+        };
+        
+        setLead(mappedLead);
+        setEditedLead(mappedLead);
         
         // In a real implementation, you would fetch contact history from an API
         // For now, we'll use mock data
@@ -65,7 +91,9 @@ const LeadDetail = () => {
         setContactHistory(mockContactHistory);
       } catch (err) {
         console.error("Error fetching lead details:", err);
-        setError("Failed to load lead information. Please try again later.");
+        setError(err.message || "Failed to load lead information. Please try again later.");
+        setLead(null);
+        setEditedLead(null);
       } finally {
         setIsLoading(false);
       }

@@ -89,7 +89,7 @@ const Sidebar = () => {
             <Link to="/lead-management">Leads</Link>
           </Menu.Item>
 
-          <Menu.Item key="did-pools" icon={<DatabaseOutlined />}>
+          <Menu.Item key="did-pools" icon={<PhoneOutlined />}>
             <Link to="/did-pools">DID Pools</Link>
           </Menu.Item>
 

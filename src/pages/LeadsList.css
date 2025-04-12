@@ -35,4 +35,12 @@
 .select-wrapper select:focus {
   border-color: var(--primary-color);
   outline: none;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  width: 100%;
 } 

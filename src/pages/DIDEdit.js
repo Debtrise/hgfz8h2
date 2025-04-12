@@ -31,8 +31,8 @@ const DIDEdit = () => {
       if (response && response.data) {
         setDid(response.data);
         setFormData({
-          number: response.data.number,
-          status: response.data.status,
+          number: response.data.phone_number || response.data.phoneNumber || '',
+          status: response.data.status || 'active',
           notes: response.data.notes || ''
         });
       } else {
@@ -60,10 +60,18 @@ const DIDEdit = () => {
     setError(null);
     try {
       console.log('Updating DID with data:', formData);
-      const response = await apiService.dids.update(id, formData);
+      
+      // Convert to the API expected format
+      const apiData = {
+        phoneNumber: formData.number,
+        status: formData.status,
+        notes: formData.notes
+      };
+      
+      const response = await apiService.dids.update(id, apiData);
       console.log('Update DID response:', response);
       
-      if (response && response.data) {
+      if (response && (response.data || response.id)) {
         navigate(`/did-pools/${did.poolId}`);
       } else {
         console.error('Invalid response format:', response);

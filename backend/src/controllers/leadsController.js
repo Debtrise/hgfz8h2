@@ -162,8 +162,25 @@ exports.importFromFile = async (req, res) => {
       }
     }
 
+    // Parse import options if provided
+    let importOptions = {
+      skipHeader: true,
+      updateExisting: false, 
+      defaultBrand: '',
+      defaultSource: '',
+      defaultLeadAge: 0
+    };
+    
+    if (req.body.options) {
+      try {
+        importOptions = { ...importOptions, ...JSON.parse(req.body.options) };
+      } catch (err) {
+        return res.status(400).json({ message: 'Invalid options JSON' });
+      }
+    }
+
     // Process the uploaded file
-    const leads = await processFile(req.file.path, fieldMapping);
+    const leads = await processFile(req.file.path, fieldMapping, importOptions.skipHeader);
 
     // Validate leads
     const validatedLeads = leads.map(lead => {
@@ -178,13 +195,16 @@ exports.importFromFile = async (req, res) => {
         throw new Error('Last name is required for each lead');
       }
 
-      // Set default values
+      // Set default values from import options
       return {
         ...lead,
         tenant_id: req.tenantId,
         status: 'new',
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
+        brand: lead.brand || importOptions.defaultBrand,
+        source: lead.source || importOptions.defaultSource,
+        leadAge: lead.leadAge || importOptions.defaultLeadAge
       };
     });
 
@@ -201,12 +221,12 @@ exports.importFromFile = async (req, res) => {
       for (const lead of validatedLeads) {
         // Check for existing lead
         const existingLead = await client.query(
-          'SELECT id FROM leads WHERE tenant_id = $1 AND phone = $2',
+          'SELECT id, phone, first_name, last_name, email FROM leads WHERE tenant_id = $1 AND phone = $2',
           [req.tenantId, lead.phone]
         );
 
         if (existingLead.rows.length > 0) {
-          if (req.body.updateExisting === 'true') {
+          if (importOptions.updateExisting) {
             // Update existing lead
             await client.query(
               `UPDATE leads 
@@ -225,9 +245,29 @@ exports.importFromFile = async (req, res) => {
                 existingLead.rows[0].id
               ]
             );
-            updatedLeads.push(existingLead.rows[0].id);
+            updatedLeads.push({
+              id: existingLead.rows[0].id,
+              phone: lead.phone,
+              firstName: lead.firstName,
+              lastName: lead.lastName,
+              email: lead.email
+            });
           } else {
-            skippedLeads.push(lead.phone);
+            // Skip the lead with reason
+            skippedLeads.push({
+              phone: lead.phone,
+              firstName: lead.firstName,
+              lastName: lead.lastName,
+              email: lead.email,
+              reason: 'Duplicate phone number',
+              existingLead: {
+                id: existingLead.rows[0].id,
+                phone: existingLead.rows[0].phone,
+                firstName: existingLead.rows[0].first_name,
+                lastName: existingLead.rows[0].last_name,
+                email: existingLead.rows[0].email
+              }
+            });
           }
         } else {
           // Insert new lead
@@ -242,16 +282,25 @@ exports.importFromFile = async (req, res) => {
               lead.phone,
               lead.firstName,
               lead.lastName,
-              lead.email,
-              lead.leadAge,
-              lead.brand,
-              lead.source,
+              lead.email || null,
+              lead.leadAge || importOptions.defaultLeadAge,
+              lead.brand || importOptions.defaultBrand,
+              lead.source || importOptions.defaultSource,
               lead.status,
               lead.created_at,
               lead.updated_at
             ]
           );
-          insertedLeads.push(result.rows[0].id);
+          insertedLeads.push({
+            id: result.rows[0].id,
+            phone: lead.phone,
+            firstName: lead.firstName,
+            lastName: lead.lastName,
+            email: lead.email,
+            brand: lead.brand || importOptions.defaultBrand,
+            source: lead.source || importOptions.defaultSource,
+            leadAge: lead.leadAge || importOptions.defaultLeadAge
+          });
 
           // Assign to lead pool if specified
           if (req.body.defaultPoolId) {

@@ -6,6 +6,9 @@ export const ENDPOINTS = {
   CAMPAIGNS: '/campaigns',
   LEAD_POOLS: '/lead-pools',
   DID_POOLS: '/did-pools',
+  DIDS: '/dids',
+  STATS: '/stats',
+  CALLS: '/calls',
   JOURNEYS: '/journeys',
   AUTH: '/auth',
   USERS: '/users'

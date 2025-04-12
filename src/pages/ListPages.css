@@ -3,32 +3,116 @@
 /* Root variables for consistent styling */
 :root {
   /* Colors */
-  --primary-color: #3a84af;
-  --primary-hover: #5199c3;
-  --primary-light: rgba(58, 132, 175, 0.1);
-  --secondary-color: #ffffff;
-  --danger-color: #ef4444;
-  --danger-hover: #dc2626;
-  --success-color: #10b981;
-  --warning-color: #f59e0b;
-  --light-bg: #ffffff;
-  --border-color: #e8e8e8;
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --text-color: #333333;
-  --text-secondary: #6b7280;
+  
+  
+  --primary-light: #e3f2fd;
+  --primary-color-rgb: 25, 118, 210;
+  
+  --success-color: #2e7d32;
+  --success-color-rgb: 46, 125, 50;
+  --error-color: #d32f2f;
+  --error-color-rgb: 211, 47, 47;
+  
+  --surface-color: #ffffff;
+  --background-color: #f8f9fa;
+  --hover-color: #f5f5f5;
+  --border-color: #e0e0e0;
+  
+  --text-primary: #212121;
+  --text-secondary: #666666;
+  --text-tertiary: #9e9e9e;
   
   /* Spacing */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  
+  /* Shadows */
+  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --modal-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  
+  /* Border Radius */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
 }
+
+/* Reset and Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--background-color);
+}
+
+/* Common Components */
+.alert {
+  padding: 1rem;
+  border-radius: var(--border-radius-md);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.alert-error {
+  background-color: rgba(var(--error-color-rgb), 0.1);
+  color: var(--error-color);
+  border: 1px solid rgba(var(--error-color-rgb), 0.2);
+}
+
+.alert-success {
+  background-color: rgba(var(--success-color-rgb), 0.1);
+  color: var(--success-color);
+  border: 1px solid rgba(var(--success-color-rgb), 0.2);
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+  background-color: var(--surface-color);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+/* Utility Classes */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+
+.mb-1 { margin-bottom: var(--spacing-xs); }
+.mb-2 { margin-bottom: var(--spacing-sm); }
+.mb-3 { margin-bottom: var(--spacing-md); }
+.mb-4 { margin-bottom: var(--spacing-lg); }
+.mb-5 { margin-bottom: var(--spacing-xl); }
+
+.mt-1 { margin-top: var(--spacing-xs); }
+.mt-2 { margin-top: var(--spacing-sm); }
+.mt-3 { margin-top: var(--spacing-md); }
+.mt-4 { margin-top: var(--spacing-lg); }
+.mt-5 { margin-top: var(--spacing-xl); }
 
 /* Override app-level containers */
 #root {
-  max-width: 1400px !important;
+  max-width: 1800px !important;
   width: 100% !important;
   margin: 0 auto !important;
 }
@@ -41,27 +125,28 @@ body {
 .content, 
 .app-container,
 .app-wrapper {
-  max-width: 100% !important;
+  max-width: 90% !important;
   width: 100% !important;
 }
 
 /* Page Layout */
 .page-container {
-  min-height: 100vh;
-  background-color: var(--light-bg);
-  padding: 0;
+  padding: 5rem;
+  max-width: 1200px;
   margin: 0 auto;
   width: 100%;
-  max-width: 1800px;
+  min-height: 100vh;
+  background-color: var(--light-bg);
 }
 
 .content-container {
-  width: 100%;
+  background-color: var(--surface-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--card-shadow);
+  padding: 1.5rem;
+  width: 60%;
   max-width: 1400px;
   margin: 0 auto;
-  border-radius: 8px;
-  background-color: #fff;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
 
@@ -123,7 +208,6 @@ body {
 
 /* Button Styles */
 .button-primary, .button-blue {
-  background-color: #3b82f6;
   color: white;
   border: none;
   padding: 10px 20px;

@@ -48,19 +48,36 @@ const DIDPoolForm = () => {
     try {
       setIsLoading(true);
       const response = await apiService.didPools.getById(id);
-      const pool = response.data;
-      setFormData({
-        name: pool.name || "",
-        description: pool.description || "",
-        brand: pool.brand || "BDS",
-        source: pool.source || "",
-        ingroups: pool.ingroups || [],
-        status: pool.status || "active",
-        dialRatio: pool.dialRatio || 1.0
-      });
+      console.log('DID pool response:', response);
+      
+      // Extract pool data from response, handling different possible formats
+      let poolData;
+      if (response?.data) {
+        // Response has a data property
+        poolData = response.data;
+      } else if (response && typeof response === 'object') {
+        // Response is the data object itself
+        poolData = response;
+      } else {
+        throw new Error('Invalid response format');
+      }
+      
+      if (poolData) {
+        setFormData({
+          name: poolData.name || "",
+          description: poolData.description || "",
+          brand: poolData.brand || "BDS",
+          source: poolData.source || "",
+          ingroups: Array.isArray(poolData.ingroups) ? poolData.ingroups : [],
+          status: poolData.status || "active",
+          dialRatio: poolData.dial_ratio || poolData.dialRatio || 1.0
+        });
+      } else {
+        setError('Failed to load DID pool details. Empty or invalid data received.');
+      }
     } catch (err) {
       console.error('Error fetching DID pool:', err);
-      setError('Failed to load DID pool details. Please try again later.');
+      setError('Failed to load DID pool details. ' + (err.message || 'Please try again later.'));
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +117,7 @@ const DIDPoolForm = () => {
 
     try {
       const poolData = {
-        tenant_id: 1,
+        tenant_id: getTenantId(),
         name: formData.name,
         description: formData.description,
         brand: formData.brand,
@@ -110,16 +127,24 @@ const DIDPoolForm = () => {
         dial_ratio: parseFloat(formData.dialRatio)
       };
 
+      let response;
       if (isEditMode) {
-        await apiService.didPools.update(id, poolData);
+        response = await apiService.didPools.update(id, poolData);
       } else {
-        await apiService.didPools.create(poolData);
+        response = await apiService.didPools.create(poolData);
       }
-
-      navigate("/did-pools");
+      
+      console.log('API response:', response);
+      
+      // Check if we received a valid response
+      if (response && (response.data || response.id)) {
+        navigate("/did-pools");
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (err) {
       console.error('Error saving DID pool:', err);
-      setError(`Failed to ${isEditMode ? 'update' : 'create'} DID pool. Please try again.`);
+      setError(`Failed to ${isEditMode ? 'update' : 'create'} DID pool. ${err.message || 'Please try again.'}`);
     } finally {
       setIsLoading(false);
     }

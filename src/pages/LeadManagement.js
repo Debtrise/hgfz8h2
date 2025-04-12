@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
 import './LeadManagement.css';
@@ -12,42 +12,44 @@ const LeadManagement = () => {
     totalLeads: 0,
     activePools: 0,
     leadsToday: 0,
-    conversionRate: 0
+    conversionRate: 0,
+    averageLeadAge: 0,
+    activeLeads: 0
   });
   const [recentPools, setRecentPools] = useState([]);
   const [recentLeads, setRecentLeads] = useState([]);
   const [filters, setFilters] = useState({
     brand: 'all',
-    source: 'all'
+    source: 'all',
+    status: 'all',
+    dateRange: 'today'
   });
   const [brands, setBrands] = useState([]);
   const [sources, setSources] = useState([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-    fetchBrands();
-    fetchSources();
-  }, [filters]);
-
-  const fetchBrands = async () => {
+  // Memoize fetch functions to prevent unnecessary re-renders
+  const fetchBrands = useCallback(async () => {
     try {
       const response = await apiService.brands.getAll();
       setBrands(response.data || []);
     } catch (err) {
       console.error('Error fetching brands:', err);
+      setError('Failed to load brands. Please try again later.');
     }
-  };
+  }, []);
 
-  const fetchSources = async () => {
+  const fetchSources = useCallback(async () => {
     try {
       const response = await apiService.sources.getAll();
       setSources(response.data || []);
     } catch (err) {
       console.error('Error fetching sources:', err);
+      setError('Failed to load sources. Please try again later.');
     }
-  };
+  }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -61,7 +63,8 @@ const LeadManagement = () => {
         limit: 5,
         status: filters.status !== 'all' ? filters.status : undefined,
         brand: filters.brand !== 'all' ? filters.brand : undefined,
-        source: filters.source !== 'all' ? filters.source : undefined
+        source: filters.source !== 'all' ? filters.source : undefined,
+        dateRange: filters.dateRange
       };
       
       const leadsResponse = await apiService.leads.getAll(leadsParams);
@@ -71,28 +74,43 @@ const LeadManagement = () => {
 
       // Fetch total leads count with filters
       const totalLeadsParams = {
-        limit: 1, // We only need the count, not the actual leads
+        limit: 1,
         status: filters.status !== 'all' ? filters.status : undefined,
         brand: filters.brand !== 'all' ? filters.brand : undefined,
-        source: filters.source !== 'all' ? filters.source : undefined
+        source: filters.source !== 'all' ? filters.source : undefined,
+        dateRange: filters.dateRange
       };
       
       const totalLeadsResponse = await apiService.leads.getAll(totalLeadsParams);
 
       // Calculate stats
+      const activeLeads = leadsResponse.leads?.filter(lead => lead.status === 'active').length || 0;
+      const totalLeads = totalLeadsResponse.pagination?.total || 0;
+      const conversionRate = totalLeads > 0 ? 
+        ((leadsResponse.converted || 0) / totalLeads * 100).toFixed(1) : 0;
+
       setStats({
-        totalLeads: totalLeadsResponse.pagination?.total || 0,
+        totalLeads,
         activePools: pools.filter(pool => pool.status === 'active').length,
         leadsToday: leadsResponse.today || 0,
-        conversionRate: leadsResponse.conversionRate || 0
+        conversionRate,
+        averageLeadAge: leadsResponse.averageAge || 0,
+        activeLeads
       });
     } catch (err) {
       console.error('Error fetching lead management data:', err);
       setError('Failed to load lead management data. Please try again later.');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    fetchData();
+    fetchBrands();
+    fetchSources();
+  }, [fetchData, fetchBrands, fetchSources]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -102,8 +120,13 @@ const LeadManagement = () => {
     }));
   };
 
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchData();
+  };
+
   const handleCreatePool = () => {
-    navigate('/lead-pools/create');
+    navigate('/lead-pools/new');
   };
 
   const handleImportLeads = () => {
@@ -117,6 +140,18 @@ const LeadManagement = () => {
   const handleViewAllLeads = () => {
     navigate('/leads');
   };
+
+  if (isLoading && !isRefreshing) {
+    return (
+      <div className="page-container">
+        <div className="content-container">
+          <div className="loading-state">
+            <LoadingIcon text="Loading lead management data..." />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
@@ -139,6 +174,27 @@ const LeadManagement = () => {
               onClick={handleImportLeads}
             >
               Import Leads
+            </button>
+            <button 
+              className="button-text"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? (
+                <>
+                  <span className="button-spinner"></span>
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M1 20v-6h6"></path>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                  Refresh
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -170,6 +226,57 @@ const LeadManagement = () => {
                 </select>
               </div>
             </div>
+            <div className="filter-group">
+              <label htmlFor="source">Source:</label>
+              <div className="select-wrapper">
+                <select
+                  id="source"
+                  name="source"
+                  value={filters.source}
+                  onChange={handleFilterChange}
+                  className="filter-select"
+                >
+                  <option value="all">All Sources</option>
+                  {sources.map(source => (
+                    <option key={source.id} value={source.name}>{source.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="filter-group">
+              <label htmlFor="status">Status:</label>
+              <div className="select-wrapper">
+                <select
+                  id="status"
+                  name="status"
+                  value={filters.status}
+                  onChange={handleFilterChange}
+                  className="filter-select"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="converted">Converted</option>
+                  <option value="lost">Lost</option>
+                </select>
+              </div>
+            </div>
+            <div className="filter-group">
+              <label htmlFor="dateRange">Date Range:</label>
+              <div className="select-wrapper">
+                <select
+                  id="dateRange"
+                  name="dateRange"
+                  value={filters.dateRange}
+                  onChange={handleFilterChange}
+                  className="filter-select"
+                >
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="year">This Year</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           {/* Stats Overview */}
@@ -177,18 +284,38 @@ const LeadManagement = () => {
             <div className="stat-card">
               <div className="stat-title">Total Leads</div>
               <div className="stat-value">{stats.totalLeads.toLocaleString()}</div>
+              <div className="stat-change">
+                <span className="trend-up">+{stats.leadsToday}</span> today
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-title">Active Leads</div>
+              <div className="stat-value">{stats.activeLeads.toLocaleString()}</div>
+              <div className="stat-change">
+                {stats.activeLeads > 0 ? (
+                  <span className="trend-up">+{stats.activeLeads}</span>
+                ) : (
+                  <span className="trend-down">0</span>
+                )} active
+              </div>
             </div>
             <div className="stat-card">
               <div className="stat-title">Active Pools</div>
               <div className="stat-value">{stats.activePools}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-title">Leads Today</div>
-              <div className="stat-value">{stats.leadsToday.toLocaleString()}</div>
+              <div className="stat-change">
+                {stats.activePools > 0 ? (
+                  <span className="trend-up">+{stats.activePools}</span>
+                ) : (
+                  <span className="trend-down">0</span>
+                )} pools
+              </div>
             </div>
             <div className="stat-card">
               <div className="stat-title">Conversion Rate</div>
               <div className="stat-value">{stats.conversionRate}%</div>
+              <div className="stat-change">
+                <span className="trend-up">+{stats.conversionRate}%</span> this period
+              </div>
             </div>
           </div>
 
