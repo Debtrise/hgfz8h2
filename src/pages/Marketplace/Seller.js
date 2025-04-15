@@ -203,7 +203,7 @@ const Seller = () => {
       
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} md={6}>
-          <Card>
+          <Card className="marketplace-stats-card">
             <Statistic
               title="Total Earnings"
               value={earnings.total}
@@ -214,7 +214,7 @@ const Seller = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Card>
+          <Card className="marketplace-stats-card">
             <Statistic
               title="This Month"
               value={earnings.thisMonth}
@@ -225,7 +225,7 @@ const Seller = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Card>
+          <Card className="marketplace-stats-card">
             <Statistic
               title="Pending Payments"
               value={earnings.pending}
@@ -236,7 +236,7 @@ const Seller = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Card>
+          <Card className="marketplace-stats-card">
             <Statistic
               title="Leads Sold"
               value={earnings.leadsSold}
@@ -265,6 +265,7 @@ const Seller = () => {
                 form.resetFields();
                 setAddLeadModalVisible(true);
               }}
+              className="add-listing-btn"
             >
               Add New Lead Listing
             </Button>
@@ -274,6 +275,7 @@ const Seller = () => {
             dataSource={listedLeads} 
             columns={listingColumns} 
             rowKey="id"
+            className="marketplace-table"
           />
         </TabPane>
         
@@ -290,6 +292,7 @@ const Seller = () => {
             dataSource={salesHistory} 
             columns={salesColumns} 
             rowKey="id"
+            className="marketplace-table"
           />
         </TabPane>
         
@@ -306,6 +309,7 @@ const Seller = () => {
             dataSource={topBuyers} 
             columns={topBuyerColumns} 
             rowKey="id"
+            className="marketplace-table"
           />
         </TabPane>
       </Tabs>
@@ -316,6 +320,7 @@ const Seller = () => {
         onCancel={() => setAddLeadModalVisible(false)}
         footer={null}
         width={700}
+        className="add-listing-modal"
       >
         <Form
           form={form}
@@ -386,7 +391,7 @@ const Seller = () => {
           
           <Divider>Upload Lead Data</Divider>
           
-          <Row gutter={16}>
+          <Row gutter={16} className="upload-section">
             <Col span={12}>
               <Upload {...uploadProps}>
                 <Button icon={<FileExcelOutlined />} style={{ width: '100%', height: 80 }}>

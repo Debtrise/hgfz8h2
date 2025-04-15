@@ -79,6 +79,7 @@ import MarketplaceResults from "./pages/Marketplace/Results";
 import MarketplaceBuyer from "./pages/Marketplace/Buyer";
 import MarketplaceSeller from "./pages/Marketplace/Seller";
 import MarketplaceSettings from "./pages/Marketplace/Settings";
+import WebhookIntegration from "./pages/Marketplace/WebhookIntegration";
 
 // Import Admin and Agent Login pages
 import AdminLogin from "./pages/AdminLogin";
@@ -193,6 +194,7 @@ function App() {
                   <Route path="marketplace/buyer" element={<MarketplaceBuyer />} />
                   <Route path="marketplace/seller" element={<MarketplaceSeller />} />
                   <Route path="marketplace/settings" element={<MarketplaceSettings />} />
+                  <Route path="marketplace/webhook-integration" element={<WebhookIntegration />} />
 
                   {/* Settings routes */}
                   <Route path="settings" element={<Settings />} />

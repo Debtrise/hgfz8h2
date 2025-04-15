@@ -210,7 +210,7 @@ const Buyer = () => {
         >
           <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
             <Col span={24}>
-              <Card title="Find Leads">
+              <Card title="Find Leads" className="marketplace-stats-card">
                 <Form layout="inline">
                   <Form.Item label="Category">
                     <Select style={{ width: 120 }} defaultValue="">
@@ -245,6 +245,7 @@ const Buyer = () => {
             dataSource={availableLeads} 
             columns={leadColumns} 
             rowKey="id"
+            className="marketplace-table"
           />
         </TabPane>
         
@@ -263,6 +264,7 @@ const Buyer = () => {
                 dataSource={cartItems} 
                 columns={cartColumns} 
                 rowKey="id"
+                className="marketplace-table"
                 footer={() => (
                   <div style={{ textAlign: 'right' }}>
                     <Text strong style={{ marginRight: 20 }}>
@@ -274,7 +276,7 @@ const Buyer = () => {
               />
             </>
           ) : (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <div className="cart-empty">
               <ShoppingCartOutlined style={{ fontSize: 48, color: '#ccc' }} />
               <p>Your cart is empty</p>
               <Button type="primary" onClick={() => document.querySelector('[data-tab-key="browse"]')?.click()}>
@@ -297,6 +299,7 @@ const Buyer = () => {
             dataSource={purchaseHistory} 
             columns={historyColumns} 
             rowKey="id"
+            className="marketplace-table"
           />
         </TabPane>
       </Tabs>

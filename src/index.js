@@ -6,6 +6,7 @@ import "./styles/new/layout.css";
 import "./styles/new/dashboard.css";
 import "./styles/new/settings.css";
 import "./styles/new/theme.css";
+import "./styles/marketplace.css";
 import "./App.css";
 import App from "./App";
 

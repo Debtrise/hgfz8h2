@@ -1,7 +1,28 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Input, Upload, message, Tooltip, Space, Switch, Modal, Select, Form, Typography, Radio, Divider, Popconfirm } from "antd";
-import { SearchOutlined, UploadOutlined, ImportOutlined, SoundOutlined, PlayCircleFilled, PauseCircleFilled, EllipsisOutlined, RobotOutlined, FileTextOutlined, AudioOutlined, DownloadOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Table, Button, Input, Upload, message, Tooltip, Space, Switch, Modal, Select, Form, Typography, Radio, Divider, Popconfirm, Spin, Card } from "antd";
+import { 
+  SearchOutlined, 
+  UploadOutlined, 
+  ImportOutlined, 
+  SoundOutlined, 
+  PlayCircleFilled, 
+  PauseCircleFilled, 
+  EllipsisOutlined, 
+  RobotOutlined, 
+  FileTextOutlined, 
+  AudioOutlined, 
+  DownloadOutlined, 
+  DeleteOutlined,
+  InfoCircleOutlined,
+  SaveOutlined,
+  FileExcelOutlined,
+  FilterOutlined,
+  ReloadOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined
+} from "@ant-design/icons";
 import "../styles/Recordings.css";
+import "../Dashboard.css"; // Import dashboard styles
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -66,6 +87,7 @@ function Recordings() {
   const [selectedTemplate, setSelectedTemplate] = useState('custom');
   const [form] = Form.useForm();
   const [audioElement, setAudioElement] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchRecordings();
@@ -102,6 +124,7 @@ function Recordings() {
 
   const fetchRecordings = () => {
     setLoading(true);
+    setRefreshing(true);
     console.log(`Fetching recordings from: ${API_BASE_URL}/api/recordings/local`);
     
     // Fetch existing recordings from API using the new local endpoint
@@ -135,11 +158,13 @@ function Recordings() {
         console.log('Processed recordings:', recordingsWithKeys);
         setRecordings(recordingsWithKeys);
         setLoading(false);
+        setRefreshing(false);
       })
       .catch((err) => {
         console.error('Error fetching recordings:', err);
         message.error(`Failed to load recordings: ${err.message}`);
         setLoading(false);
+        setRefreshing(false);
         setRecordings([]); // Set empty array instead of mock data
       });
   };
@@ -536,8 +561,8 @@ function Recordings() {
       key: 'name',
       sorter: (a, b) => a.name.localeCompare(b.name),
       render: (text, record) => (
-        <div className="recording-name">
-          <SoundOutlined className="sound-icon" />
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <SoundOutlined style={{ marginRight: 8, color: '#3797ce' }} />
           <span>{text}</span>
         </div>
       ),
@@ -546,6 +571,11 @@ function Recordings() {
       title: 'Type',
       dataIndex: 'type',
       key: 'type',
+      filters: [
+        { text: 'Audio', value: 'Audio' },
+        { text: 'TTS', value: 'TTS' },
+      ],
+      onFilter: (value, record) => record.type === value,
     },
     {
       title: 'Duration',
@@ -559,6 +589,12 @@ function Recordings() {
       key: 'date',
       sorter: (a, b) => new Date(a.date) - new Date(b.date),
       defaultSortOrder: 'descend',
+      render: (text) => (
+        <span>
+          <ClockCircleOutlined style={{ marginRight: 8, color: '#8c8c8c' }} />
+          {text}
+        </span>
+      ),
     },
     {
       title: 'Size',
@@ -572,20 +608,18 @@ function Recordings() {
       render: (_, record) => (
         <Space size="middle">
           <Tooltip title={currentAudio === record.id && isPlaying ? "Pause" : "Play"}>
-            <button 
-              className="action-button"
+            <Button 
+              type="text"
+              icon={currentAudio === record.id && isPlaying ? <PauseCircleFilled style={{ color: '#3797ce' }} /> : <PlayCircleFilled style={{ color: '#3797ce' }} />}
               onClick={() => handlePlay(record)}
-            >
-              {currentAudio === record.id && isPlaying ? <PauseCircleFilled /> : <PlayCircleFilled />}
-            </button>
+            />
           </Tooltip>
           <Tooltip title="Download">
-            <button 
-              className="action-button"
+            <Button 
+              type="text"
+              icon={<DownloadOutlined style={{ color: '#3797ce' }} />}
               onClick={() => handleDownload(record.filename)}
-            >
-              <DownloadOutlined />
-            </button>
+            />
           </Tooltip>
           <Popconfirm
             title="Delete Recording"
@@ -597,9 +631,11 @@ function Recordings() {
             okButtonProps={{ danger: true }}
           >
             <Tooltip title="Delete">
-              <button className="action-button danger">
-                <DeleteOutlined />
-              </button>
+              <Button 
+                type="text" 
+                danger
+                icon={<DeleteOutlined />}
+              />
             </Tooltip>
           </Popconfirm>
         </Space>
@@ -619,17 +655,23 @@ function Recordings() {
   };
 
   return (
-    <div className="page-container">
-      <div className="content-container">
-        <div className="content-header">
-          <div className="header-with-back">
-            <h1 className="page-title">Recordings</h1>
-          </div>
-          <div className="header-actions">
+    <div className="dashboard-container">
+      <div className="dashboard-content">
+        <div className="dashboard-header">
+          <Title level={2}>Recordings</Title>
+          <div className="dashboard-actions">
             <Button 
-              className="button-secondary" 
+              icon={<ReloadOutlined />}
+              onClick={fetchRecordings}
+              loading={refreshing}
+              style={{ marginRight: 8 }}
+            >
+              Refresh
+            </Button>
+            <Button 
               icon={<RobotOutlined />}
               onClick={showTtsModal}
+              style={{ marginRight: 8 }}
             >
               Text to Speech
             </Button>
@@ -637,175 +679,205 @@ function Recordings() {
               <Button 
                 type="primary" 
                 icon={<UploadOutlined />}
-                className="button-primary"
               >
-                New Recording
+                Upload Recording
               </Button>
             </Upload>
           </div>
         </div>
 
-        <div className="content-body">
-          <div className="search-filter-container">
-            <div className="search-box">
+        <Card className="chart-card">
+          <div className="chart-header">
+            <h3 className="chart-title">
+              Audio Recordings
+              <Tooltip title="Manage audio files for your IVR system">
+                <InfoCircleOutlined style={{ marginLeft: 8, fontSize: 14, color: '#8c8c8c' }} />
+              </Tooltip>
+            </h3>
+            <div className="chart-actions">
               <Input
                 placeholder="Search recordings..."
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
                 prefix={<SearchOutlined />}
-                className="search-input"
+                style={{ width: 250, marginRight: 8 }}
               />
+              <Tooltip title="Export recordings">
+                <Button icon={<FileExcelOutlined />} style={{ marginRight: 8 }}>
+                  Export
+                </Button>
+              </Tooltip>
+              <Tooltip title="Filter recordings">
+                <Button icon={<FilterOutlined />} />
+              </Tooltip>
             </div>
           </div>
 
-          <div className="table-container">
+          <Spin spinning={loading}>
             <Table
               dataSource={filteredRecordings}
               columns={columns}
-              loading={loading}
               pagination={{ 
                 pageSize: 10,
                 position: ['bottomRight'],
-                showSizeChanger: false
+                showSizeChanger: true,
+                pageSizeOptions: ['10', '20', '50']
               }}
-              className="data-table"
               size="middle"
               bordered={false}
               rowKey="id"
+              className="recordings-table"
             />
-          </div>
+          </Spin>
+        </Card>
 
-          {/* Text to Speech Modal */}
-          <Modal
-            title="Generate Recording with Text-to-Speech"
-            open={ttsModalVisible}
-            onCancel={handleTtsCancel}
-            footer={null}
-            width={700}
-            className="modal-container"
+        {/* Text to Speech Modal */}
+        <Modal
+          title={
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <RobotOutlined style={{ marginRight: 8, color: '#3797ce' }} />
+              <span>Generate Recording with Text-to-Speech</span>
+            </div>
+          }
+          open={ttsModalVisible}
+          onCancel={handleTtsCancel}
+          footer={null}
+          width={700}
+          className="modal-container"
+        >
+          <Form
+            form={form}
+            layout="vertical"
+            className="form-container"
           >
-            <Form
-              form={form}
-              layout="vertical"
-              className="form-container"
-            >
-              <Form.Item label="Select Template">
-                <Radio.Group 
-                  onChange={handleTemplateChange} 
-                  value={selectedTemplate}
-                  className="template-selector"
-                >
-                  {RECORDING_TEMPLATES.map(template => (
-                    <Radio.Button key={template.id} value={template.id}>
-                      {template.name}
-                    </Radio.Button>
-                  ))}
-                </Radio.Group>
-              </Form.Item>
+            <Form.Item label="Select Template">
+              <Radio.Group 
+                onChange={handleTemplateChange} 
+                value={selectedTemplate}
+                className="template-selector"
+                buttonStyle="solid"
+              >
+                {RECORDING_TEMPLATES.map(template => (
+                  <Radio.Button key={template.id} value={template.id}>
+                    {template.name}
+                  </Radio.Button>
+                ))}
+              </Radio.Group>
+            </Form.Item>
 
-              <Form.Item
-                name="voiceId"
-                label="Select Voice"
-                rules={[{ required: true, message: 'Please select a voice' }]}
-              >
-                <Select placeholder="Select a voice">
-                  {availableVoices.map(voice => (
-                    <Option key={voice.voice_id} value={voice.voice_id}>
-                      {voice.name} ({voice.labels?.accent} {voice.labels?.gender})
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-              
-              <Form.Item
-                name="text"
-                label={
-                  <div className="form-label">
-                    <span>Message Text</span>
-                    <Text type="secondary" className="character-count">
-                      {form.getFieldValue('text')?.length || 0} characters
-                    </Text>
-                  </div>
-                }
-                rules={[{ required: true, message: 'Please enter message text' }]}
-              >
-                <TextArea
-                  rows={4}
-                  placeholder="Enter the text for your message..."
-                  onChange={handleTextChange}
-                  onKeyDown={handleKeyDown}
-                  maxLength={500}
-                  showCount
-                />
-              </Form.Item>
-              
+            <Form.Item
+              name="voiceId"
+              label={
+                <span>
+                  <AudioOutlined style={{ marginRight: 8 }} />
+                  Select Voice
+                </span>
+              }
+              rules={[{ required: true, message: 'Please select a voice' }]}
+            >
+              <Select placeholder="Select a voice">
+                {availableVoices.map(voice => (
+                  <Option key={voice.voice_id} value={voice.voice_id}>
+                    {voice.name} ({voice.labels?.accent} {voice.labels?.gender})
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            
+            <Form.Item
+              name="text"
+              label={
+                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                  <span>
+                    <FileTextOutlined style={{ marginRight: 8 }} />
+                    Message Text
+                  </span>
+                  <Text type="secondary" className="character-count">
+                    {form.getFieldValue('text')?.length || 0} characters
+                  </Text>
+                </div>
+              }
+              rules={[{ required: true, message: 'Please enter message text' }]}
+            >
+              <TextArea
+                rows={4}
+                placeholder="Enter the text for your message..."
+                onChange={handleTextChange}
+                onKeyDown={handleKeyDown}
+                maxLength={500}
+                showCount
+              />
+            </Form.Item>
+            
+            <Button
+              onClick={handlePreviewVoice}
+              icon={<AudioOutlined />}
+              loading={previewing}
+              style={{ marginBottom: 16 }}
+            >
+              Preview Voice <Text type="secondary" style={{ fontSize: 12 }}>(Ctrl+Space)</Text>
+            </Button>
+            
+            <Divider />
+            
+            <Form.Item
+              name="filename"
+              label={
+                <span>
+                  <SaveOutlined style={{ marginRight: 8 }} />
+                  Save As (Filename)
+                </span>
+              }
+              rules={[{ required: true, message: 'Please enter a filename' }]}
+            >
+              <Input 
+                placeholder="Enter filename (without extension)" 
+                suffix=".wav"
+              />
+            </Form.Item>
+
+            <div style={{ marginTop: 24 }}>
               <Button
-                onClick={handlePreviewVoice}
-                icon={<AudioOutlined />}
-                loading={previewing}
-                className="button-secondary"
+                onClick={handleGenerateAudio}
+                type="primary"
+                loading={generating}
+                disabled={!!generatedAudio}
+                icon={<RobotOutlined />}
+                block
               >
-                Preview Voice <span className="shortcut-hint">(Ctrl+Space)</span>
+                Generate Recording
               </Button>
               
-              <Divider />
-              
-              <Form.Item
-                name="filename"
-                label="Save As (Filename)"
-                rules={[{ required: true, message: 'Please enter a filename' }]}
-              >
-                <Input 
-                  placeholder="Enter filename (without extension)" 
-                  prefix={<FileTextOutlined />}
-                  suffix=".wav"
-                />
-              </Form.Item>
-
-              <div className="form-actions">
-                <Button
-                  onClick={handleGenerateAudio}
-                  type="primary"
-                  loading={generating}
-                  disabled={!!generatedAudio}
-                  className="button-primary"
-                  block
-                >
-                  Generate Recording
-                </Button>
-                
-                {(previewAudio || generatedAudio) && (
-                  <div className="preview-container">
-                    <Title level={5}>
-                      {generatedAudio ? "Generated Recording" : "Voice Preview"}
-                    </Title>
-                    <div className="preview-controls">
+              {(previewAudio || generatedAudio) && (
+                <Card style={{ marginTop: 16 }} className="stat-card">
+                  <Title level={5}>
+                    {generatedAudio ? "Generated Recording" : "Voice Preview"}
+                  </Title>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                    <Button
+                      icon={isPlaying ? <PauseCircleFilled /> : <PlayCircleFilled />}
+                      onClick={handlePreviewPlay}
+                      type="primary"
+                      ghost
+                    >
+                      {isPlaying ? "Pause" : "Play"}
+                    </Button>
+                    
+                    {generatedAudio && (
                       <Button
-                        icon={isPlaying ? <PauseCircleFilled /> : <PlayCircleFilled />}
-                        onClick={handlePreviewPlay}
                         type="primary"
-                        ghost
-                        className="button-primary"
+                        onClick={handlePublishAudio}
+                        icon={<CheckCircleOutlined />}
                       >
-                        {isPlaying ? "Pause" : "Play"}
+                        Publish
                       </Button>
-                      
-                      {generatedAudio && (
-                        <Button
-                          type="primary"
-                          onClick={handlePublishAudio}
-                          className="button-primary"
-                        >
-                          Publish
-                        </Button>
-                      )}
-                    </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </Form>
-          </Modal>
-        </div>
+                </Card>
+              )}
+            </div>
+          </Form>
+        </Modal>
       </div>
     </div>
   );

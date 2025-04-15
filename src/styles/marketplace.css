@@ -1,0 +1,242 @@
+/* 
+ * Marketplace CSS File
+ * Contains styles for marketplace components
+ */
+
+/* Common marketplace styles */
+.marketplace-results,
+.marketplace-buyer,
+.marketplace-seller,
+.marketplace-settings {
+  padding: var(--content-padding, 24px);
+  background-color: var(--background-light, #f5f5f5);
+}
+
+/* Marketplace cards and stats */
+.marketplace-stats-card {
+  background-color: var(--background-base, #ffffff);
+  border-radius: var(--border-radius-md, 6px);
+  border: 1px solid var(--border-color, #e8e8e8);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+  transition: transform var(--transition-normal, 0.2s ease), box-shadow var(--transition-normal, 0.2s ease);
+  overflow: hidden;
+}
+
+.marketplace-stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.05));
+}
+
+/* Results page specific styles */
+.marketplace-results .ant-card {
+  height: 100%;
+}
+
+.marketplace-results .ant-statistic-title {
+  color: var(--text-secondary, #666666);
+  font-size: var(--font-size-sm, 14px);
+}
+
+.marketplace-results .ant-statistic-content {
+  color: var(--text-primary, #333333);
+  font-size: var(--font-size-xl, 20px);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.marketplace-results .ant-progress-bg {
+  background-color: var(--primary, #3a84af);
+}
+
+/* Buyer page specific styles */
+.marketplace-buyer .ant-tabs-tab {
+  padding: var(--space-md, 16px) var(--space-lg, 24px);
+}
+
+.marketplace-buyer .ant-tabs-tab-active {
+  font-weight: var(--font-weight-medium, 500);
+}
+
+.marketplace-buyer .ant-tabs-tab-btn {
+  color: var(--text-secondary, #666666);
+}
+
+.marketplace-buyer .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--primary, #3a84af);
+}
+
+.marketplace-buyer .ant-tag {
+  border-radius: var(--border-radius-base, 4px);
+  padding: 2px 8px;
+}
+
+.marketplace-buyer .ant-card-head {
+  background-color: var(--background-light, #f5f5f5);
+  border-bottom: 1px solid var(--border-color, #e8e8e8);
+}
+
+.marketplace-buyer .cart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl, 32px);
+  background-color: var(--background-base, #ffffff);
+  border-radius: var(--border-radius-md, 6px);
+  border: 1px solid var(--border-color, #e8e8e8);
+}
+
+/* Seller page specific styles */
+.marketplace-seller .ant-statistic-title {
+  color: var(--text-secondary, #666666);
+  font-size: var(--font-size-sm, 14px);
+}
+
+.marketplace-seller .ant-statistic-content {
+  color: var(--text-primary, #333333);
+  font-size: var(--font-size-xl, 20px);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.marketplace-seller .add-listing-btn {
+  background-color: var(--primary, #3a84af);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-base, 4px);
+  padding: var(--space-sm, 12px) var(--space-md, 16px);
+  font-size: var(--font-size-sm, 14px);
+  font-weight: var(--font-weight-medium, 500);
+  cursor: pointer;
+  transition: all var(--transition-normal, 0.2s ease);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+}
+
+.marketplace-seller .add-listing-btn:hover {
+  background-color: var(--primary-hover, #40a9ff);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.marketplace-seller .ant-modal-content {
+  border-radius: var(--border-radius-md, 6px);
+  overflow: hidden;
+}
+
+.marketplace-seller .ant-modal-header {
+  background-color: var(--background-light, #f5f5f5);
+  border-bottom: 1px solid var(--border-color, #e8e8e8);
+  padding: var(--space-md, 16px) var(--space-lg, 24px);
+}
+
+.marketplace-seller .ant-modal-body {
+  padding: var(--space-lg, 24px);
+}
+
+.marketplace-seller .ant-modal-footer {
+  border-top: 1px solid var(--border-color, #e8e8e8);
+  padding: var(--space-md, 16px) var(--space-lg, 24px);
+}
+
+.marketplace-seller .ant-form-item-label > label {
+  color: var(--text-secondary, #666666);
+  font-size: var(--font-size-sm, 14px);
+}
+
+.marketplace-seller .upload-section {
+  margin-top: var(--space-lg, 24px);
+}
+
+/* Settings page specific styles */
+.marketplace-settings .ant-tabs-tab {
+  padding: var(--space-md, 16px) var(--space-lg, 24px);
+}
+
+.marketplace-settings .ant-tabs-tab-active {
+  font-weight: var(--font-weight-medium, 500);
+}
+
+.marketplace-settings .ant-tabs-tab-btn {
+  color: var(--text-secondary, #666666);
+}
+
+.marketplace-settings .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--primary, #3a84af);
+}
+
+.marketplace-settings .ant-card {
+  border-radius: var(--border-radius-md, 6px);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+  margin-bottom: var(--space-lg, 24px);
+}
+
+.marketplace-settings .ant-form-item-label > label {
+  color: var(--text-secondary, #666666);
+  font-size: var(--font-size-sm, 14px);
+}
+
+.marketplace-settings .section-title {
+  color: var(--text-primary, #333333);
+  font-size: var(--font-size-lg, 18px);
+  font-weight: var(--font-weight-medium, 500);
+  margin-bottom: var(--space-md, 16px);
+}
+
+.marketplace-settings .ant-collapse-header {
+  font-weight: var(--font-weight-medium, 500);
+}
+
+.marketplace-settings .ant-alert {
+  border-radius: var(--border-radius-base, 4px);
+  margin-bottom: var(--space-md, 16px);
+}
+
+.marketplace-settings .ant-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md, 16px);
+}
+
+/* Common table styles */
+.marketplace-table .ant-table-thead > tr > th {
+  background-color: var(--background-light, #f5f5f5);
+  color: var(--text-secondary, #666666);
+  font-weight: var(--font-weight-medium, 500);
+  border-bottom: 1px solid var(--border-color, #e8e8e8);
+}
+
+.marketplace-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--border-light, #f0f0f0);
+}
+
+.marketplace-table .ant-table-tbody > tr:hover > td {
+  background-color: var(--background-light, #f5f5f5);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .marketplace-results,
+  .marketplace-buyer,
+  .marketplace-seller,
+  .marketplace-settings {
+    padding: var(--space-md, 16px);
+  }
+  
+  .ant-table {
+    overflow-x: auto;
+  }
+  
+  .ant-form-item {
+    margin-bottom: var(--space-md, 16px);
+  }
+}
+
+@media (max-width: 576px) {
+  .marketplace-stats-card {
+    margin-bottom: var(--space-md, 16px);
+  }
+  
+  .ant-tabs-tab {
+    padding: var(--space-sm, 12px) !important;
+  }
+} 
