@@ -73,6 +73,13 @@ import WebhookIngestion from './pages/WebhookIngestion';
 // Import Journey pages
 import Journeys from "./pages/Journeys";
 
+// Import Marketplace pages
+import Marketplace from "./pages/Marketplace";
+import MarketplaceResults from "./pages/Marketplace/Results";
+import MarketplaceBuyer from "./pages/Marketplace/Buyer";
+import MarketplaceSeller from "./pages/Marketplace/Seller";
+import MarketplaceSettings from "./pages/Marketplace/Settings";
+
 // Import Admin and Agent Login pages
 import AdminLogin from "./pages/AdminLogin";
 import AgentLogin from "./pages/AgentLogin";
@@ -179,6 +186,13 @@ function App() {
                   <Route path="dids" element={<DIDs />} />
                   <Route path="dids/:id" element={<DIDDetail />} />
                   <Route path="dids/:id/edit" element={<DIDEdit />} />
+
+                  {/* Marketplace Routes */}
+                  <Route path="marketplace" element={<Navigate to="/marketplace/results" replace />} />
+                  <Route path="marketplace/results" element={<MarketplaceResults />} />
+                  <Route path="marketplace/buyer" element={<MarketplaceBuyer />} />
+                  <Route path="marketplace/seller" element={<MarketplaceSeller />} />
+                  <Route path="marketplace/settings" element={<MarketplaceSettings />} />
 
                   {/* Settings routes */}
                   <Route path="settings" element={<Settings />} />

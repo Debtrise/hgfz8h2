@@ -13,6 +13,10 @@ import {
   MenuFoldOutlined,
   NumberOutlined,
   CustomerServiceOutlined,
+  ShopOutlined,
+  DashboardOutlined,
+  UserOutlined,
+  ShoppingOutlined,
 } from "@ant-design/icons";
 import { useSidebar } from '../context/SidebarContext';
 import './Sidebar.css';
@@ -93,6 +97,21 @@ const Sidebar = () => {
           <Menu.Item key="did-pools" icon={<PhoneOutlined />}>
             <Link to="/did-pools">DID Pools</Link>
           </Menu.Item>
+
+          <Menu.SubMenu key="marketplace" icon={<ShopOutlined />} title="Marketplace">
+            <Menu.Item key="marketplace-results" icon={<DashboardOutlined />}>
+              <Link to="/marketplace/results">Results</Link>
+            </Menu.Item>
+            <Menu.Item key="marketplace-buyer" icon={<ShoppingOutlined />}>
+              <Link to="/marketplace/buyer">Buyer</Link>
+            </Menu.Item>
+            <Menu.Item key="marketplace-seller" icon={<UserOutlined />}>
+              <Link to="/marketplace/seller">Seller</Link>
+            </Menu.Item>
+            <Menu.Item key="marketplace-settings" icon={<SettingOutlined />}>
+              <Link to="/marketplace/settings">Settings</Link>
+            </Menu.Item>
+          </Menu.SubMenu>
 
           <Menu.SubMenu key="call-center" icon={<CustomerServiceOutlined />} title="Call Center">
             <Menu.Item key="agent-interface">
