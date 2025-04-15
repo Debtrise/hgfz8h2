@@ -52,6 +52,8 @@ import {
 import NotificationSystem from "../components/NotificationSystem";
 import WebSocketService from '../services/WebSocketService';
 import CallRoutingService from '../services/CallRoutingService';
+import AgentService from '../services/AgentService';
+import { useAuth } from '../context/AuthContext';
 
 // ========== Mock Data ========== //
 const { Content } = Layout;
@@ -225,6 +227,11 @@ const AgentInterface = () => {
   const [statsPeriod, setStatsPeriod] = useState("today");
   const [agentId] = useState(() => `agent-${Math.random().toString(36).substr(2, 9)}`);
   const [agentSkills, setAgentSkills] = useState(['general']);
+  const [agentData, setAgentData] = useState(null);
+  const [sipCredentials, setSipCredentials] = useState(null);
+  const [currentCallId, setCurrentCallId] = useState(null);
+  const [todayStats, setTodayStats] = useState(null);
+  const { currentAgent } = useAuth();
 
   // For call disposition form
   const [dispositionForm] = Form.useForm();
@@ -237,24 +244,57 @@ const AgentInterface = () => {
   callTimerRef.current = callTimer;
 
   useEffect(() => {
-    // Register agent with the routing service
-    CallRoutingService.registerAgent(agentId, agentSkills);
+    const initializeAgent = async () => {
+      try {
+        // Get agent data
+        if (currentAgent?.id) {
+          const agent = await AgentService.getAgentById(currentAgent.id);
+          setAgentData(agent);
 
-    // Subscribe to WebSocket updates for incoming calls
-    WebSocketService.subscribe(agentId, handleIncomingCall);
-    WebSocketService.connect();
+          // Get SIP credentials
+          const sip = await AgentService.getSipCredentials();
+          setSipCredentials(sip);
 
-    return () => {
-      WebSocketService.unsubscribe(agentId);
-      WebSocketService.disconnect();
+          // Update SIP registration
+          await AgentService.updateSipRegistration({ registered: true });
+
+          // Get agent stats
+          const stats = await AgentService.getAgentStats(currentAgent.id);
+          setTodayStats(stats.today);
+
+          // Get call history
+          const logs = await AgentService.getCallLogs();
+          setCallHistory(logs.call_logs);
+        }
+      } catch (error) {
+        console.error('Error initializing agent:', error);
+        message.error('Failed to initialize agent data');
+      }
     };
-  }, [agentId, agentSkills]);
+
+    initializeAgent();
+
+    // Cleanup on unmount
+    return () => {
+      // Unregister SIP when component unmounts
+      AgentService.updateSipRegistration({ registered: false }).catch(console.error);
+    };
+  }, [currentAgent]);
 
   // Handle incoming call assignments from the routing service
-  const handleIncomingCall = (data) => {
+  const handleIncomingCall = async (data) => {
     if (data.type === 'incomingCall' && data.assignedAgent === agentId) {
-      setSelectedLead(data.leadInfo);
-      simulateIncomingCall();
+      try {
+        const callLog = await AgentService.logCallStart({
+          destination: data.phoneNumber,
+          direction: 'inbound'
+        });
+        setCurrentCallId(callLog.id);
+        setSelectedLead(data.leadInfo);
+        simulateIncomingCall();
+      } catch (error) {
+        console.error('Error logging incoming call:', error);
+      }
     }
   };
 
@@ -290,37 +330,52 @@ const AgentInterface = () => {
   };
 
   // Place outbound call
-  const placeCall = (phoneNumber) => {
+  const placeCall = async (phoneNumber) => {
     if (callStatus !== "idle") return;
-    setCallStatus("active");
-    setCallDirection("outbound");
-    startCallTimer();
+    try {
+      const callLog = await AgentService.logCallStart({
+        destination: phoneNumber,
+        direction: 'outbound'
+      });
+      setCurrentCallId(callLog.id);
+      setCallStatus("active");
+      setCallDirection("outbound");
+      startCallTimer();
+    } catch (error) {
+      console.error('Error starting call:', error);
+      message.error('Failed to initiate call');
+    }
   };
 
   // End call
-  const endCall = () => {
+  const endCall = async () => {
     if (callStatus === "idle") return;
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      setTimerInterval(null);
+    try {
+      if (currentCallId) {
+        await AgentService.logCallEnd({
+          call_id: currentCallId,
+          duration: callTimer,
+          status: 'completed'
+        });
+      }
+
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        setTimerInterval(null);
+      }
+      setCallStatus("idle");
+      setCurrentCallId(null);
+
+      // Refresh call history
+      const logs = await AgentService.getCallLogs();
+      setCallHistory(logs.call_logs);
+
+      // Show disposition form
+      setDrawerVisible(true);
+    } catch (error) {
+      console.error('Error ending call:', error);
+      message.error('Failed to end call');
     }
-    setCallStatus("idle");
-    // Add call to history
-    const newCall = {
-      id: callHistory.length + 1,
-      phoneNumber: selectedLead?.phoneNumber || dialNumber || "(555) 123-4567",
-      direction: callDirection === "inbound" ? "Inbound" : "Outbound",
-      startTime: new Date(Date.now() - callTimer * 1000).toLocaleString(),
-      duration: callTimer,
-      status: "Completed",
-      recording: true,
-      notes: "",
-    };
-    setCallHistory([newCall, ...callHistory]);
-    // Reset timer
-    setCallTimer(0);
-    // Show disposition form
-    setDrawerVisible(true);
   };
 
   // Toggle mute
@@ -336,57 +391,51 @@ const AgentInterface = () => {
   };
 
   // Update agent status in routing service
-  const changeAgentStatus = (status) => {
-    setAgentStatus(status);
-    CallRoutingService.updateAgentStatus(agentId, status);
+  const changeAgentStatus = async (status) => {
+    try {
+      if (agentData?.id) {
+        const updatedStatus = await AgentService.updateAgentStatus(agentData.id, {
+          agent_status: status,
+          available_for_calls: status === 'available'
+        });
+        setAgentStatus(status);
+        setAgentData(prev => ({ ...prev, ...updatedStatus }));
+      }
+    } catch (error) {
+      console.error('Error updating agent status:', error);
+      message.error('Failed to update status');
+    }
   };
 
   // Update call metrics after call ends
-  const handleDispositionSubmit = (values) => {
-    // Update routing service with call outcome
-    CallRoutingService.updateAgentMetrics(agentId, values.outcome === 'Completed');
+  const handleDispositionSubmit = async (values) => {
+    try {
+      // Update call log with disposition
+      if (currentCallId) {
+        await AgentService.logCallEnd({
+          call_id: currentCallId,
+          status: values.outcome,
+          notes: values.notes,
+          follow_up_date: values.followUp ? values.followUpDate : null
+        });
+      }
 
-    // Existing disposition logic
-    setCallHistory((prevHistory) => {
-      const updatedHistory = [...prevHistory];
-      updatedHistory[0].notes = values.notes;
-      return updatedHistory;
-    });
+      setDrawerVisible(false);
+      dispositionForm.resetFields();
 
-    // Add timeline entry
-    const newTimelineEntry = {
-      id: selectedLead.timeline.length + 1,
-      action: values.outcome,
-      timestamp: new Date().toLocaleString(),
-      details: values.notes,
-    };
-    setSelectedLead((prevLead) => ({
-      ...prevLead,
-      timeline: [newTimelineEntry, ...prevLead.timeline],
-      notes: [
-        {
-          id: prevLead.notes.length + 1,
-          text: values.notes,
-          timestamp: new Date().toLocaleString(),
-          agent: "Agent Name",
-        },
-        ...prevLead.notes,
-      ],
-    }));
+      // Refresh call history
+      const logs = await AgentService.getCallLogs();
+      setCallHistory(logs.call_logs);
 
-    setDrawerVisible(false);
-    dispositionForm.resetFields();
-
-    // Send call metrics to WebSocket for dashboard updates
-    WebSocketService.sendMessage({
-      type: 'callComplete',
-      agentId,
-      callData: {
-        outcome: values.outcome,
-        duration: callTimer,
-        timestamp: new Date().toISOString(),
-      },
-    });
+      // Refresh agent stats
+      if (agentData?.id) {
+        const stats = await AgentService.getAgentStats(agentData.id);
+        setTodayStats(stats.today);
+      }
+    } catch (error) {
+      console.error('Error submitting disposition:', error);
+      message.error('Failed to submit call disposition');
+    }
   };
 
   // Format call time
@@ -409,6 +458,22 @@ const AgentInterface = () => {
     if (!dialNumber.trim()) return;
     placeCall(dialNumber);
   };
+
+  // Add periodic stats refresh
+  useEffect(() => {
+    let statsInterval;
+    if (agentData?.id) {
+      statsInterval = setInterval(async () => {
+        try {
+          const stats = await AgentService.getAgentStats(agentData.id);
+          setTodayStats(stats.today);
+        } catch (error) {
+          console.error('Error refreshing stats:', error);
+        }
+      }, 60000); // Refresh every minute
+    }
+    return () => clearInterval(statsInterval);
+  }, [agentData]);
 
   // ========== Render Sub-Components ========== //
 
@@ -655,102 +720,49 @@ const AgentInterface = () => {
     </Card>
   );
 
-  const renderAgentStats = () => {
-    const stats =
-      statsPeriod === "today"
-        ? mockAgentStats.todayStats
-        : statsPeriod === "week"
-        ? mockAgentStats.weekStats
-        : mockAgentStats.monthStats;
-
-    return (
-      <Card
-        title={
-          <Space>
-            <span>Performance Stats</span>
-            <Select
-              value={statsPeriod}
-              onChange={setStatsPeriod}
-              style={{ width: 100 }}
-            >
-              <Option value="today">Today</Option>
-              <Option value="week">Week</Option>
-              <Option value="month">Month</Option>
-            </Select>
-          </Space>
-        }
-        style={{ marginTop: 16 }}
-      >
-        <Row gutter={[16, 16]}>
-          <Col span={8}>
-            <Statistic
-              title="Calls Taken"
-              value={stats.callsTaken}
-              prefix={<PhoneOutlined />}
-            />
-          </Col>
-          <Col span={8}>
-            <Statistic
-              title="Calls < 90 sec"
-              value={stats.callsUnder90Sec}
-              suffix={`/ ${stats.callsTaken}`}
-            />
-          </Col>
-          <Col span={8}>
-            <Statistic
-              title="Calls > 2 min"
-              value={stats.callsOver2Min}
-              suffix={`/ ${stats.callsTaken}`}
-            />
-          </Col>
-          <Col span={8}>
-            <Statistic
-              title="Calls > 5 min"
-              value={stats.callsOver5Min}
-              suffix={`/ ${stats.callsTaken}`}
-            />
-          </Col>
-          <Col span={8}>
-            <Statistic
-              title="Calls > 15 min"
-              value={stats.callsOver15Min}
-              suffix={`/ ${stats.callsTaken}`}
-            />
-          </Col>
-          <Col span={8}>
-            <div>
-              <p>Closing Rate</p>
-              <Progress
-                type="circle"
-                percent={stats.closingRate}
-                width={80}
-                format={(percent) => `${percent}%`}
-                status={
-                  stats.closingRate > 30
-                    ? "success"
-                    : stats.closingRate > 20
-                    ? "normal"
-                    : "exception"
-                }
-              />
-            </div>
-          </Col>
-        </Row>
-      </Card>
-    );
-  };
+  const renderAgentStats = () => (
+    <Card title="Today's Performance" style={{ marginTop: 16 }}>
+      <Row gutter={[16, 16]}>
+        <Col span={8}>
+          <Statistic
+            title="Calls Taken"
+            value={todayStats?.total_calls || 0}
+            prefix={<PhoneOutlined />}
+          />
+        </Col>
+        <Col span={8}>
+          <Statistic
+            title="Answered Calls"
+            value={todayStats?.answered_calls || 0}
+            suffix={`/ ${todayStats?.total_calls || 0}`}
+          />
+        </Col>
+        <Col span={8}>
+          <Statistic
+            title="Missed Calls"
+            value={todayStats?.missed_calls || 0}
+            className="missed-calls"
+          />
+        </Col>
+        <Col span={24}>
+          <Title level={5}>Total Talk Time</Title>
+          <Progress
+            percent={Math.min(100, (todayStats?.total_duration || 0) / 36)}
+            format={() => formatTime(todayStats?.total_duration || 0)}
+          />
+        </Col>
+      </Row>
+    </Card>
+  );
 
   const renderHeader = () => (
-    <div
-      style={{
-        padding: "16px",
-        display: "flex",
-        justifyContent: "right",
-        alignItems: "center",
-        borderBottom: "1px solid #f0f0f0",
-      }}
-    >
-      <Space></Space>
+    <div style={{ padding: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {sipCredentials && (
+        <div>
+          <Text strong>Extension: </Text>
+          <Text>{sipCredentials.agent_extension}</Text>
+        </div>
+      )}
 
       <Space>
         {callStatus !== "idle" && (
@@ -782,7 +794,7 @@ const AgentInterface = () => {
         </Select>
 
         <Avatar icon={<UserOutlined />} />
-        <Text strong>Agent Name</Text>
+        <Text strong>{agentData?.first_name ? `${agentData.first_name} ${agentData.last_name}` : 'Loading...'}</Text>
       </Space>
     </div>
   );

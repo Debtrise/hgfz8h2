@@ -54,9 +54,26 @@ class AuthService {
   async login(username, password) {
     try {
       const response = await apiService.auth.login({ email: username, password });
-      const user = response.user;
-      this.setSession(user, response.token);
-      return user;
+      
+      // Extract the validated user from the response
+      // apiService.auth.login now returns an object with user property that contains the validated user
+      const validatedUser = response.user || {};
+      
+      // Log complete object for debugging
+      console.log('AuthService.login: Response from apiService:', response);
+      console.log('AuthService.login: Validated user object:', validatedUser);
+      
+      // Check if we have a valid user with role
+      if (!validatedUser.role) {
+        console.warn('User object is missing role property, defaulting to ADMIN');
+        validatedUser.role = ROLES.ADMIN;
+      }
+      
+      // Save the validated user to session
+      const token = response.token || '';
+      this.setSession(validatedUser, token);
+      
+      return validatedUser;
     } catch (error) {
       message.error(error.response?.data?.message || 'Login failed. Please check your credentials.');
       throw error;

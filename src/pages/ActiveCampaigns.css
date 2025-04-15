@@ -1,0 +1,141 @@
+.active-campaigns {
+  padding: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: #fff !important;
+  border-radius: 8px !important;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+.campaign-card {
+  background: #fff !important;
+  border: 1px solid #e8e8e8 !important;
+  border-radius: 8px !important;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.campaign-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.campaign-card .ant-card-head {
+  border-bottom: 1px solid var(--border-color);
+  padding: 16px 24px;
+}
+
+.campaign-card .ant-card-head-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.campaign-card .ant-card-body {
+  padding: 12px !important;
+}
+
+.campaign-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.campaign-description {
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.campaign-metrics {
+  margin-top: 16px;
+}
+
+.campaign-metrics .ant-statistic {
+  background: #2a2a2a;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.campaign-metrics .ant-statistic-title {
+  color: #8c8c8c !important;
+  font-size: 12px !important;
+  margin-bottom: 4px !important;
+}
+
+.campaign-metrics .ant-statistic-content {
+  color: #fff !important;
+  font-size: 16px !important;
+}
+
+.campaign-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.campaign-header h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #262626;
+}
+
+.status-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background-color: rgba(24, 144, 255, 0.1);
+  color: #1890ff;
+}
+
+.status-badge.paused {
+  background-color: rgba(250, 140, 22, 0.1);
+  color: #fa8c16;
+}
+
+.status-badge.completed {
+  background-color: rgba(82, 196, 26, 0.1);
+  color: #52c41a;
+}
+
+.ant-statistic {
+  background: #fafafa;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
+}
+
+.ant-statistic-title {
+  color: #8c8c8c !important;
+  font-size: 12px !important;
+  margin-bottom: 4px !important;
+}
+
+.ant-statistic-content {
+  color: #262626 !important;
+  font-size: 16px !important;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+
+.error-message {
+  color: #ff4d4f;
+  text-align: center;
+  padding: 24px;
+  font-size: 16px;
+} 

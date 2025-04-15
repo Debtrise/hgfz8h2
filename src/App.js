@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import 'antd/dist/reset.css';
+import './styles/fonts.css';
+import './styles/mobile.css';
 import {
   BrowserRouter as Router,
   Routes,
@@ -8,6 +10,8 @@ import {
   useLocation,
 } from "react-router-dom";
 import { SidebarProvider } from './context/SidebarContext';
+import axios from 'axios';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Auth pages
 import Login from "./pages/Login";
@@ -69,100 +73,143 @@ import WebhookIngestion from './pages/WebhookIngestion';
 // Import Journey pages
 import Journeys from "./pages/Journeys";
 
-// Private Route component to handle authenticated routes
-const PrivateRoute = ({ children }) => {
-  const isAuthenticated = true;
-  const location = useLocation();
+// Import Admin and Agent Login pages
+import AdminLogin from "./pages/AdminLogin";
+import AgentLogin from "./pages/AgentLogin";
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+// Import Agent Assignment Management
+import AgentAssignmentManagement from "./pages/settings/AgentAssignmentManagement";
+
+// Set up axios defaults and interceptors
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://35.202.92.164:8080/api';
+
+// Log the base URL for debugging
+console.log('Axios baseURL:', axios.defaults.baseURL);
+
+// Add a request interceptor
+axios.interceptors.request.use(
+  (config) => {
+    // Log the full URL being requested for debugging
+    console.log('Making request to:', config.baseURL + config.url);
+    
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
+);
 
-  return children;
-};
+// Add a response interceptor
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      // Clear local storage and redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('agentId');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 function App() {
   const [theme, setTheme] = useState('light');
 
   return (
     <Router>
-      <SidebarProvider>
-        <IntegrationsProvider>
-          <div className={`app-wrapper theme-${theme}`}>
-            <Routes>
-              {/* Auth routes - accessible to everyone */}
-              <Route path="/Login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
+      <AuthProvider>
+        <SidebarProvider>
+          <IntegrationsProvider>
+            <div className={`app-wrapper theme-${theme}`}>
+              <Routes>
+                {/* Auth routes - accessible to everyone */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/admin-login" element={<AdminLogin />} />
+                <Route path="/agent-login" element={<AgentLogin />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
 
-              {/* Redirect root to dashboard if authenticated, otherwise to login */}
-              <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-                {/* Dashboard */}
-                <Route index element={<Navigate to="/dashboard" replace />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                
-                {/* Features route */}
-                <Route path="features" element={<Features />} />
+                {/* Agent Portal - accessible to agents, no sidebar layout */}
+                <Route path="/agent" element={<AgentInterface />} />
 
-                {/* Campaign routes */}
-                <Route path="campaigns" element={<Campaigns />} />
-                <Route path="campaigns/new" element={<CampaignBuilder />} />
-                <Route path="campaigns/:id" element={<CampaignBuilder />} />
-                <Route path="campaigns/:id/detail" element={<CampaignDetail />} />
+                {/* Admin routes - accessible to admins with layout */}
+                <Route path="/" element={<Layout />}>
+                  {/* Dashboard */}
+                  <Route index element={<Navigate to="/dashboard" replace />} />
+                  <Route path="dashboard" element={<Dashboard />} />
+                  
+                  {/* Features route */}
+                  <Route path="features" element={<Features />} />
 
-                {/* Lead Pool routes */}
-                <Route path="lead-pools" element={<PrivateRoute><LeadPools /></PrivateRoute>} />
-                <Route path="lead-pools/new" element={<PrivateRoute><LeadPoolForm /></PrivateRoute>} />
-                <Route path="lead-pools/:id" element={<PrivateRoute><LeadPoolForm /></PrivateRoute>} />
-                <Route path="lead-pools/:id/leads" element={<PrivateRoute><LeadPoolLeads /></PrivateRoute>} />
+                  {/* Campaign routes */}
+                  <Route path="campaigns" element={<Campaigns />} />
+                  <Route path="campaigns/new" element={<CampaignBuilder />} />
+                  <Route path="campaigns/:id" element={<CampaignBuilder />} />
+                  <Route path="campaigns/:id/detail" element={<CampaignDetail />} />
 
-                {/* Leads routes */}
-                <Route path="leads" element={<PrivateRoute><LeadsList /></PrivateRoute>} />
-                <Route path="leads/:id" element={<PrivateRoute><LeadDetail /></PrivateRoute>} />
-                <Route path="leads/import" element={<PrivateRoute><ImportLeads /></PrivateRoute>} />
-                <Route path="leads/assignments" element={<PrivateRoute><LeadAssignments /></PrivateRoute>} />
-                <Route path="leads/webhooks" element={<PrivateRoute><WebhookIngestion /></PrivateRoute>} />
-                
-                {/* Lead Management route */}
-                <Route path="lead-management" element={<PrivateRoute><LeadManagement /></PrivateRoute>} />
+                  {/* Lead Pool routes */}
+                  <Route path="lead-pools" element={<LeadPools />} />
+                  <Route path="lead-pools/new" element={<LeadPoolForm />} />
+                  <Route path="lead-pools/:id" element={<LeadPoolForm />} />
+                  <Route path="lead-pools/:id/leads" element={<LeadPoolLeads />} />
 
-                {/* Journey routes */}
-                <Route path="journeys" element={<PrivateRoute><Journeys /></PrivateRoute>} />
-                <Route path="journeys/builder" element={<PrivateRoute><JourneyBuilderList /></PrivateRoute>} />
-                <Route path="journeys/:id" element={<PrivateRoute><JourneyBuilderList /></PrivateRoute>} />
+                  {/* Leads routes */}
+                  <Route path="leads" element={<LeadsList />} />
+                  <Route path="leads/:id" element={<LeadDetail />} />
+                  <Route path="leads/import" element={<ImportLeads />} />
+                  <Route path="leads/assignments" element={<LeadAssignments />} />
+                  <Route path="leads/webhooks" element={<WebhookIngestion />} />
+                  
+                  {/* Lead Management route */}
+                  <Route path="lead-management" element={<LeadManagement />} />
 
-                {/* DID Pool routes */}
-                <Route path="did-pools" element={<PrivateRoute><DIDPools /></PrivateRoute>} />
-                <Route path="did-pools/:id" element={<PrivateRoute><DIDPoolDetails /></PrivateRoute>} />
-                <Route path="dids" element={<PrivateRoute><DIDs /></PrivateRoute>} />
-                <Route path="dids/:id" element={<PrivateRoute><DIDDetail /></PrivateRoute>} />
-                <Route path="dids/:id/edit" element={<PrivateRoute><DIDEdit /></PrivateRoute>} />
+                  {/* Journey routes */}
+                  <Route path="journeys" element={<Journeys />} />
+                  <Route path="journeys/builder" element={<JourneyBuilderList />} />
+                  <Route path="journeys/:id" element={<JourneyBuilderList />} />
 
-                {/* Settings routes */}
-                <Route path="settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-                <Route path="settings/profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
-                <Route path="settings/users" element={<PrivateRoute><UserManagement /></PrivateRoute>} />
-                <Route path="settings/brands-sources" element={<PrivateRoute><BrandSourceManagement /></PrivateRoute>} />
+                  {/* DID Pool routes */}
+                  <Route path="did-pools" element={<DIDPools />} />
+                  <Route path="did-pools/:id" element={<DIDPoolDetails />} />
+                  <Route path="dids" element={<DIDs />} />
+                  <Route path="dids/:id" element={<DIDDetail />} />
+                  <Route path="dids/:id/edit" element={<DIDEdit />} />
 
-                {/* Call Center Routes */}
-                <Route path="call-center" element={<Navigate to="/call-center/real-time-dashboard" replace />} />
-                <Route path="call-center/agent" element={<PrivateRoute><AgentInterface /></PrivateRoute>} />
-                <Route path="call-center/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
-                <Route path="call-center/real-time-dashboard" element={<PrivateRoute><RealTimeAgentDashboard /></PrivateRoute>} />
-                <Route path="call-center/FlowInventory" element={<PrivateRoute><FlowInventory /></PrivateRoute>} />
-                <Route path="call-center/FlowBuilder/new" element={<PrivateRoute><FlowBuilder /></PrivateRoute>} />
-                <Route path="call-center/FlowBuilder/:id" element={<PrivateRoute><FlowBuilder /></PrivateRoute>} />
-                <Route path="call-center/recordings" element={<PrivateRoute><Recordings /></PrivateRoute>} />
-                <Route path="call-center/call-logs" element={<PrivateRoute><CallLogs /></PrivateRoute>} />
-                <Route path="call-center/call-config" element={<PrivateRoute><CallConfig /></PrivateRoute>} />
+                  {/* Settings routes */}
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="settings/profile" element={<UserProfile />} />
+                  <Route path="settings/users" element={<UserManagement />} />
+                  <Route path="settings/brands-sources" element={<BrandSourceManagement />} />
+                  <Route path="settings/agents" element={<Settings />} />
+                  <Route path="settings/agent-assignments" element={<AgentAssignmentManagement />} />
+                  <Route path="settings/notifications" element={<Settings />} />
+                  <Route path="settings/relationship" element={<Settings />} />
+                  <Route path="settings/integrations" element={<Settings />} />
 
-                {/* Catch-all fallback */}
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Route>
-            </Routes>
-          </div>
-        </IntegrationsProvider>
-      </SidebarProvider>
+                  {/* Call Center Routes */}
+                  <Route path="call-center" element={<Navigate to="/call-center/real-time-dashboard" replace />} />
+                  <Route path="call-center/admin" element={<AdminDashboard />} />
+                  <Route path="call-center/real-time-dashboard" element={<RealTimeAgentDashboard />} />
+                  <Route path="call-center/FlowInventory" element={<FlowInventory />} />
+                  <Route path="call-center/FlowBuilder/new" element={<FlowBuilder />} />
+                  <Route path="call-center/FlowBuilder/:id" element={<FlowBuilder />} />
+                  <Route path="call-center/recordings" element={<Recordings />} />
+                  <Route path="call-center/call-logs" element={<CallLogs />} />
+                  <Route path="call-center/call-config" element={<CallConfig />} />
+
+                  {/* Catch-all fallback */}
+                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                </Route>
+              </Routes>
+            </div>
+          </IntegrationsProvider>
+        </SidebarProvider>
+      </AuthProvider>
     </Router>
   );
 }

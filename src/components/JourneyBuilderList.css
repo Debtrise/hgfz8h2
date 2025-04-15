@@ -1,31 +1,38 @@
 /* Base styles */
 .journey-builder {
   height: 100%;
+  min-height: 1000px; /* Increased from 800px */
+  width: 100%;
   display: flex;
   flex-direction: column;
-  padding: 65px;
+  padding: 16px;
+  margin: 0;
   background-color: #ffffff;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-/* Header styles */
+/* Header styles - Increased size */
 .journey-header-card {
-  margin-bottom: 14px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  margin-bottom: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   background: white;
 }
 
 .journey-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
+  padding: 24px 28px;
 }
 
 .journey-header h2 {
   margin-bottom: 0;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .journey-header h2:hover .anticon {
@@ -42,13 +49,32 @@
 .journey-name-edit {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 12px;
+  margin-bottom: 12px;
+  position: relative;
 }
 
 .journey-name-edit .ant-input {
-  font-weight: 600;
-  font-size: 18px;
+  font-weight: 800 !important;
+  font-size: 32px !important;
+  height: 50px;
+  padding-left: 40px;
+  letter-spacing: -0.5px;
+}
+
+.journey-name-edit::before {
+  content: "✏️";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+}
+
+.journey-name-edit .ant-input::placeholder {
+  color: #bfbfbf;
+  font-style: italic;
+  font-size: 32px;
 }
 
 .journey-info-row {
@@ -144,414 +170,352 @@
 .journey-builder-content {
   flex: 1;
   display: flex;
-  min-height: 0;
   overflow: hidden;
-}
-
-.flow-container {
-  flex: 1;
-  border-radius: 7px;
-  border: 1px solid #d9d9d9;
-  min-height: 510px;
-  position: relative;
-  background-color: #f8f8f8;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath fill='%23d0d0d0' fill-opacity='0.5' d='M1 3h1v1H1V3zm2-2h1v1H3V1z'%3E%3C/path%3E%3C/svg%3E");
-  background-repeat: repeat;
-  z-index: 1;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  min-height: 900px; /* Increased from 700px */
 }
 
 /* Node palette */
 .node-palette {
-  width: 170px;
-  margin-right: 15px;
-  padding: 15px;
-  border-radius: 7px;
-  border: 1px solid #d9d9d9;
+  width: 220px;
+  padding: 20px;
+  border-right: 1px solid #f0f0f0;
   background-color: white;
+  height: 100%;
+  overflow-y: auto;
+  box-shadow: inset -2px 0 5px rgba(0, 0, 0, 0.03);
 }
 
 .node-palette h5 {
-  margin-bottom: 14px;
-  font-weight: 500;
-  font-size: 13px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+  position: relative;
+  padding-bottom: 8px;
+}
+
+.node-palette h5:after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  background: #579dca;
+  border-radius: 2px;
 }
 
 .node-palette-items {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .node-palette-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 5px;
-  background-color: #f8f8f8;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
   cursor: move;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
   border: 1px solid #f0f0f0;
-  font-size: 12px;
+  font-size: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .node-palette-item:hover {
-  background-color: #f0f0f0;
-  border-color: #ddd;
+  background-color: #f0f7ff;
+  border-color: #a8d0eb;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
 .node-palette-item .anticon {
-  font-size: 14px;
+  font-size: 16px;
+  color: #579dca;
+  font-weight: 900; /* Make icons bolder */
+}
+
+/* Flow container */
+.flow-container {
+  flex: 1;
+  border-radius: 0 8px 8px 0;
+  position: relative;
+  background-color: #f9f9f9;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%23e0e0e0' fill-opacity='0.4' d='M1 3h2v2H1V3zm4-2h2v2H5V1z'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: repeat;
+  z-index: 1;
+  overflow: hidden;
+  min-height: 900px;
+}
+
+/* Node appearance animations */
+@keyframes nodeAppear {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.node-new {
+  animation: nodeAppear 0.3s ease-out;
 }
 
 /* Node styling */
 .node {
-  width: 280px;
-  min-height: 135px;
-  border-radius: 16px;
-  background-color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 10px;
+  border: 3px solid #d9d9d9;
+  border-radius: 12px;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 220px;
+  transition: all 0.5s ease;
   overflow: visible;
-  margin: 15px;
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  box-sizing: border-box;
 }
 
+.node:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+  border-color: #c0c0c0;
+  border-width: 3px;
+}
+
+/* Node header styling */
 .node-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 12px 16px;
-  background-color: #ffffff;
+  font-weight: 700 !important;
+  font-size: 16px !important;
+  color: #000 !important;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  background-color: white;
   border-bottom: 1px solid #f0f0f0;
-  font-weight: 500;
-  flex-shrink: 0;
-  font-size: 25px;
+  box-sizing: border-box;
 }
 
 .node-header .anticon {
-  margin-right: 12px;
-  font-size: 20px;
-  font-weight: 600;
+  font-weight: 900 !important;
+  font-size: 18px !important;
+  margin-right: 8px;
 }
 
+/* Node content for showing additional info like wait time */
 .node-content {
-  padding: 12px 16px;
-  flex-grow: 1;
-  overflow-y: auto;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.node-content > div {
-  margin-bottom: 10px;
-}
-
-.node-content strong {
-  font-weight: 500;
-  margin-right: 6px;
-}
-
-/* Node type specific styles */
-.email-node, .call-node, .sms-node, .wait-node, .condition-node, .end-node {
-  border-left: none;
-  position: relative;
-  padding-left: 8px;
-}
-
-.email-node::before, .call-node::before, .sms-node::before, 
-.wait-node::before, .condition-node::before, .end-node::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: #d9d9d9;
-  border-radius: 2px;
-  left: 4px;
-}
-
-/* Node type specific styles with selected state */
-.email-node.selected, .call-node.selected, .sms-node.selected,
-.wait-node.selected, .condition-node.selected, .end-node.selected {
-  background: #f0f0f0;
-  border-color: #b0b0b0;
-}
-
-.email-node.selected::before, .call-node.selected::before, .sms-node.selected::before,
-.wait-node.selected::before, .condition-node.selected::before, .end-node.selected::before {
-  background: #b0b0b0;
-}
-
-/* Step number styling */
-.step-number {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background-color: #456e92;
-  color: white;
-  font-weight: 500;
-  font-size: 12px;
-  margin-left: 12px;
-}
-
-/* Enhanced node content styles */
-.node-section {
-  background: #fafafa;
-  border-radius: 5px;
-  padding: 8px;
-  margin-bottom: 6px;
-  border: 1px solid #f0f0f0;
-}
-
-.node-section-title {
-  font-weight: 500;
-  margin-bottom: 6px;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-
-.node-section-content {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.node-field {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
-}
-
-.node-field-label {
-  font-weight: 500;
-  font-size: 10px;
-}
-
-.node-field-value {
-  font-size: 10px;
-  max-width: 60%;
-  text-align: right;
-  word-break: break-word;
-}
-
-.node-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
+  display: block;
+  margin-top: 0;
+  font-size: 13px;
+  color: #666;
   border-top: 1px solid #f0f0f0;
+  padding: 12px 16px;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  box-sizing: border-box;
 }
 
-.node-action-button {
-  padding: 3px 6px;
-  font-size: 10px;
-  border-radius: 3px;
-  background: #f5f5f5;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid #e0e0e0;
+/* Node details styling */
+.node-detail {
+  margin-bottom: 4px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
-.node-action-button:hover {
-  background: #e6e6e6;
-  border-color: #c0c0c0;
+.node-detail strong {
+  font-weight: 600;
+  color: #444;
 }
 
-/* ReactFlow styles */
-.react-flow__renderer {
-  background: transparent !important;
+.node-message {
+  font-style: italic;
+  color: #555;
 }
 
-.react-flow__container {
-  background: transparent !important;
-}
-
-.react-flow__pane {
-  background-color: transparent !important;
-}
-
-.react-flow__background {
-  opacity: 0 !important;
-  display: none !important;
-  background-color: transparent;
-}
-
-/* Handle styles */
-.react-flow__handle {
-  width: 10px;
-  height: 10px;
-  background-color: #fff;
-  border: 1px solid #bbb;
-  border-radius: 50%;
-  opacity: 0.75;
-}
-
-.react-flow__handle-left {
-  left: -6px;
-}
-
-.react-flow__handle-right {
-  right: -6px;
-}
-
-.react-flow__handle.valid-handle {
-  background: #595959;
-}
-
-.react-flow__handle.invalid-handle {
-  background: #8c8c8c;
-}
-
-/* Edge styles */
+/* Edge styling for more flexible connections */
 .react-flow__edge {
-  pointer-events: all;
+  pointer-events: all !important; /* Make the entire edge clickable */
 }
 
 .react-flow__edge-path {
-  stroke: #a0a0a0 !important;
-  stroke-width: 1.5px !important;
+  stroke: #d9d9d9;
+  stroke-width: 2px !important;
   stroke-linecap: round;
   stroke-linejoin: round;
-  fill: none;
-  marker-end: url(#react-flow__arrowclosed);
 }
 
-.react-flow__edge:hover .react-flow__edge-path {
-  stroke: #595959 !important;
-  stroke-width: 2px !important;
+.react-flow__edge.animated path {
+  stroke-dasharray: 5, 5;
 }
 
-.react-flow__edge.selected .react-flow__edge-path,
-.react-flow__edge:focus .react-flow__edge-path,
-.react-flow__edge:focus-visible .react-flow__edge-path {
-  stroke: #000000 !important;
-  stroke-width: 2px !important;
-  stroke-dasharray: all;
-  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.2));
+.react-flow__edge.selected path {
+  stroke-width: 3px !important;
+  stroke: #a0a0a0;
 }
 
-/* Connection line styles */
+/* Edge animations should be subtle */
+@keyframes dashOffset {
+  from {
+    stroke-dashoffset: 10;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.react-flow__edge.animated path {
+  stroke-dasharray: 5, 5;
+  animation: dashOffset 1s linear infinite;
+}
+
+/* Edge type styling */
+.react-flow__edge-path, 
 .react-flow__connection-path {
-  stroke: #595959 !important;
-  stroke-width: 1.5px !important;
-  stroke-dasharray: 4 4;
-  animation: alternate;
+  stroke: #d9d9d9;
+  stroke-width: 2px;
   stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-  marker-end: url(#react-flow__arrowclosed);
 }
 
-.react-flow__connection {
-  pointer-events: stroke;
-}
-
-.react-flow__connection .react-flow__connection-path {
-  stroke: #595959 !important;
-  stroke-width: 1px;
-  stroke-dasharray: 4;
-  animation: flowAnimation 3s linear infinite;
-}
-
-/* Edge text positioning */
-.react-flow__edge-text {
-  font-size: 9px;
-  font-weight: 500;
-  fill: #333333;
-  background: white;
-  padding: 1px 5px;
-  border-radius: 2px;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+/* Edge tooltip styling */
+.edge-tooltip {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  z-index: 10;
   pointer-events: none;
-  user-select: none;
+  white-space: nowrap;
+  max-width: 200px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transform: translate(10px, -50%);
+  opacity: 1;
+  transition: opacity 0.3s ease-out;
 }
 
-.react-flow__edge-text:hover {
-  fill: #000000;
+.edge-tooltip.fade-out {
+  opacity: 0;
 }
 
-/* Smooth step specific styles */
-.react-flow__edge-smoothstep .react-flow__edge-path,
-.react-flow__connection-smoothstep .react-flow__connection-path {
+/* Edge menu styling */
+.edge-menu {
+  position: fixed;
+  z-index: 1000;
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
+  min-width: 120px;
+  display: block;
+}
+
+.edge-menu.hidden {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.edge-menu .menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.edge-menu .menu-close {
+  cursor: pointer;
+  padding: 2px;
+  color: #999;
+  font-size: 12px;
+  line-height: 1;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.edge-menu .menu-close:hover {
+  background: #f5f5f5;
+  color: #666;
+}
+
+/* Make bezier edges smoother with less control points */
+.react-flow__edge-bezier path,
+.react-flow__connection-bezier path {
+  stroke-dasharray: none;
   stroke-linecap: round;
   stroke-linejoin: round;
+  transition: stroke 0.3s ease;
 }
 
-/* SVG marker definitions */
-.react-flow__renderer > svg {
-  overflow: visible !important;
+/* Handle styles for better visibility */
+.react-flow__handle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #d9d9d9;
+  background: white;
 }
 
-defs {
-  marker#react-flow__arrowclosed {
-    fill: #a0a0a0;
-    stroke: none;
-    orient: auto;
-  }
-
-  marker#react-flow__arrowclosed_selected {
-    fill: #000000;
-    stroke: none;
-    orient: auto;
-  }
-}
-
-#react-flow__arrowclosed path {
-  fill: #7c1616;
-}
-
-.react-flow__edge:hover #react-flow__arrowclosed path {
-  fill: #595959;
-}
-
-.react-flow__edge.selected #react-flow__arrowclosed path,
-.react-flow__edge:focus #react-flow__arrowclosed path,
-.react-flow__edge:focus-visible #react-flow__arrowclosed path {
-  fill: #265871;
+.react-flow__handle:hover {
+  background: #579dca;
+  border-color: #579dca;
 }
 
 /* Controls and minimap */
 .react-flow__controls {
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.08);
-  border-radius: 3px;
+  border-radius: 6px;
   background: white;
-}
-
-.react-flow__controls-button {
-  border: none;
-  background: white;
-  border-bottom: 1px solid #f0f0f0;
-  width: 28px;
-  height: 28px;
-}
-
-.react-flow__controls-button svg {
-  width: 12px;
-  height: 12px;
-}
-
-.react-flow__controls-button:hover {
-  background: #f5f5f5;
+  margin: 15px;
 }
 
 .react-flow__minimap {
-  border-radius: 3px;
-  overflow: hidden;
-  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.08);
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
-/* Initial zoom level */
-.react-flow__viewport {
-  transform: scale(1);
-  transform-origin: center center;
+/* Responsive styles */
+@media (max-width: 768px) {
+  .journey-builder-content {
+    flex-direction: column;
+  }
+  
+  .node-palette {
+    width: 100%;
+    height: auto;
+    max-height: 180px;
+    border-right: none;
+    border-bottom: 1px solid #f0f0f0;
+    border-radius: 8px 8px 0 0;
+  }
+  
+  .flow-container {
+    border-radius: 0 0 8px 8px;
+  }
+  
+  .node {
+    width: 180px;
+    min-height: 80px;
+  }
 }
 
 /* Status badge colors */
@@ -755,36 +719,682 @@ defs {
   padding: 14px 20px !important;
 }
 
-/* Responsive styles */
-@media (max-width: 768px) {
-  .journey-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 14px;
+/* ReactFlow styles */
+.react-flow__renderer {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 900px !important; /* Increased from 700px */
+  background: transparent !important;
+}
+
+.react-flow__container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 900px !important; /* Increased from 700px */
+  background: transparent !important;
+}
+
+.react-flow__pane {
+  height: 100% !important;
+  min-height: 900px !important; /* Increased from 700px */
+}
+
+/* Edge text positioning */
+.react-flow__edge-text {
+  font-size: 9px;
+  font-weight: 500;
+  fill: #333333;
+  background: white;
+  padding: 1px 5px;
+  border-radius: 2px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+  user-select: none;
+}
+
+.react-flow__edge-text:hover {
+  fill: #000000;
+}
+
+/* Smooth step specific styles */
+.react-flow__edge-smoothstep .react-flow__edge-path,
+.react-flow__connection-smoothstep .react-flow__connection-path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* SVG marker definitions */
+.react-flow__renderer > svg {
+  overflow: visible !important;
+}
+
+defs {
+  marker#react-flow__arrowclosed {
+    fill: #a0a0a0;
+    stroke: none;
+    orient: auto;
   }
-  
-  .journey-builder .ant-row {
-    flex-direction: column;
+
+  marker#react-flow__arrowclosed_selected {
+    fill: #000000;
+    stroke: none;
+    orient: auto;
   }
-  
-  .journey-builder .ant-col {
-    width: 10%;
-    margin-bottom: 16px;
+}
+
+#react-flow__arrowclosed path {
+  display: none !important;
+}
+
+.react-flow__edge:hover #react-flow__arrowclosed path {
+  display: none !important;
+}
+
+.react-flow__edge.selected #react-flow__arrowclosed path,
+.react-flow__edge:focus #react-flow__arrowclosed path,
+.react-flow__edge:focus-visible #react-flow__arrowclosed path {
+  display: none !important;
+}
+
+/* ReactFlow background elements */
+.react-flow__background {
+  opacity: 0 !important;
+  display: none !important;
+  background-color: transparent;
+}
+
+/* Edge drop animation */
+@keyframes edgeAppear {
+  0% {
+    stroke-dashoffset: 100;
+    opacity: 0;
   }
-  
-  .journey-builder-content {
-    flex-direction: column;
-    padding: 0 10px;
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
   }
-  
-  .node-palette {
-    width: 100%;
-    margin-right: 0;
+}
+
+.edge-new .react-flow__edge-path {
+  stroke-dasharray: 5;
+  animation: edgeAppear 0.8s ease-out forwards;
+}
+
+/* Remove drop area highlight effect */
+.react-flow__pane.dropping {
+  background-color: transparent !important;
+}
+
+/* Remove the dropping-effect animations */
+.dropping-effect {
+  display: none;
+}
+
+@keyframes ripple {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0;
+  }
+  100% {
+    width: 0;
+    height: 0;
+    opacity: 0;
+  }
+}
+
+/* Remove any styles that might be breaking animations */
+.edge-new {
+  /* No animations that could break functionality */
+}
+
+/* Remove specific styles for node types */
+/* Use icons or subtler styling to differentiate node types */
+
+/* Delete button for nodes - fixed positioning */
+.node-delete-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #ff4d4f;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: scale(0);
+  transition: transform 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+  z-index: 100;
+  font-weight: bold;
+  pointer-events: auto;
+}
+
+.node:hover .node-delete-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.node-delete-btn:hover {
+  background-color: #ff7875;
+  transform: scale(1.2) !important;
+}
+
+/* Wait time display */
+.wait-time {
+  font-weight: 600;
+  color: #faad14;
+}
+
+/* Step number styling */
+.step-number {
+  display: none !important;
+}
+
+.wait-tag-node {
+  background-color: white;
+  border: 3px solid #d9d9d9;
+  border-radius: 12px;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: #000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 100px;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+  position: relative;
+}
+
+.wait-tag-node:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+  border-color: #c0c0c0;
+  border-width: 3px;
+}
+
+.wait-tag-node .wait-time {
+  font-weight: 500;
+  color: #000;
+  font-size: 16px;
+}
+
+.wait-tag-node .wait-label {
+  color: #000;
+  font-weight: 700;
+  font-size: 14px;
+  margin-right: 2px;
+}
+
+/* Hide the inherited node header and icon */
+.wait-tag-node .node-header {
+  display: none !important;
+}
+
+.wait-tag-node .node-header .anticon {
+  display: none !important;
+}
+
+/* Adjust wire width */
+.react-flow__edge-path {
+  stroke-width: 2px !important;
+}
+
+.react-flow__edge.animated path {
+  stroke-dasharray: 3, 3;
+}
+
+/* Adjust the handles for the wait tag */
+.wait-tag-node .react-flow__handle {
+  width: 10px;
+  height: 10px;
+  background: white;
+  border: 2px solid #d9d9d9;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.wait-tag-node .react-flow__handle-top {
+  top: -5px;
+}
+
+.wait-tag-node .react-flow__handle-bottom {
+  bottom: -5px;
+}
+
+.wait-tag-node .wait-icon {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #579dca;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-right: 5px;
+}
+
+.wait-tag-node .wait-icon::before {
+  content: '';
+  position: absolute;
+  width: 1.5px;
+  height: 7px;
+  background: #579dca;
+  top: 3px;
+  left: 50%;
+  margin-left: -0.75px;
+  transform-origin: bottom center;
+  animation: clockHand 3s linear infinite;
+  border-radius: 1px;
+}
+
+.wait-tag-node .wait-icon::after {
+  content: '';
+  position: absolute;
+  width: 1.5px;
+  height: 5px;
+  background: #579dca;
+  top: 5px;
+  left: 50%;
+  margin-left: -0.75px;
+  transform-origin: bottom center;
+  animation: clockHand 36s linear infinite;
+  border-radius: 1px;
+}
+
+@keyframes clockHand {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Save Journey button special styling */
+.journey-header .save-journey-btn {
+  height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 0 24px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #579dca, #265871);
+  border: none;
+  color: white;
+  box-shadow: 0 3px 8px rgba(87, 157, 202, 0.3);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.journey-header .save-journey-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(87, 157, 202, 0.4);
+  background: linear-gradient(90deg, #579dca, #1e4a61);
+}
+
+.journey-header .save-journey-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(87, 157, 202, 0.3);
+}
+
+.journey-header .save-journey-btn .anticon {
+  font-size: 18px;
+}
+
+.react-flow__edge.selected path {
+  stroke-width: 3px !important;
+  stroke: #579dca;
+}
+
+.day-break-node {
+  padding: 10px;
+  border-radius: 8px;
+:background: linear-gradient(135deg, #f5f5f5, #e6f7ff);
+  border: 2px dashed #579dca;
+  min-width: 150px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.day-break-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.day-break-icon {
+  font-size: 20px;
+}
+
+.day-break-label {
+  font-weight: 700;
+  font-size: 16px;
+  color: #fdfdfd;
+}
+
+.day-break-content {
+  font-size: 14px;
+  color: #666;
+}
+
+.day-break-node:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+/* Day Break Node Styles */
+.react-flow__node-default[data-type="dayBreak"] {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.react-flow__node-default[data-type="dayBreak"] .node {
+  background: #f0f2f5;
+  border: 2px solid #d9d9d9;
+  border-radius: 8px;
+  padding: 20px;
+  width: 280px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.react-flow__node-default[data-type="dayBreak"] .node:hover {
+  border-color: #1890ff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.react-flow__node-default[data-type="dayBreak"] .node::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 20px;
+  background: #d9d9d9;
+}
+
+.react-flow__node-default[data-type="dayBreak"] .node::before {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: #d9d9d9;
+  border-radius: 50%;
+}
+
+.react-flow__node-default[data-type="dayBreak"] .node-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
     margin-bottom: 15px;
   }
   
-  .node {
-    width: calc(100% - 20px);
-    margin: 10px;
-  }
+.react-flow__node-default[data-type="dayBreak"] .node-header span {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1890ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.react-flow__node-default[data-type="dayBreak"] .node-content {
+  text-align: center;
+}
+
+.react-flow__node-default[data-type="dayBreak"] .node-detail {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.react-flow__node-default[data-type="dayBreak"] .node-delete-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  opacity: 0;
+}
+
+.react-flow__node-default[data-type="dayBreak"] .node:hover .node-delete-btn {
+  opacity: 1;
+}
+
+.react-flow__node-default[data-type="dayBreak"] .node-delete-btn:hover {
+  background: #4f2a2a;
+  color: #ff4d4f;
+}
+
+/* Day Break Edge Separator */
+.day-break-separator {
+  background: rgb(168, 35, 35);
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #666;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.day-break-separator .anticon {
+  font-size: 12px;
+  color: #7f98af;
+}
+
+.day-break-separator-line {
+  position: absolute;
+  width: 2px;
+  height: 20px;
+  background: #d9d9d9;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.day-break-separator-line::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: #d9d9d9;
+  border-radius: 50%;
+}
+
+/* Day Container Styles */
+.day-container {
+  position: relative;
+  padding: 20px;
+  margin: 20px;
+  border: 2px solid #e8e8e8;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.day-container::before {
+  content: attr(data-day);
+  position: absolute;
+  top: -12px;
+  left: 20px;
+  background: #fafafa;
+  padding: 0 10px;
+  color: #9a0e0e;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Override React Flow default node styles */
+.react-flow__node-default {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  transform: none !important;
+}
+
+/* Day Start Node */
+.react-flow__node-default[data-type="dayStart"] .node {
+  background: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 10px 20px;
+  width: auto;
+  height: auto;
+  transition: none;
+  position: relative;
+  margin: 0;
+  border-radius: 50px;
+  color: rgb(193, 17, 17);
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Day End Node */
+.react-flow__node-default[data-type="dayEnd"] .node {
+  background: #276eb0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 10px 20px;
+  width: auto;
+  height: auto;
+  transition: none;
+  position: relative;
+  margin: 0;
+  border-radius: 50px;
+  color: rgb(172, 7, 7);
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Remove icons */
+.react-flow__node-default[data-type="dayStart"] .node-header span .anticon,
+.react-flow__node-default[data-type="dayEnd"] .node-header span .anticon {
+  display: none;
+}
+
+/* Remove content and detail sections */
+.react-flow__node-default[data-type="dayStart"] .node-content,
+.react-flow__node-default[data-type="dayEnd"] .node-content,
+.react-flow__node-default[data-type="dayStart"] .node-detail,
+.react-flow__node-default[data-type="dayEnd"] .node-detail {
+  display: none;
+}
+
+/* Common styles for both nodes */
+.react-flow__node-default[data-type="dayStart"] .node-delete-btn,
+.react-flow__node-default[data-type="dayEnd"] .node-delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.react-flow__node-default[data-type="dayStart"] .node:hover .node-delete-btn,
+.react-flow__node-default[data-type="dayEnd"] .node:hover .node-delete-btn {
+  opacity: 1;
+}
+
+.react-flow__node-default[data-type="dayStart"] .node-delete-btn:hover,
+.react-flow__node-default[data-type="dayEnd"] .node-delete-btn:hover {
+  color: #f5222d;
+}
+
+/* Handle styles */
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border: 2px solid #1890ff;
+}
+
+.react-flow__handle-top {
+  top: -4px;
+}
+
+.react-flow__handle-bottom {
+  bottom: -4px;
+}
+
+/* Hide top handle for day start and bottom handle for day end */
+.react-flow__node-default[data-type="dayStart"] .react-flow__handle-top,
+.react-flow__node-default[data-type="dayEnd"] .react-flow__handle-bottom {
+  display: none;
+}
+
+/* Day Start Node Header */
+.day-start-header {
+  background: #123353 !important;
+  color: rgb(155, 14, 14) !important;
+  font-weight: bold;
+  border-radius: 50px;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Day End Node Header */
+.day-end-header {
+  background: #1c2126 !important;
+  color: white !important;
+  font-weight: bold;
+  border-radius: 50px;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 } 

@@ -9,7 +9,8 @@ import {
   SafetyCertificateOutlined,
   TeamOutlined,
   ContactsOutlined,
-  ArrowLeftOutlined
+  ArrowLeftOutlined,
+  CustomerServiceOutlined
 } from '@ant-design/icons';
 import "../styles/new/settings.css";
 import Integrations from "./Integrations";
@@ -17,6 +18,7 @@ import UserManagement from "./UserManagement";
 import { FaUser, FaShieldAlt, FaBell, FaUsers, FaBuilding, FaCog, FaChartLine, FaPhone, FaHeadset, FaTag, FaFilter } from 'react-icons/fa';
 import BrandSourceManagement from './BrandSourceManagement';
 import LoadingIcon from '../components/LoadingIcon';
+import AgentManagement from '../components/settings/AgentManagement';
 
 const Settings = () => {
   const location = useLocation();
@@ -58,20 +60,23 @@ const Settings = () => {
             {/* Add user profile specific content here */}
           </div>
         );
-      case '/settings/roles':
+      case '/settings/agents':
+        return (
+          <div className="settings-page">
+            {renderBackButton()}
+            <AgentManagement />
+          </div>
+        );
+      case '/settings/agent-assignments':
         return (
           <div className="settings-page">
             {renderBackButton()}
             <div className="feature-card">
               <div className="feature-title">
                 <TeamOutlined className="icon" />
-                Roles & Permissions
-              </div>
-              <div className="feature-description">
-                Configure user roles and access permissions.
+                Agent & Ring Group Assignments
               </div>
             </div>
-            {/* Add roles & permissions specific content here */}
           </div>
         );
       case '/settings/notifications':
@@ -88,100 +93,6 @@ const Settings = () => {
               </div>
             </div>
             {/* Add notifications specific content here */}
-          </div>
-        );
-      case '/settings/relationship':
-        return (
-          <div className="settings-page">
-            {renderBackButton()}
-            <div className="feature-card">
-              <div className="feature-title">
-                <ContactsOutlined className="icon" />
-                Relationship Management
-              </div>
-              <div className="feature-description">
-                Configure customer relationship settings and manage contact preferences.
-              </div>
-            </div>
-            <div className="settings-form">
-              <h3>Contact Preferences</h3>
-              <div className="form-group">
-                <label>Contact Frequency</label>
-                <select className="form-control">
-                  <option>Daily</option>
-                  <option>Weekly</option>
-                  <option>Monthly</option>
-                  <option>Custom</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Preferred Contact Method</label>
-                <select className="form-control">
-                  <option>Email</option>
-                  <option>Phone</option>
-                  <option>SMS</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Follow-up Timeline</label>
-                <select className="form-control">
-                  <option>24 hours</option>
-                  <option>48 hours</option>
-                  <option>1 week</option>
-                  <option>Custom</option>
-                </select>
-              </div>
-              <button className="button-blue">Save Changes</button>
-            </div>
-          </div>
-        );
-      case '/settings/agents':
-        return (
-          <div className="settings-page">
-            {renderBackButton()}
-            <div className="feature-card">
-              <div className="feature-title">
-                <TeamOutlined className="icon" />
-                Agent Management
-              </div>
-              <div className="feature-description">
-                Manage agent profiles, assignments, and performance settings.
-              </div>
-            </div>
-            <div className="settings-form">
-              <h3>Agent Settings</h3>
-              <div className="form-group">
-                <label>Default Call Queue Size</label>
-                <input type="number" className="form-control" placeholder="Enter queue size" />
-              </div>
-              <div className="form-group">
-                <label>Break Time Duration</label>
-                <select className="form-control">
-                  <option>15 minutes</option>
-                  <option>30 minutes</option>
-                  <option>45 minutes</option>
-                  <option>60 minutes</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Performance Metrics</label>
-                <div className="checkbox-group">
-                  <label>
-                    <input type="checkbox" /> Call Duration
-                  </label>
-                  <label>
-                    <input type="checkbox" /> Resolution Rate
-                  </label>
-                  <label>
-                    <input type="checkbox" /> Customer Satisfaction
-                  </label>
-                  <label>
-                    <input type="checkbox" /> Response Time
-                  </label>
-                </div>
-              </div>
-              <button className="button-blue">Save Changes</button>
-            </div>
           </div>
         );
       case '/settings/integrations':
@@ -239,7 +150,7 @@ const Settings = () => {
 
               <div className="settings-card">
                 <div className="settings-card-title">
-                  <TeamOutlined className="icon" />
+                  <CustomerServiceOutlined className="icon" />
                   Agent Management
                 </div>
                 <p className="settings-card-description">
@@ -250,13 +161,24 @@ const Settings = () => {
 
               <div className="settings-card">
                 <div className="settings-card-title">
+                  <TeamOutlined className="icon" />
+                  Agent & Ring Group Assignments
+                </div>
+                <p className="settings-card-description">
+                  Manage agent assignments to ring groups and call queues.
+                </p>
+                <button className="button-blue" onClick={() => navigate('/settings/agent-assignments')}>Configure</button>
+              </div>
+
+              <div className="settings-card">
+                <div className="settings-card-title">
                   <ContactsOutlined className="icon" />
                   Relationship Management
                 </div>
                 <p className="settings-card-description">
                   Manage customer relationships and contact preferences.
                 </p>
-                <button className="button-blue" onClick={() => navigate('/relationship')}>Configure</button>
+                <button className="button-blue" onClick={() => navigate('/settings/relationship')}>Configure</button>
               </div>
 
               <div className="settings-card">

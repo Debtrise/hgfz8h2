@@ -313,4 +313,21 @@ export const callAnalyticsService = {
       throw error;
     }
   },
+
+  // Get transfer statistics
+  getTransferStats: async (timeRange = 'today') => {
+    try {
+      const response = await apiService.callCenter.analytics.getTransferStats(timeRange);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching transfer stats:', error);
+      // Return default values if API call fails
+      return {
+        totalTransfers: 0,
+        successfulTransfers: 0,
+        failedTransfers: 0,
+        transferRate: 0
+      };
+    }
+  },
 }; 

@@ -1,5 +1,8 @@
 /* Global CSS Variables */
 :root {
+  /* Font Family */
+  --font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  
   /* Colors */
   --primary-color: #3a84af;
   --primary-hover: #5199c3;
@@ -16,16 +19,16 @@
   --error-light: rgba(208, 227, 238, 0.2);
   
   /* Text Colors */
-  --text-primary: #333333;
-  --text-secondary: #666666;
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
   --text-disabled: #999999;
   
   /* Background Colors */
-  --main-background: #ffffff;
-  --card-background: #ffffff;
-  --component-background: #f5f7fa;
-  --hover-background: rgba(58, 132, 175, 0.05);
-  --sidebar-background: #3a84af;
+  --main-background: #000000;
+  --card-background: #1a1a1a;
+  --component-background: #2a2a2a;
+  --hover-background: rgba(255, 255, 255, 0.05);
+  --sidebar-background: #1a1a1a;
   --sidebar-width-collapsed: 80px;
   
   /* Layout */
@@ -68,20 +71,82 @@
 
 /* Base Styles */
 body {
-  font-family: var(--font-primary);
+  font-family: var(--font-family);
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f0f2f5;
+  background-color: var(--main-background);
   color: var(--text-primary);
+}
+
+/* Header Styles */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 0.5em;
+}
+
+h1 {
+  font-size: 3.5rem;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 3rem;
+  letter-spacing: -0.01em;
+}
+
+h3 {
+  font-size: 2.5rem;
+}
+
+h4 {
+  font-size: 2rem;
+}
+
+h5 {
+  font-size: 1.75rem;
+}
+
+h6 {
+  font-size: 1.5rem;
+}
+
+/* Card Headers */
+.card-header h1,
+.card-header h2,
+.card-header h3,
+.card-header h4,
+.card-header h5,
+.card-header h6 {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+/* Dashboard Specific Headers */
+.dashboard-title {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.chart-title {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.stat-title {
+  font-size: 1.75rem;
+  font-weight: 700;
 }
 
 /* Common Components */
 .card {
   background-color: var(--card-background);
   border-radius: var(--border-radius-md);
-  border: 1px solid var(--border-color);
+  border: 1px solid #333333;
   box-shadow: var(--shadow-sm);
   padding: var(--spacing-lg);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
@@ -90,12 +155,13 @@ body {
 .card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+  border-color: #444444;
 }
 
 .button {
-  background-color: #f8fafc;
+  background-color: var(--component-background);
   color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  border: 1px solid #333333;
   border-radius: var(--border-radius-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   cursor: pointer;
@@ -107,7 +173,7 @@ body {
 }
 
 .button:hover {
-  background-color: #f1f5f9;
+  background-color: #333333;
   transform: translateY(-1px);
 }
 
@@ -121,13 +187,13 @@ body {
   background-color: var(--primary-hover);
   border-color: var(--primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Form Elements */
 input, select, textarea {
   background-color: var(--component-background);
-  border: 1px solid var(--border-color);
+  border: 1px solid #333333;
   border-radius: var(--border-radius-sm);
   color: var(--text-primary);
   padding: var(--spacing-sm) var(--spacing-md);

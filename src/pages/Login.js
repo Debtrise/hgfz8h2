@@ -1,157 +1,31 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React from "react";
+import { Link } from "react-router-dom";
 import "./AuthPages.css";
-import AuthService from "../services/AuthService";
 
 const Login = () => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    rememberMe: false,
-  });
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-
-    // Clear error for the field
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email address is invalid";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
-    setIsSubmitting(true);
-
-    try {
-      // Use AuthService to login
-      const user = await AuthService.login(formData.email, formData.password);
-      
-      // If remember me is checked, store the token in localStorage
-      if (formData.rememberMe) {
-        localStorage.setItem("rememberMe", "true");
-      } else {
-        localStorage.removeItem("rememberMe");
-      }
-      
-      // Navigate to dashboard on successful login
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Login error:", error);
-      setErrors({
-        form: error.message || "Failed to login. Please try again.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleForgotPassword = () => {
-    navigate("/forgot-password");
-  };
-
   return (
-    <div className="auth-container">
+    <div className="auth-container gradient-animation">
       <div className="auth-card">
         <div className="auth-header">
           <div className="logo-container">
-            <img src="/logo.png" alt="BDS Logo" className="auth-logo" />
+            <img src="/logo.png" alt="Knittt Logo" className="auth-logo" />
           </div>
-          <h1 className="auth-title">Sign in to your account</h1>
+          <h1 className="auth-title">Welcome to Knittt</h1>
         </div>
 
-        {errors.form && <div className="form-error-banner">{errors.form}</div>}
+        <div style={{ textAlign: "center", marginBottom: "30px" }}>
+          <p className="login-text">Please select your login type</p>
+        </div>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className={errors.email ? "error" : ""}
-              placeholder="you@example.com"
-              disabled={isSubmitting}
-            />
-            {errors.email && (
-              <div className="error-message">{errors.email}</div>
-            )}
-          </div>
-
-          <div className="form-group">
-            <div className="password-label-row">
-              <label htmlFor="password">Password</label>
-              <button
-                type="button"
-                className="forgot-password-link"
-                onClick={handleForgotPassword}
-              >
-                Forgot password?
-              </button>
-            </div>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className={errors.password ? "error" : ""}
-              placeholder="••••••••"
-              disabled={isSubmitting}
-            />
-            {errors.password && (
-              <div className="error-message">{errors.password}</div>
-            )}
-          </div>
-
-          <div className="form-checkbox">
-            <input
-              type="checkbox"
-              id="rememberMe"
-              name="rememberMe"
-              checked={formData.rememberMe}
-              onChange={handleChange}
-              disabled={isSubmitting}
-            />
-            <label htmlFor="rememberMe">Remember me</label>
-          </div>
-
-          <button type="submit" className="auth-button" disabled={isSubmitting}>
-            {isSubmitting ? "Signing in..." : "Sign in"}
-          </button>
-        </form>
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <Link to="/admin-login" className="auth-button" style={{ textDecoration: "none" }}>
+            Admin Login
+          </Link>
+          
+          <Link to="/agent-login" className="auth-button" style={{ textDecoration: "none" }}>
+            Agent Login
+          </Link>
+        </div>
 
         <div className="auth-footer">
           <p>

@@ -12,6 +12,7 @@ import {
   BranchesOutlined,
   MenuFoldOutlined,
   NumberOutlined,
+  CustomerServiceOutlined,
 } from "@ant-design/icons";
 import { useSidebar } from '../context/SidebarContext';
 import './Sidebar.css';
@@ -92,6 +93,21 @@ const Sidebar = () => {
           <Menu.Item key="did-pools" icon={<PhoneOutlined />}>
             <Link to="/did-pools">DID Pools</Link>
           </Menu.Item>
+
+          <Menu.SubMenu key="call-center" icon={<CustomerServiceOutlined />} title="Call Center">
+            <Menu.Item key="agent-interface">
+              <Link to="/call-center/agent">Agent Interface</Link>
+            </Menu.Item>
+            <Menu.Item key="real-time-dashboard">
+              <Link to="/call-center/real-time-dashboard">Real-Time Dashboard</Link>
+            </Menu.Item>
+            <Menu.Item key="call-logs">
+              <Link to="/call-center/call-logs">Call Logs</Link>
+            </Menu.Item>
+            <Menu.Item key="recordings">
+              <Link to="/call-center/recordings">Recordings</Link>
+            </Menu.Item>
+          </Menu.SubMenu>
 
           <Menu.Item key="settings" icon={<SettingOutlined />}>
             <Link to="/settings">Settings</Link>

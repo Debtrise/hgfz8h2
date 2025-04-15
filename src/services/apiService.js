@@ -177,14 +177,63 @@ const apiService = {
   // Auth endpoints
   auth: {
     login: async (credentials) => {
-      const response = await api.post('/auth/login', credentials);
-      const { token, user } = response.data;
-      
-      // Store the token and user info
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      return response;
+      try {
+        console.log('API Service: Starting login request with credentials:', {
+          email: credentials.email,
+          hasPassword: !!credentials.password
+        });
+        
+        const response = await api.post('/auth/login', credentials);
+        console.log('API Service: Login response received:', response);
+        
+        // Validate response data
+        if (!response.data) {
+          console.error('API Service: Invalid login response: Missing data');
+          throw new Error('Login failed: Invalid server response');
+        }
+        
+        // Extract token and user from response data
+        const { token, user } = response.data;
+        console.log('API Service: Extracted token and user:', { 
+          hasToken: !!token, 
+          user 
+        });
+        
+        // Validate token and user
+        if (!token) {
+          console.error('API Service: Invalid login response: Missing token');
+          throw new Error('Login failed: Missing authentication token');
+        }
+        
+        if (!user) {
+          console.error('API Service: Invalid login response: Missing user data');
+          throw new Error('Login failed: Missing user information');
+        }
+        
+        // Ensure user has required fields
+        const validatedUser = {
+          ...user,
+          role: user.role || 'ADMIN', // Default role if not provided
+          id: user.id || user._id || Math.random().toString(36).substr(2, 9), // Ensure there's an ID
+        };
+        
+        console.log('API Service: Created validated user object:', validatedUser);
+        
+        // Store the token and user info
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(validatedUser));
+        
+        console.log('API Service: Stored token and user in localStorage');
+        
+        // Return the validated data with clear structure
+        return {
+          token: token,
+          user: validatedUser
+        };
+      } catch (error) {
+        console.error('API Service: Login API error:', error);
+        throw error;
+      }
     },
     logout: () => {
       localStorage.removeItem('token');
@@ -1195,6 +1244,8 @@ const apiService = {
         api.get(`/call-center/analytics/agents/${agentId}`, { params: { timeRange } }),
       getHourlyData: (timeRange) => 
         api.get('/call-center/analytics/hourly', { params: { timeRange } }),
+      getTransferStats: (timeRange = 'today') => 
+        api.get('/call-center/analytics/transfers', { params: { timeRange } }),
     },
     
     // Agents
@@ -1220,19 +1271,170 @@ const apiService = {
   users: {
     getAll: async (params = {}) => {
       try {
-        const response = await api.get('/users', { params });
-        return response.data;
+        console.log('Fetching users with params:', params);
+        const response = await api.get('/users', { 
+          params: {
+            ...params,
+            tenant_id: getTenantId()
+          } 
+        });
+        console.log('Users response:', response);
+        return {
+          ...response,
+          data: response.data.users || [],
+          pagination: response.data.pagination || {
+            page: 1,
+            limit: 50,
+            total: 0,
+            pages: 1
+          }
+        };
       } catch (error) {
+        console.error('Error fetching users:', error);
         handleApiError(error);
         throw error;
       }
     },
-    getById: (id) => api.get(`/users/${id}`),
-    create: (data) => api.post('/users', { ...data, tenant_id: getTenantId() }),
-    update: (id, data) => api.put(`/users/${id}`, { ...data, tenant_id: getTenantId() }),
-    delete: (id) => api.delete(`/users/${id}`),
-    toggleStatus: (id, status) => api.patch(`/users/${id}/status`, { status }),
-    changePassword: (id, data) => api.post(`/users/${id}/change-password`, data),
+    getById: async (id) => {
+      try {
+        if (!id) {
+          throw new Error('User ID is required');
+        }
+        console.log(`Fetching user with ID: ${id}`);
+        const response = await api.get(`/users/${id}`);
+        console.log('User response:', response);
+        return response;
+      } catch (error) {
+        console.error(`Error fetching user ${id}:`, error);
+        handleApiError(error);
+        throw error;
+      }
+    },
+    create: async (data) => {
+      try {
+        console.log('Creating user with data:', data);
+        const response = await api.post('/users', {
+          ...data,
+          tenant_id: getTenantId()
+        });
+        console.log('Create user response:', response);
+        return response;
+      } catch (error) {
+        console.error('Error creating user:', error);
+        handleApiError(error);
+        throw error;
+      }
+    },
+    update: async (id, data) => {
+      try {
+        console.log(`Updating user ${id} with data:`, data);
+        const response = await api.put(`/users/${id}`, {
+          ...data,
+          tenant_id: getTenantId()
+        });
+        console.log('Update user response:', response);
+        return response;
+      } catch (error) {
+        console.error(`Error updating user ${id}:`, error);
+        handleApiError(error);
+        throw error;
+      }
+    },
+    delete: async (id) => {
+      try {
+        console.log(`Deleting user ${id}`);
+        const response = await api.delete(`/users/${id}`);
+        console.log('Delete user response:', response);
+        return response;
+      } catch (error) {
+        console.error(`Error deleting user ${id}:`, error);
+        handleApiError(error);
+        throw error;
+      }
+    },
+    toggleStatus: async (id, status) => {
+      try {
+        console.log(`Toggling user ${id} status to ${status}`);
+        const response = await api.patch(`/users/${id}/status`, { 
+          status,
+          tenant_id: getTenantId()
+        });
+        console.log('Toggle user status response:', response);
+        return response;
+      } catch (error) {
+        console.error(`Error toggling user ${id} status:`, error);
+        handleApiError(error);
+        throw error;
+      }
+    },
+    changePassword: async (id, data) => {
+      try {
+        console.log(`Changing password for user ${id}`);
+        const response = await api.post(`/users/${id}/change-password`, {
+          ...data,
+          tenant_id: getTenantId()
+        });
+        console.log('Change password response:', response);
+        return response;
+      } catch (error) {
+        console.error(`Error changing password for user ${id}:`, error);
+        handleApiError(error);
+        throw error;
+      }
+    },
+    resetPassword: async (id) => {
+      try {
+        console.log(`Resetting password for user ${id}`);
+        const response = await api.post(`/users/${id}/reset-password`, {
+          tenant_id: getTenantId()
+        });
+        console.log('Reset password response:', response);
+        return response;
+      } catch (error) {
+        console.error(`Error resetting password for user ${id}:`, error);
+        handleApiError(error);
+        throw error;
+      }
+    },
+    getRoles: async () => {
+      try {
+        console.log('Fetching available user roles');
+        const response = await api.get('/users/roles');
+        console.log('Roles response:', response);
+        return response;
+      } catch (error) {
+        console.error('Error fetching user roles:', error);
+        handleApiError(error);
+        throw error;
+      }
+    },
+    getPermissions: async (id) => {
+      try {
+        console.log(`Fetching permissions for user ${id}`);
+        const response = await api.get(`/users/${id}/permissions`);
+        console.log('Permissions response:', response);
+        return response;
+      } catch (error) {
+        console.error(`Error fetching permissions for user ${id}:`, error);
+        handleApiError(error);
+        throw error;
+      }
+    },
+    updatePermissions: async (id, permissions) => {
+      try {
+        console.log(`Updating permissions for user ${id}:`, permissions);
+        const response = await api.put(`/users/${id}/permissions`, {
+          permissions,
+          tenant_id: getTenantId()
+        });
+        console.log('Update permissions response:', response);
+        return response;
+      } catch (error) {
+        console.error(`Error updating permissions for user ${id}:`, error);
+        handleApiError(error);
+        throw error;
+      }
+    }
   },
 
   // Data Mix endpoints

@@ -1,46 +1,126 @@
 /* AuthPages.css */
 
+/* Add gradient animation */
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Global resets to fix white space issues */
+body, html, #root, .app-wrapper {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  font-family: Arial, sans-serif !important; /* Set Arial as the base font */
+}
+
+/* Style override to ensure content spans full width */
+.app-wrapper {
+  --content-padding: 0 !important;
+}
+
 .auth-container {
-  min-height: 100vh;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
   display: flex;
-  align-items: center;
   justify-content: center;
-  background-color: #f3f4f6;
-  padding: 20px;
+  align-items: center;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: #0d0d0d; /* Darker shade that complements the gradient */
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  border: none !important;
+}
+
+.gradient-animation::before {
+  content: "";
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-image: linear-gradient(25deg, 
+    rgba(91, 187, 242, 0.961),
+    rgba(203, 182, 182, 0.65),
+    rgba(155, 106, 137, 0.927),
+    rgba(182, 203, 182, 0.65),    rgba(93, 137, 162, 0.65));
+  background-size: 400% 400%;
+  animation: gradient 10s ease infinite;
+  z-index: 1;
+  margin: 0 !important;
+  border: none !important;
+  opacity: 0.4; /* 70% opacity */
 }
 
 .auth-card {
+  position: relative;
+  z-index: 2;
+  background-color: #404040;
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(255, 255, 255, 0.115), 
+              0 0 0 1px rgba(255, 255, 255, 0.1);
+  padding: 40px;
   width: 100%;
-  max-width: 400px;
-  background-color: #4b5563;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(252, 252, 252, 0.1);
-  padding: 32px;
+  max-width: 450px;
+  margin: 0 auto;
+  transition: all 0.3s ease;
+  color: #fff;
 }
 
-.signup-card {
-  max-width: 480px;
+.auth-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 
+              0 0 0 1px rgba(255, 255, 255, 0.15);
 }
 
 .auth-header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .logo-container {
   margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
 }
 
 .auth-logo {
-  height: 42px;
+  height: auto;
   width: auto;
+  display: block;
+  margin: 0 auto;
 }
 
 .auth-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #ffffff;
+  font-size: 28px;
+  font-weight: bold !important;
+  color: #fff;
   margin: 0;
+  letter-spacing: 0.5px;
+  font-family: Arial, sans-serif !important;
 }
 
 .auth-description {
@@ -50,7 +130,7 @@
 }
 
 .auth-form {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .form-group {
@@ -70,41 +150,43 @@
 
 .form-group label {
   display: block;
-  font-size: 14px;
+  margin-bottom: 8px;
   font-weight: 500;
-  color: #ffffff;
-  margin-bottom: 6px;
-  color: #ffffff;
+  color: #e0e0e0;
+  font-family: Arial, sans-serif !important;
 }
 
 .form-group input {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
+  padding: 12px 15px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-  
+  font-size: 16px;
+  color: #fff;
+  transition: all 0.3s;
+  font-family: Arial, sans-serif !important;
 }
 
 .form-group input:focus {
+  border-color: #4096ff;
   outline: none;
-  border-color: #e1e1e1;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 2px rgba(64, 150, 255, 0.2);
+}
+
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .form-group input.error {
-  border-color: #ef4444;
-}
-
-.form-group input.error:focus {
-  box-shadow: 0 0 0 3px rgba(227, 226, 226, 0.1);
+  border-color: #ff4d4f;
 }
 
 .error-message {
-  color: #ef4444;
-  font-size: 12px;
-  margin-top: 6px;
+  color: #ff4d4f;
+  font-size: 14px;
+  margin-top: 5px;
 }
 
 .terms-error {
@@ -116,17 +198,17 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
 }
 
 .forgot-password-link {
-  font-size: 13px;
-  color: #d8d8d8;
+  font-size: 14px;
+  color: #1890ff;
   text-decoration: none;
-  background: none;
   border: none;
+  background: none;
   cursor: pointer;
   padding: 0;
+  font-family: Arial, sans-serif !important;
 }
 
 .forgot-password-link:hover {
@@ -137,55 +219,72 @@
   font-size: 12px;
   color: #ececec;
   margin-top: 6px;
+  font-family: Arial, sans-serif !important;
 }
 
 .form-checkbox {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
-.form-checkbox input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  border: 1px solid #d1d5db;
-  border-radius: 3px;
+.form-checkbox input {
+  margin-right: 10px;
 }
 
 .form-checkbox label {
-  font-size: 14px;
-  color: #eeeeee;
+  color: #e0e0e0;
+  font-family: Arial, sans-serif !important;
 }
 
 .auth-button {
   width: 100%;
-  padding: 12px;
-  background-color: #456aa6;
+  background-color: #265871;
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 14px;
+  font-size: 16px;
   cursor: pointer;
-  transition: background-color 0.2s;
-  text-align: center;
-  text-decoration: none;
-  display: block;
+  font-weight: 700;
+  transition: all 0.3s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+  font-family: Arial, sans-serif !important;
+}
+
+.auth-button:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: 0.9s;
 }
 
 .auth-button:hover {
-  background-color: #375494;
+  background-color: #3e4648;
+  transform: translateY(-2px);
+  color: #ffffff;
+}
+
+.auth-button:hover:after {
+  left: 100%;
 }
 
 .auth-button:disabled {
-  background-color: #93c5fd;
+  background-color: #ccc;
   cursor: not-allowed;
 }
 
 .secondary-button {
   background-color: white;
-  color: #11284b;
+  color: #ffffff;
   border: 1px solid #3b82f6;
 }
 
@@ -195,28 +294,32 @@
 
 .auth-footer {
   text-align: center;
-  font-size: 14px;
-  color: #ffffff;
+  margin-top: 20px;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: Arial, sans-serif !important;
 }
 
 .auth-link {
-  color: #ffffff;
+  color: #3a7d9f;
   text-decoration: none;
+  transition: color 0.3s;
   font-weight: 500;
+  font-family: Arial, sans-serif !important;
 }
 
 .auth-link:hover {
-  text-decoration: underline;
+  color: #5092b1;
+  text-decoration: none;
 }
 
 .form-error-banner {
-  background-color: #fef2f2;
-  color: #b91c1c;
-  padding: 12px;
+  background-color: rgba(255, 77, 79, 0.2);
+  border: 1px solid rgba(255, 77, 79, 0.3);
   border-radius: 6px;
+  padding: 12px 15px;
+  color: #ff7875;
   margin-bottom: 20px;
   font-size: 14px;
-  border-left: 4px solid #ef4444;
 }
 
 .success-message {
@@ -248,9 +351,25 @@
   margin-bottom: 20px;
 }
 
+/* Mobile styles - consolidated */
 @media (max-width: 640px) {
+  .auth-container {
+    padding: 0;
+  }
+
   .auth-card {
     padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .auth-logo {
+    height: 50px; /* Slightly smaller on mobile */
+  }
+  
+  .auth-title {
+    font-size: 24px; /* Slightly smaller on mobile */
   }
 
   .form-row {
@@ -261,4 +380,78 @@
   .auth-button {
     padding: 10px;
   }
+}
+
+/* Add specific media query overrides */
+@media (max-width: 992px) {
+  .auth-container {
+    width: 100vw;
+    padding: 0;
+    margin: 0;
+  }
+  
+  body, html {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+}
+
+@media (max-width: 1200px) {
+  .auth-container {
+    width: 100vw;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .auth-card {
+    margin: 0 auto;
+    max-width: 400px;
+  }
+}
+
+/* Ensure all paragraphs in the auth container have white text */
+.auth-container p {
+  color: #ffffff;
+  font-family: Arial, sans-serif !important;
+}
+
+/* Additional styling for the login page */
+.login-text {
+  color: #ffffff;
+  font-size: 16px;
+  margin-bottom: 0;
+  font-family: Arial, sans-serif !important;
+}
+
+/* Apply Arial Bold to all text elements in the auth container */
+.auth-container,
+.auth-container * {
+  font-family: Arial, sans-serif !important;
+}
+
+/* Make headings and important elements bold */
+.auth-title,
+.auth-button,
+label,
+h1, h2, h3, h4, h5, h6,
+.form-group label {
+  font-family: Arial, sans-serif !important;
+  font-weight: bold !important;
+}
+
+/* Make all paragraph text use Arial */
+.auth-container p,
+.login-text,
+.auth-description,
+.password-hint,
+.form-checkbox label,
+.auth-footer {
+  font-family: Arial, sans-serif !important;
+}
+
+/* Make links use Arial */
+.auth-link,
+.forgot-password-link {
+  font-family: Arial, sans-serif !important;
 }

@@ -1,0 +1,613 @@
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  /* Base mobile adjustments */
+  :root {
+    --content-padding: 16px;
+    --header-height: 60px;
+    --sidebar-width: 280px;
+    --font-size-base: 14px;
+    --button-height: 40px;
+    --input-height: 40px;
+  }
+
+  /* Layout adjustments */
+  .layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    padding: var(--content-padding);
+    width: 100%;
+    min-height: 100vh;
+    background-color: var(--component-background);
+  }
+
+  /* Header adjustments */
+  .header {
+    height: var(--header-height);
+    padding: 0 var(--content-padding);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  /* Sidebar adjustments */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 1001;
+  }
+
+  .sidebar.active {
+    transform: translateX(0);
+  }
+
+  /* Mobile menu trigger */
+  .menu-trigger {
+    display: block;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1002;
+  }
+
+  /* Content adjustments */
+  .content {
+    padding: calc(var(--header-height) + var(--content-padding)) var(--content-padding);
+    width: 40%;
+    min-height: 100vh;
+    background-color: var(--component-background);
+  }
+
+  /* Card and container adjustments */
+  .card {
+    margin-bottom: var(--content-padding);
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Form element adjustments */
+  input, select, textarea {
+    height: var(--input-height);
+    font-size: var(--font-size-base);
+    padding: 0 12px;
+  }
+
+  button, .btn {
+    height: var(--button-height);
+    min-width: 44px;
+    font-size: var(--font-size-base);
+    padding: 0 16px;
+  }
+
+  /* Grid adjustments */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--content-padding);
+  }
+
+  /* Table adjustments */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 calc(-1 * var(--content-padding));
+    padding: 0 var(--content-padding);
+  }
+
+  /* Navigation adjustments */
+  .nav-item {
+    padding: 12px;
+    height: auto;
+  }
+
+  /* Touch-friendly adjustments */
+  .touch-friendly {
+    min-height: 44px;
+    padding: 12px;
+  }
+
+  /* Hide desktop-only elements */
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Show mobile-only elements */
+  .mobile-only {
+    display: block !important;
+  }
+
+  /* Modal adjustments */
+  .modal-content {
+    width: 45%;
+    max-width: 50%;
+    margin: 10px auto;
+    background-color: var(--card-background);
+  }
+
+  /* Dashboard specific adjustments */
+  .dashboard-container {
+    padding: calc(var(--header-height) + var(--content-padding)) var(--content-padding);
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: var(--content-padding);
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+    gap: var(--content-padding);
+  }
+
+  /* List and table adjustments */
+  .list-item, .table-row {
+    padding: 12px;
+  }
+
+  /* Search and filter adjustments */
+  .search-box, .filter-container {
+    width: 100%;
+    margin-bottom: var(--content-padding);
+  }
+
+  /* Button group adjustments */
+  .button-group {
+    flex-direction: column;
+    width: 100%;
+    gap: var(--content-padding);
+  }
+
+  .button-group button {
+    width: 100%;
+    margin: 0;
+  }
+
+  /* Form layout adjustments */
+  .form-group {
+    margin-bottom: var(--content-padding);
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: var(--content-padding);
+  }
+
+  /* Pagination adjustments */
+  .pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--content-padding);
+  }
+
+  .pagination-item {
+    margin: 0;
+  }
+
+  /* Loading state adjustments */
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Error message adjustments */
+  .error-message {
+    padding: 12px;
+    margin: var(--content-padding) 0;
+    background-color: var(--error-light);
+    color: var(--error-color);
+    border-radius: var(--border-radius-md);
+  }
+
+  /* Success message adjustments */
+  .success-message {
+    padding: 12px;
+    margin: var(--content-padding) 0;
+    background-color: var(--success-light);
+    color: var(--success-color);
+    border-radius: var(--border-radius-md);
+  }
+
+  /* Empty state adjustments */
+  .empty-state {
+    padding: var(--content-padding);
+    text-align: center;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+  }
+
+  /* Chart adjustments */
+  .chart-container {
+    min-height: 200px;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+    padding: var(--content-padding);
+  }
+
+  /* Tab adjustments */
+  .tab-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 calc(-1 * var(--content-padding));
+    padding: 0 var(--content-padding);
+  }
+
+  .tab {
+    min-width: 120px;
+    padding: 12px;
+  }
+
+  /* Dropdown adjustments */
+  .dropdown-menu {
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+  }
+
+  /* Accordion adjustments */
+  .accordion-item {
+    margin-bottom: var(--content-padding);
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+  }
+
+  .accordion-header {
+    padding: 12px;
+  }
+
+  .accordion-content {
+    padding: 12px;
+  }
+
+  /* Progress bar adjustments */
+  .progress-bar {
+    height: 8px;
+    background-color: var(--primary-light);
+    border-radius: var(--border-radius-sm);
+  }
+
+  /* Badge adjustments */
+  .badge {
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: var(--border-radius-sm);
+  }
+
+  /* Avatar adjustments */
+  .avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Icon adjustments */
+  .icon {
+    font-size: 20px;
+  }
+
+  /* Toast adjustments */
+  .toast {
+    width: 90%;
+    margin: 8px auto;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+  }
+
+  /* Toolbar adjustments */
+  .toolbar {
+    flex-wrap: wrap;
+    padding: var(--content-padding);
+    gap: var(--content-padding);
+  }
+
+  .toolbar-item {
+    margin: 0;
+  }
+
+  /* Breadcrumb adjustments */
+  .breadcrumb {
+    flex-wrap: wrap;
+    gap: var(--content-padding);
+  }
+
+  .breadcrumb-item {
+    margin: 0;
+  }
+
+  /* Tag adjustments */
+  .tag {
+    margin: 0;
+    padding: 4px 8px;
+    border-radius: var(--border-radius-sm);
+  }
+
+  /* Alert adjustments */
+  .alert {
+    padding: 12px;
+    margin: var(--content-padding) 0;
+    border-radius: var(--border-radius-md);
+  }
+
+  /* Timeline adjustments */
+  .timeline {
+    padding: var(--content-padding);
+  }
+
+  .timeline-item {
+    margin-bottom: var(--content-padding);
+  }
+
+  /* Calendar adjustments */
+  .calendar {
+    width: 100%;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+  }
+
+  .calendar-header {
+    padding: var(--content-padding);
+  }
+
+  .calendar-day {
+    height: 40px;
+  }
+
+  /* Rating adjustments */
+  .rating {
+    font-size: 24px;
+  }
+
+  /* Slider adjustments */
+  .slider {
+    padding: var(--content-padding) 0;
+  }
+
+  /* Switch adjustments */
+  .switch {
+    width: 50px;
+    height: 28px;
+  }
+
+  /* Checkbox and radio adjustments */
+  .checkbox, .radio {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Select adjustments */
+  .select {
+    width: 100%;
+  }
+
+  /* Date picker adjustments */
+  .date-picker {
+    width: 100%;
+  }
+
+  /* Time picker adjustments */
+  .time-picker {
+    width: 100%;
+  }
+
+  /* Color picker adjustments */
+  .color-picker {
+    width: 100%;
+  }
+
+  /* File upload adjustments */
+  .file-upload {
+    width: 100%;
+  }
+
+  /* Image upload adjustments */
+  .image-upload {
+    width: 100%;
+  }
+
+  /* Video player adjustments */
+  .video-player {
+    width: 100%;
+  }
+
+  /* Audio player adjustments */
+  .audio-player {
+    width: 100%;
+  }
+
+  /* Map adjustments */
+  .map {
+    height: 300px;
+    border-radius: var(--border-radius-md);
+  }
+
+  /* Chart legend adjustments */
+  .chart-legend {
+    flex-wrap: wrap;
+    gap: var(--content-padding);
+  }
+
+  .chart-legend-item {
+    margin: 0;
+  }
+
+  /* Data table adjustments */
+  .data-table {
+    font-size: 14px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 8px;
+  }
+
+  /* Tree adjustments */
+  .tree {
+    padding: var(--content-padding);
+  }
+
+  .tree-node {
+    padding: 8px;
+  }
+
+  /* Menu adjustments */
+  .menu {
+    width: 100%;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+  }
+
+  .menu-item {
+    padding: 12px;
+  }
+
+  /* Dropdown menu adjustments */
+  .dropdown-menu {
+    width: 100%;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+  }
+
+  .dropdown-item {
+    padding: 12px;
+  }
+
+  /* Context menu adjustments */
+  .context-menu {
+    width: 200px;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+  }
+
+  .context-menu-item {
+    padding: 12px;
+  }
+
+  /* Popover adjustments */
+  .popover {
+    width: 90%;
+    max-width: 300px;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+  }
+
+  /* Modal adjustments */
+  .modal {
+    padding: var(--content-padding);
+  }
+
+  .modal-header {
+    padding: var(--content-padding);
+  }
+
+  .modal-body {
+    padding: var(--content-padding);
+  }
+
+  .modal-footer {
+    padding: var(--content-padding);
+  }
+
+  /* Drawer adjustments */
+  .drawer {
+    width: 100%;
+    background-color: var(--card-background);
+  }
+
+  .drawer-header {
+    padding: var(--content-padding);
+  }
+
+  .drawer-body {
+    padding: var(--content-padding);
+  }
+
+  .drawer-footer {
+    padding: var(--content-padding);
+  }
+
+  /* Notification adjustments */
+  .notification {
+    width: 90%;
+    margin: 8px auto;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+  }
+
+  /* Message adjustments */
+  .message {
+    width: 90%;
+    margin: 8px auto;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+  }
+
+  /* Spin adjustments */
+  .spin {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Skeleton adjustments */
+  .skeleton {
+    margin: var(--content-padding) 0;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-md);
+  }
+
+  /* Back to top adjustments */
+  .back-to-top {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  /* Affix adjustments */
+  .affix {
+    width: 100%;
+  }
+
+  /* Anchor adjustments */
+  .anchor {
+    display: none;
+  }
+
+  /* Tabs adjustments */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 calc(-1 * var(--content-padding));
+    padding: 0 var(--content-padding);
+  }
+
+  .tab {
+    min-width: 120px;
+    padding: 12px;
+  }
+
+  /* Steps adjustments */
+  .steps {
+    flex-direction: column;
+    gap: var(--content-padding);
+  }
+
+  .step {
+    margin-bottom: var(--content-padding);
+  }
+} 

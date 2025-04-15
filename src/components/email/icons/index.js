@@ -1,20 +1,39 @@
 import React from 'react';
+import styled, { keyframes } from 'styled-components';
 
-const IconWrapper = ({ children, ...props }) => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    {children}
-  </svg>
-);
+const pulse = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+`;
+
+const float = keyframes`
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-2px); }
+  100% { transform: translateY(0px); }
+`;
+
+const rotate = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const IconWrapper = styled.svg`
+  width: 24px;
+  height: 24px;
+  viewBox: 0 0 24 24;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    animation: ${pulse} 1s ease infinite;
+    color: #3797ce;
+  }
+`;
 
 export const TextIcon = () => (
   <IconWrapper>
@@ -78,7 +97,9 @@ export const TableIcon = () => (
   <IconWrapper>
     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
     <line x1="3" y1="9" x2="21" y2="9" />
-    <line x1="9" y1="21" x2="9" y2="9" />
+    <line x1="3" y1="15" x2="21" y2="15" />
+    <line x1="9" y1="3" x2="9" y2="21" />
+    <line x1="15" y1="3" x2="15" y2="21" />
   </IconWrapper>
 );
 
@@ -108,8 +129,9 @@ export const FormIcon = () => (
 
 export const MapIcon = () => (
   <IconWrapper>
-    <path d="M1 6l8.5-4.5L18 6l-8.5 4.5L1 6z" />
-    <path d="M1 6v12l8.5 4.5L18 18V6" />
+    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+    <line x1="8" y1="2" x2="8" y2="18" />
+    <line x1="16" y1="6" x2="16" y2="22" />
   </IconWrapper>
 );
 
@@ -135,9 +157,8 @@ export const RatingIcon = () => (
 export const AccordionIcon = () => (
   <IconWrapper>
     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-    <line x1="8" y1="8" x2="16" y2="8" />
-    <line x1="8" y1="12" x2="16" y2="12" />
-    <line x1="8" y1="16" x2="16" y2="16" />
+    <line x1="3" y1="9" x2="21" y2="9" />
+    <line x1="9" y1="9" x2="9" y2="21" />
   </IconWrapper>
 );
 
@@ -158,10 +179,9 @@ export const CarouselIcon = () => (
 
 export const GalleryIcon = () => (
   <IconWrapper>
-    <rect x="3" y="3" width="7" height="7" />
-    <rect x="14" y="3" width="7" height="7" />
-    <rect x="14" y="14" width="7" height="7" />
-    <rect x="3" y="14" width="7" height="7" />
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <path d="M21 15l-5-5L5 21" />
   </IconWrapper>
 );
 
@@ -190,7 +210,7 @@ export const HeaderIcon = () => (
 export const BackgroundIcon = () => (
   <IconWrapper>
     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-    <path d="M3 9h18M3 15h18" />
+    <rect x="7" y="7" width="10" height="10" rx="1" ry="1" />
   </IconWrapper>
 );
 
@@ -230,9 +250,8 @@ export const CodeIcon = () => (
 
 export const TemplateIcon = () => (
   <IconWrapper>
-    <rect x="3" y="3" width="7" height="7" />
-    <rect x="14" y="3" width="7" height="7" />
-    <rect x="14" y="14" width="7" height="7" />
-    <rect x="3" y="14" width="7" height="7" />
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <line x1="3" y1="9" x2="21" y2="9" />
+    <line x1="9" y1="21" x2="9" y2="9" />
   </IconWrapper>
 ); 

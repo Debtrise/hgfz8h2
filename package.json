@@ -21,6 +21,7 @@
     "@hello-pangea/dnd": "^18.0.1",
     "ajv": "^8.17.1",
     "antd": "^5.24.6",
+    "asterisk-manager": "^0.2.0",
     "axios": "^1.8.4",
     "chart.js": "^4.4.8",
     "jssip": "^3.10.1",
@@ -34,8 +35,10 @@
     "react-icons": "^5.5.0",
     "react-router-dom": "^6.30.0",
     "react-scripts": "^5.0.1",
+    "react-toastify": "^11.0.5",
     "reactflow": "^11.11.4",
-    "recharts": "^2.15.2"
+    "recharts": "^2.15.2",
+    "toastify": "^2.0.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",

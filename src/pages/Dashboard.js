@@ -26,7 +26,7 @@ import {
 import moment from 'moment';
 import "./Dashboard.css";
 import DialerControl from "./DialerControl";
-import DataMixControl from "./DataMixControl";
+import ActiveCampaigns from "./ActiveCampaigns";
 import QueueStatusControl from "./QueueStatusControl";
 import { callAnalyticsService } from '../services/callAnalyticsService';
 
@@ -61,6 +61,7 @@ const Dashboard = () => {
     emailsSent: 0,
     bounceRate: 0,
     emailReplies: 0,
+    totalTransfers: 0,
   });
 
   useEffect(() => {
@@ -76,6 +77,7 @@ const Dashboard = () => {
   useEffect(() => {
     fetchDashboardData();
     fetchQueueData();
+    fetchTransferData();
     // Set up polling for real-time data every 5 minutes
     const interval = setInterval(fetchRealTimeData, 5 * 60 * 1000);
     return () => clearInterval(interval);
@@ -160,6 +162,21 @@ const Dashboard = () => {
     }
   };
 
+  const fetchTransferData = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/stats/transfers`);
+      if (response.ok) {
+        const result = await response.json();
+        setDashboardData(prev => ({
+          ...prev,
+          totalTransfers: result.data?.totalTransfers || 0
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching transfer data:', error);
+    }
+  };
+
   const fetchDashboardData = async () => {
     setLoading(true);
     setStatsLoading(true);
@@ -186,9 +203,11 @@ const Dashboard = () => {
           data = result.data || [];
           // Ensure data is an array before setting it
           const hourlyData = Array.isArray(data) ? data : [];
+          const totalRow = hourlyData.find(h => h.hour_of_day_pdt === 'Total');
           setDashboardData(prev => ({
             ...prev,
-            hourlyData
+            hourlyData,
+            totalTransfers: totalRow?.total_transfers || 0
           }));
         }
       }
@@ -233,6 +252,7 @@ const Dashboard = () => {
       }
       await fetchDashboardData();
       await fetchQueueData();
+      await fetchTransferData();
     } catch (error) {
       console.error('Error fetching real-time data:', error);
     }
@@ -270,11 +290,9 @@ const Dashboard = () => {
       loading: statsLoading
     },
     {
-      title: 'Calls Over 5 Min',
-      value: Array.isArray(dashboardData.hourlyData) && dashboardData.hourlyData.length > 0
-        ? dashboardData.hourlyData.find(h => h.hour_of_day_pdt === 'Total')?.calls_over_5min || '0'
-        : '0',
-      icon: <ClockCircleOutlined />,
+      title: 'Total Transfers',
+      value: dashboardData.totalTransfers || '0',
+      icon: <TeamOutlined />,
       trend: 'Today',
       trendUp: true,
       type: 'warning',
@@ -343,240 +361,209 @@ const Dashboard = () => {
     }
   };
 
-  // Add a handler for data mix updates
-  const handleDataMixUpdate = async (mixSettings) => {
-    try {
-      const response = await fetch(`${DIALER_API_URL}/updateDataMix`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mixSettings)
-      });
-      
-      if (response.ok) {
-        message.success('Data mix updated successfully');
-      } else {
-        throw new Error('Failed to update data mix');
-      }
-    } catch (error) {
-      console.error('Error updating data mix:', error);
-      message.error('Failed to update data mix');
-    }
-  };
-
   return (
-    <>
-      <div className="sidebar-toggle" onClick={toggleSidebar}>
-        {sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-      </div>
-      <div className={`dashboard-container ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <div className="dashboard-content">
-          <div className="dashboard-header">
-            <div className="dashboard-actions">
-              <Select 
-                value={timeRange}
-                onChange={setTimeRange}
-                style={{ width: 120 }}
+    <div className="dashboard-container">
+      <div className="dashboard-content">
+        <div className="dashboard-header">
+          <div className="dashboard-actions">
+            <Select 
+              value={timeRange}
+              onChange={setTimeRange}
+              style={{ width: 120 }}
+              size="middle"
+            >
+              <Option value="today">Today</Option>
+              <Option value="week">This Week</Option>
+              <Option value="month">This Month</Option>
+              <Option value="custom">Custom Range</Option>
+            </Select>
+            {timeRange === 'custom' && (
+              <RangePicker
+                value={dateRange}
+                onChange={setDateRange}
+                style={{ width: 280 }}
                 size="middle"
-              >
-                <Option value="today">Today</Option>
-                <Option value="week">This Week</Option>
-                <Option value="month">This Month</Option>
-                <Option value="custom">Custom Range</Option>
-              </Select>
-              {timeRange === 'custom' && (
-                <RangePicker
-                  value={dateRange}
-                  onChange={setDateRange}
-                  style={{ width: 280 }}
-                  size="middle"
-                />
-              )}
-              <Button 
-                icon={<ReloadOutlined />}
-                onClick={() => {
-                  fetchDashboardData();
-                  fetchQueueData();
-                }}
-                loading={loading}
-                size="middle"
-              >
-                Refresh
-              </Button>
-            </div>
-          </div>
-
-          <div className="dashboard-controls-row">
-            <div className="control-panel">
-              <div className="control-header">
-                <div className="control-icon dialer-icon">
-                  <svg viewBox="0 0 24 24" width="20" height="20">
-                    <path fill="currentColor" d="M12 16c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0-13c-5 0-9 4-9 9s4 9 9 9 9-4 9-9-4-9-9-9zm0 16c-3.9 0-7-3.1-7-7s3.1-7 7-7 7 3.1 7 7-3.1 7-7 7z"/>
-                    <path fill="currentColor" d="M12 8v4l3 3"/>
-                  </svg>
-                </div>
-                <h3 className="control-title">Dialer Control</h3>
-              </div>
-              <DialerControl
-                initialSpeed={10}
-                initialMinAgents={3}
-                onUpdate={handleDialerUpdate}
               />
-            </div>
-            
-            <div className="control-panel">
-              <div className="control-header">
-                <div className="control-icon data-mix-icon">
-                  <svg viewBox="0 0 24 24" width="20" height="20">
-                    <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
-                    <rect x="7" y="12" width="2" height="5" fill="currentColor"/>
-                    <rect x="11" y="9" width="2" height="8" fill="currentColor"/>
-                    <rect x="15" y="7" width="2" height="10" fill="currentColor"/>
-                  </svg>
-                </div>
-                <h3 className="control-title">Data Mix</h3>
-              </div>
-              <DataMixControl
-                onUpdate={handleDataMixUpdate}
-              />
-            </div>
+            )}
+            <Button 
+              icon={<ReloadOutlined />}
+              onClick={() => {
+                fetchDashboardData();
+                fetchQueueData();
+              }}
+              loading={loading}
+              size="middle"
+            >
+              Refresh
+            </Button>
+          </div>
+        </div>
 
-            <div className="control-panel">
-              <div className="control-header">
-                <div className="control-icon queue-icon">
-                  <svg viewBox="0 0 24 24" width="20" height="20">
-                    <path fill="currentColor" d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
-                  </svg>
-                </div>
-                <h3 className="control-title">Queue Status</h3>
+        <div className="dashboard-controls-row">
+          <div className="control-panel">
+            <div className="control-header">
+              <div className="control-icon dialer-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20">
+                  <path fill="currentColor" d="M12 16c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0-13c-5 0-9 4-9 9s4 9 9 9 9-4 9-9-4-9-9-9zm0 16c-3.9 0-7-3.1-7-7s3.1-7 7-7 7 3.1 7 7-3.1 7-7 7z"/>
+                  <path fill="currentColor" d="M12 8v4l3 3"/>
+                </svg>
               </div>
-              <Spin spinning={queueLoading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
-                <QueueStatusControl />
-              </Spin>
+              <h3 className="control-title">Dialer Control</h3>
             </div>
+            <DialerControl
+              initialSpeed={10}
+              initialMinAgents={3}
+              onUpdate={handleDialerUpdate}
+            />
+          </div>
+          
+          <div className="control-panel">
+            <div className="control-header">
+              <div className="control-icon campaigns-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20">
+                  <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+                  <path fill="currentColor" d="M7 12h2v5H7zm4-7h2v12h-2zm4 2h2v10h-2z"/>
+                </svg>
+              </div>
+              <h3 className="control-title">Active Campaigns</h3>
+            </div>
+            <ActiveCampaigns />
           </div>
 
-          <div className="stats-grid">
-            {stats.map((stat, index) => (
-              <div key={index} className="stat-card">
-                <div className="stat-header">
-                  <div className={`stat-icon ${stat.type}`}>
-                    {stat.icon}
-                  </div>
-                  <h3 className="stat-title">{stat.title}</h3>
-                </div>
-                <Spin spinning={stat.loading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
-                  <p className="stat-value">{stat.value}</p>
-                </Spin>
-                <div className="stat-footer">
-                  <span className={`stat-trend ${stat.trendUp ? 'trend-up' : 'trend-down'}`}>
-                    {stat.trendUp ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-                    {stat.trend}
-                  </span>
-                  <span>vs last period</span>
-                </div>
+          <div className="control-panel">
+            <div className="control-header">
+              <div className="control-icon queue-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20">
+                  <path fill="currentColor" d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+                </svg>
               </div>
-            ))}
+              <h3 className="control-title">Queue Status</h3>
+            </div>
+            <Spin spinning={queueLoading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
+              <QueueStatusControl />
+            </Spin>
           </div>
+        </div>
 
-          <div className="charts-grid">
-            <div className="chart-card">
-              <div className="chart-header">
-                <h3 className="chart-title">Call Volume & Success Rate</h3>
-                <div className="chart-actions">
-                  <Button icon={<SettingOutlined />} size="small" />
+        <div className="stats-grid">
+          {stats.map((stat, index) => (
+            <div key={index} className="stat-card">
+              <div className="stat-header">
+                <div className={`stat-icon ${stat.type}`}>
+                  {stat.icon}
                 </div>
+                <h3 className="stat-title">{stat.title}</h3>
               </div>
-              <Spin spinning={chartsLoading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
-                <ResponsiveContainer width="100%" height={280}>
-                  <AreaChart data={callVolumeData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" />
-                    <YAxis yAxisId="left" />
-                    <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip />
-                    <Area 
-                      yAxisId="left"
-                      type="monotone" 
-                      dataKey="totalCalls" 
-                      name="Total Calls"
-                      stroke="#1890ff" 
-                      fill="#1890ff" 
-                      fillOpacity={0.6} 
-                    />
-                    <Area 
-                      yAxisId="left"
-                      type="monotone" 
-                      dataKey="answeredCalls" 
-                      name="Answered Calls"
-                      stroke="#52c41a" 
-                      fill="#52c41a" 
-                      fillOpacity={0.6} 
-                    />
-                    <Area 
-                      yAxisId="right"
-                      type="monotone" 
-                      dataKey="machineDetectionRate" 
-                      name="Machine Detection Rate"
-                      stroke="#722ed1" 
-                      fill="#722ed1" 
-                      fillOpacity={0.6} 
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+              <Spin spinning={stat.loading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
+                <p className="stat-value">{stat.value}</p>
               </Spin>
-            </div>
-            <div className="chart-card">
-              <div className="chart-header">
-                <h3 className="chart-title">Real-time Activity</h3>
-                <div className="chart-actions">
-                  <Button icon={<SettingOutlined />} size="small" />
-                </div>
+              <div className="stat-footer">
+                <span className={`stat-trend ${stat.trendUp ? 'trend-up' : 'trend-down'}`}>
+                  {stat.trendUp ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+                  {stat.trend}
+                </span>
+                <span>vs last period</span>
               </div>
-              <Spin spinning={chartsLoading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
-                <ResponsiveContainer width="100%" height={280}>
-                  <AreaChart data={realTimeData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" />
-                    <YAxis yAxisId="left" />
-                    <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip />
-                    <Area 
-                      yAxisId="left"
-                      type="monotone" 
-                      dataKey="calls" 
-                      name="Total Calls"
-                      stroke="#eb2f96" 
-                      fill="#eb2f96" 
-                      fillOpacity={0.6} 
-                    />
-                    <Area 
-                      yAxisId="left"
-                      type="monotone" 
-                      dataKey="answered" 
-                      name="Answered Calls"
-                      stroke="#faad14" 
-                      fill="#faad14" 
-                      fillOpacity={0.6} 
-                    />
-                    <Area 
-                      yAxisId="right"
-                      type="monotone" 
-                      dataKey="agentAvailability" 
-                      name="Agent Availability"
-                      stroke="#13c2c2" 
-                      fill="#13c2c2" 
-                      fillOpacity={0.6} 
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </Spin>
             </div>
+          ))}
+        </div>
+
+        <div className="charts-grid">
+          <div className="chart-card">
+            <div className="chart-header">
+              <h3 className="chart-title">Call Volume & Success Rate</h3>
+              <div className="chart-actions">
+                <Button icon={<SettingOutlined />} size="small" />
+              </div>
+            </div>
+            <Spin spinning={chartsLoading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={callVolumeData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="totalCalls" 
+                    name="Total Calls"
+                    stroke="#1890ff" 
+                    fill="#1890ff" 
+                    fillOpacity={0.6} 
+                  />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="answeredCalls" 
+                    name="Answered Calls"
+                    stroke="#52c41a" 
+                    fill="#52c41a" 
+                    fillOpacity={0.6} 
+                  />
+                  <Area 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="machineDetectionRate" 
+                    name="Machine Detection Rate"
+                    stroke="#722ed1" 
+                    fill="#722ed1" 
+                    fillOpacity={0.6} 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Spin>
+          </div>
+          <div className="chart-card">
+            <div className="chart-header">
+              <h3 className="chart-title">Real-time Activity</h3>
+              <div className="chart-actions">
+                <Button icon={<SettingOutlined />} size="small" />
+              </div>
+            </div>
+            <Spin spinning={chartsLoading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={realTimeData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="calls" 
+                    name="Total Calls"
+                    stroke="#eb2f96" 
+                    fill="#eb2f96" 
+                    fillOpacity={0.6} 
+                  />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="answered" 
+                    name="Answered Calls"
+                    stroke="#faad14" 
+                    fill="#faad14" 
+                    fillOpacity={0.6} 
+                  />
+                  <Area 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="agentAvailability" 
+                    name="Agent Availability"
+                    stroke="#13c2c2" 
+                    fill="#13c2c2" 
+                    fillOpacity={0.6} 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Spin>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
