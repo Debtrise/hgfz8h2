@@ -10,7 +10,7 @@
 
 .content-container {
   background-color: white;
-  border-radius: 12px;
+  border-radius: 12;
   box-shadow: var(--card-shadow);
   overflow: hidden;
 }

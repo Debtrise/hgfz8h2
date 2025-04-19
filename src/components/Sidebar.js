@@ -17,6 +17,12 @@ import {
   DashboardOutlined,
   UserOutlined,
   ShoppingOutlined,
+  FormOutlined,
+  BarChartOutlined,
+  MailOutlined,
+  PhoneFilled,
+  ScheduleOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import { useSidebar } from '../context/SidebarContext';
 import './Sidebar.css';
@@ -115,21 +121,70 @@ const Sidebar = () => {
 
           <Menu.SubMenu key="call-center" icon={<CustomerServiceOutlined />} title="Call Center">
             <Menu.Item key="agent-interface">
-              <Link to="/call-center/agent">Agent Interface</Link>
+              <Link to="/agent">Agent Interface</Link>
             </Menu.Item>
             <Menu.Item key="real-time-dashboard">
-              <Link to="/call-center/real-time-dashboard">Real-Time Dashboard</Link>
+              <Link to="/agent/real-time-dashboard">Real-Time Dashboard</Link>
+            </Menu.Item>
+            <Menu.Item key="team">
+              <Link to="/agent/team">Team</Link>
+            </Menu.Item>
+            <Menu.Item key="reports">
+              <Link to="/agent/reports">Reports</Link>
+            </Menu.Item>
+            <Menu.Item key="schedule">
+              <Link to="/agent/schedule">Schedule</Link>
             </Menu.Item>
             <Menu.Item key="call-logs">
-              <Link to="/call-center/call-logs">Call Logs</Link>
+              <Link to="/agent/call-logs">Call Logs</Link>
             </Menu.Item>
             <Menu.Item key="recordings">
-              <Link to="/call-center/recordings">Recordings</Link>
+              <Link to="/agent/recordings">Recordings</Link>
             </Menu.Item>
           </Menu.SubMenu>
 
-          <Menu.Item key="settings" icon={<SettingOutlined />}>
-            <Link to="/settings">Settings</Link>
+          <Menu.SubMenu key="settings" icon={<SettingOutlined />} title="Settings">
+            <Menu.Item key="settings-general">
+              <Link to="/settings">General Settings</Link>
+            </Menu.Item>
+            <Menu.Item key="settings-profile">
+              <Link to="/settings/profile">User Profile</Link>
+            </Menu.Item>
+            <Menu.Item key="settings-users">
+              <Link to="/settings/users">User Management</Link>
+            </Menu.Item>
+            <Menu.Item key="settings-pbx">
+              <Link to="/settings/pbx">PBX Management</Link>
+            </Menu.Item>
+            <Menu.Item key="settings-integrations">
+              <Link to="/settings/integrations">Integrations</Link>
+            </Menu.Item>
+          </Menu.SubMenu>
+
+          <Menu.Item key="form-builder" icon={<FormOutlined />}>
+            <Link to="/form-builder">Form Builder</Link>
+          </Menu.Item>
+
+          <Menu.Item key="form-management" icon={<FormOutlined />}>
+            <Link to="/forms">Form Management</Link>
+          </Menu.Item>
+
+          <Menu.Item 
+            key="marketing"
+            icon={<BarChartOutlined />}
+            label="Marketing"
+            link="/marketing"
+          >
+            <Link to="/marketing">Marketing</Link>
+          </Menu.Item>
+
+          <Menu.Item 
+            key="email-manager"
+            icon={<MailOutlined />}
+            label="Email Manager"
+            link="/marketing/email-manager"
+          >
+            <Link to="/marketing/email-manager">Email Manager</Link>
           </Menu.Item>
 
           <Menu.Item 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Button, Table, Tag, Tabs, Form, Input, Select, InputNumber, Typography, Divider, Badge, Space, Modal } from 'antd';
-import { ShoppingCartOutlined, CheckCircleOutlined, SearchOutlined, HistoryOutlined, StarOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Row, Col, Card, Button, Table, Tag, Tabs, Form, Input, Select, InputNumber, Typography, Divider, Badge, Space, Modal, Rate, Progress, Avatar, Statistic } from 'antd';
+import { ShoppingCartOutlined, CheckCircleOutlined, SearchOutlined, HistoryOutlined, StarOutlined, InfoCircleOutlined, FilterOutlined, DollarOutlined, UserOutlined, PercentageOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -11,22 +11,76 @@ const Buyer = () => {
   const [purchaseHistory, setPurchaseHistory] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [viewLeadDetails, setViewLeadDetails] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const categories = [
+    { id: 'insurance', name: 'Insurance', icon: '🛡️' },
+    { id: 'tax-relief', name: 'Tax Relief', icon: '💰' },
+    { id: 'debt-settlement', name: 'Debt Settlement', icon: '💳' },
+    { id: 'real-estate', name: 'Real Estate', icon: '🏠' },
+    { id: 'mortgage', name: 'Mortgage', icon: '🏦' },
+    { id: 'personal-loan', name: 'Personal Loan', icon: '💵' },
+  ];
 
   // Simulate fetching data
   useEffect(() => {
-    // Mock data
+    // Mock data with enhanced lead information
     setAvailableLeads([
-      { id: 1, seller: 'Acme Lead Gen', category: 'Insurance', quantity: 100, price: 175, rating: 4.8, location: 'USA', expiry: '2023-05-15' },
-      { id: 2, seller: 'LeadMasters', category: 'Real Estate', quantity: 75, price: 225, rating: 4.5, location: 'Europe', expiry: '2023-05-20' },
-      { id: 3, seller: 'Prime Data', category: 'Finance', quantity: 50, price: 195, rating: 4.6, location: 'USA', expiry: '2023-05-18' },
-      { id: 4, seller: 'Quality Leads Inc', category: 'Automotive', quantity: 120, price: 150, rating: 4.3, location: 'Canada', expiry: '2023-05-25' },
-      { id: 5, seller: 'Data Finders', category: 'Healthcare', quantity: 85, price: 210, rating: 4.7, location: 'USA', expiry: '2023-05-22' },
+      {
+        id: 1,
+        seller: {
+          name: 'Acme Lead Gen',
+          rating: 4.8,
+          totalSales: 1250,
+          avatar: 'https://randomuser.me/api/portraits/men/1.jpg'
+        },
+        category: 'insurance',
+        title: 'High-Intent Auto Insurance Leads',
+        description: 'Fresh leads from our proprietary lead generation system. Verified contact information and purchase intent.',
+        quantity: 100,
+        price: 175,
+        conversionRate: 0.12,
+        qualityScore: 92,
+        location: 'USA',
+        expiry: '2023-05-15',
+        uniqueFactors: [
+          'Real-time lead delivery',
+          '100% phone verified',
+          'Purchase intent scoring',
+          'Exclusive to our platform'
+        ]
+      },
+      {
+        id: 2,
+        seller: {
+          name: 'LeadMasters',
+          rating: 4.5,
+          totalSales: 980,
+          avatar: 'https://randomuser.me/api/portraits/women/2.jpg'
+        },
+        category: 'tax-relief',
+        title: 'Tax Resolution Qualified Leads',
+        description: 'Pre-qualified leads with verified tax debt amounts and resolution interest.',
+        quantity: 75,
+        price: 225,
+        conversionRate: 0.15,
+        qualityScore: 88,
+        location: 'Europe',
+        expiry: '2023-05-20',
+        uniqueFactors: [
+          'Tax debt amount verified',
+          'Resolution timeline provided',
+          'Financial situation assessed',
+          'Exclusive to our platform'
+        ]
+      },
+      // Add more mock leads...
     ]);
     
     setPurchaseHistory([
       { id: 101, seller: 'Acme Lead Gen', category: 'Insurance', quantity: 50, totalPrice: 8750, date: '2023-04-10', status: 'Delivered' },
-      { id: 102, seller: 'LeadMasters', category: 'Real Estate', quantity: 35, totalPrice: 7875, date: '2023-04-05', status: 'Processing' },
-      { id: 103, seller: 'Prime Data', category: 'Finance', quantity: 25, totalPrice: 4875, date: '2023-04-01', status: 'Delivered' },
+      { id: 102, seller: 'LeadMasters', category: 'Tax Relief', quantity: 35, totalPrice: 7875, date: '2023-04-05', status: 'Processing' },
     ]);
   }, []);
 
@@ -54,17 +108,15 @@ const Buyer = () => {
   };
 
   const checkout = () => {
-    // In a real app, this would connect to payment processing
     Modal.success({
       title: 'Purchase Successful',
       content: `You've purchased ${cartItems.reduce((total, item) => total + item.purchaseQuantity, 0)} leads for 
                 $${cartItems.reduce((total, item) => total + item.totalPrice, 0).toLocaleString()}`,
       onOk: () => {
-        // Add purchases to history and clear cart
         const purchaseDate = new Date().toISOString().split('T')[0];
         const newPurchases = cartItems.map((item, index) => ({
           id: 1000 + purchaseHistory.length + index,
-          seller: item.seller,
+          seller: item.seller.name,
           category: item.category,
           quantity: item.purchaseQuantity,
           totalPrice: item.totalPrice,
@@ -96,243 +148,199 @@ const Buyer = () => {
     );
   };
 
-  const leadColumns = [
-    { title: 'Seller', dataIndex: 'seller', key: 'seller' },
-    { title: 'Category', dataIndex: 'category', key: 'category', 
-      render: category => <Tag color="blue">{category}</Tag> 
-    },
-    { title: 'Quantity', dataIndex: 'quantity', key: 'quantity' },
-    { title: 'Price per Lead', dataIndex: 'price', key: 'price', render: val => `$${val}` },
-    { title: 'Location', dataIndex: 'location', key: 'location' },
-    { title: 'Expiry', dataIndex: 'expiry', key: 'expiry' },
-    { title: 'Rating', dataIndex: 'rating', key: 'rating', 
-      render: rating => (
-        <Space>
-          <StarOutlined style={{ color: '#faad14' }} />
-          <span>{rating.toFixed(1)}</span>
-        </Space>
-      ) 
-    },
-    { 
-      title: 'Actions', 
-      key: 'actions',
-      render: (_, record) => (
-        <Space>
-          <Button 
-            type="primary" 
-            icon={<ShoppingCartOutlined />} 
-            onClick={() => addToCart(record)}
-          >
-            Add to Cart
-          </Button>
-          <Button 
-            icon={<InfoCircleOutlined />} 
-            onClick={() => viewDetails(record)}
-          >
-            Details
-          </Button>
-        </Space>
-      ),
-    },
-  ];
-
-  const historyColumns = [
-    { title: 'Order ID', dataIndex: 'id', key: 'id' },
-    { title: 'Seller', dataIndex: 'seller', key: 'seller' },
-    { title: 'Category', dataIndex: 'category', key: 'category', 
-      render: category => <Tag color="blue">{category}</Tag> 
-    },
-    { title: 'Quantity', dataIndex: 'quantity', key: 'quantity' },
-    { title: 'Total Price', dataIndex: 'totalPrice', key: 'totalPrice', render: val => `$${val.toLocaleString()}` },
-    { title: 'Date', dataIndex: 'date', key: 'date' },
-    { 
-      title: 'Status', 
-      dataIndex: 'status', 
-      key: 'status',
-      render: status => (
-        <Tag color={status === 'Delivered' ? 'green' : 'geekblue'}>
-          {status}
-        </Tag>
-      ) 
-    },
-    { 
-      title: 'Actions', 
-      key: 'actions',
-      render: () => (
-        <Button icon={<HistoryOutlined />}>View Details</Button>
-      ),
-    },
-  ];
-
-  const cartColumns = [
-    { title: 'Seller', dataIndex: 'seller', key: 'seller' },
-    { title: 'Category', dataIndex: 'category', key: 'category', 
-      render: category => <Tag color="blue">{category}</Tag> 
-    },
-    { 
-      title: 'Quantity', 
-      dataIndex: 'purchaseQuantity', 
-      key: 'purchaseQuantity',
-      render: (quantity, record) => (
-        <InputNumber 
-          min={1} 
-          max={record.quantity} 
-          value={quantity || 1} 
-          onChange={val => updateCartQuantity(record.id, val)} 
-        />
-      )
-    },
-    { title: 'Price per Lead', dataIndex: 'price', key: 'price', render: val => `$${val}` },
-    { title: 'Total', dataIndex: 'totalPrice', key: 'totalPrice', render: val => `$${val}` },
-    { 
-      title: 'Actions', 
-      key: 'actions',
-      render: (_, record) => (
-        <Button danger onClick={() => removeFromCart(record.id)}>Remove</Button>
-      ),
-    },
-  ];
+  const filteredLeads = availableLeads.filter(lead => {
+    const matchesCategory = selectedCategory === 'all' || lead.category === selectedCategory;
+    const matchesSearch = searchQuery === '' || 
+      lead.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.seller.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div className="marketplace-buyer">
-      <Title level={2}>Lead Marketplace - Buyer Portal</Title>
-      <Divider />
-      
-      <Tabs defaultActiveKey="browse">
-        <TabPane 
-          tab={
-            <span>
-              <SearchOutlined />
-              Browse Leads
-            </span>
-          } 
-          key="browse"
-        >
-          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-            <Col span={24}>
-              <Card title="Find Leads" className="marketplace-stats-card">
-                <Form layout="inline">
-                  <Form.Item label="Category">
-                    <Select style={{ width: 120 }} defaultValue="">
-                      <Option value="">All</Option>
-                      <Option value="insurance">Insurance</Option>
-                      <Option value="real-estate">Real Estate</Option>
-                      <Option value="finance">Finance</Option>
-                      <Option value="automotive">Automotive</Option>
-                      <Option value="healthcare">Healthcare</Option>
-                    </Select>
-                  </Form.Item>
-                  <Form.Item label="Location">
-                    <Select style={{ width: 120 }} defaultValue="">
-                      <Option value="">All</Option>
-                      <Option value="usa">USA</Option>
-                      <Option value="europe">Europe</Option>
-                      <Option value="canada">Canada</Option>
-                    </Select>
-                  </Form.Item>
-                  <Form.Item label="Price Range">
-                    <InputNumber style={{ width: 80 }} placeholder="Min" /> - <InputNumber style={{ width: 80 }} placeholder="Max" />
-                  </Form.Item>
-                  <Form.Item>
-                    <Button type="primary" icon={<SearchOutlined />}>Search</Button>
-                  </Form.Item>
-                </Form>
-              </Card>
-            </Col>
-          </Row>
-          
-          <Table 
-            dataSource={availableLeads} 
-            columns={leadColumns} 
-            rowKey="id"
-            className="marketplace-table"
-          />
-        </TabPane>
-        
-        <TabPane 
-          tab={
-            <span>
-              <ShoppingCartOutlined />
-              Cart {cartItems.length > 0 && <Badge count={cartItems.length} style={{ marginLeft: 5 }} />}
-            </span>
-          } 
-          key="cart"
-        >
-          {cartItems.length > 0 ? (
-            <>
-              <Table 
-                dataSource={cartItems} 
-                columns={cartColumns} 
-                rowKey="id"
-                className="marketplace-table"
-                footer={() => (
-                  <div style={{ textAlign: 'right' }}>
-                    <Text strong style={{ marginRight: 20 }}>
-                      Total: ${cartItems.reduce((sum, item) => sum + (item.totalPrice || item.price), 0)}
-                    </Text>
-                    <Button type="primary" size="large" onClick={checkout} icon={<CheckCircleOutlined />}>Checkout</Button>
+      <div className="marketplace-header">
+        <Title level={2}>Lead Marketplace</Title>
+        <Text type="secondary">Find high-quality leads for your business</Text>
+      </div>
+
+      <div className="category-selector">
+        <div className="category-list">
+          <Button 
+            type={selectedCategory === 'all' ? 'primary' : 'default'}
+            onClick={() => setSelectedCategory('all')}
+          >
+            All Categories
+          </Button>
+          {categories.map(category => (
+            <Button
+              key={category.id}
+              type={selectedCategory === category.id ? 'primary' : 'default'}
+              onClick={() => setSelectedCategory(category.id)}
+            >
+              {category.icon} {category.name}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div className="search-filters">
+        <Input
+          placeholder="Search leads or sellers..."
+          prefix={<SearchOutlined />}
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          style={{ width: 300 }}
+        />
+        <Select defaultValue="relevance" style={{ width: 150 }}>
+          <Option value="relevance">Sort by Relevance</Option>
+          <Option value="price-asc">Price: Low to High</Option>
+          <Option value="price-desc">Price: High to Low</Option>
+          <Option value="rating">Highest Rated</Option>
+        </Select>
+      </div>
+
+      <Row gutter={[24, 24]} className="lead-grid">
+        {filteredLeads.map(lead => (
+          <Col xs={24} sm={12} lg={8} key={lead.id}>
+            <Card 
+              className="lead-card"
+              hoverable
+              cover={
+                <div className="lead-card-header">
+                  <div className="seller-info">
+                    <Avatar src={lead.seller.avatar} icon={<UserOutlined />} />
+                    <div className="seller-details">
+                      <Text strong>{lead.seller.name}</Text>
+                      <Rate disabled defaultValue={lead.seller.rating} allowHalf />
+                    </div>
                   </div>
-                )}
-              />
-            </>
-          ) : (
-            <div className="cart-empty">
-              <ShoppingCartOutlined style={{ fontSize: 48, color: '#ccc' }} />
-              <p>Your cart is empty</p>
-              <Button type="primary" onClick={() => document.querySelector('[data-tab-key="browse"]')?.click()}>
-                Browse Leads
-              </Button>
-            </div>
-          )}
-        </TabPane>
-        
-        <TabPane 
-          tab={
-            <span>
-              <HistoryOutlined />
-              Purchase History
-            </span>
-          } 
-          key="history"
-        >
-          <Table 
-            dataSource={purchaseHistory} 
-            columns={historyColumns} 
-            rowKey="id"
-            className="marketplace-table"
-          />
-        </TabPane>
-      </Tabs>
-      
+                  <Tag color="blue">{categories.find(c => c.id === lead.category)?.name}</Tag>
+                </div>
+              }
+            >
+              <div className="lead-content">
+                <Title level={4}>{lead.title}</Title>
+                <Text type="secondary">{lead.description}</Text>
+                
+                <div className="lead-metrics">
+                  <Statistic
+                    title="Conversion Rate"
+                    value={lead.conversionRate * 100}
+                    suffix="%"
+                    prefix={<PercentageOutlined />}
+                  />
+                  <Statistic
+                    title="Quality Score"
+                    value={lead.qualityScore}
+                    suffix="/100"
+                  />
+                </div>
+
+                <div className="unique-factors">
+                  {lead.uniqueFactors.map((factor, index) => (
+                    <Tag key={index} color="green">{factor}</Tag>
+                  ))}
+                </div>
+
+                <div className="lead-footer">
+                  <div className="price-info">
+                    <Text strong>${lead.price}</Text>
+                    <Text type="secondary">per lead</Text>
+                  </div>
+                  <Button 
+                    type="primary" 
+                    icon={<ShoppingCartOutlined />}
+                    onClick={() => addToCart(lead)}
+                  >
+                    Add to Cart
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+
       <Modal
         title="Lead Details"
         visible={!!viewLeadDetails}
         onCancel={closeDetails}
+        width={800}
         footer={[
           <Button key="close" onClick={closeDetails}>Close</Button>,
-          <Button key="add" type="primary" onClick={() => {
-            if (viewLeadDetails) {
-              addToCart(viewLeadDetails);
-              closeDetails();
-            }
-          }}>
+          <Button 
+            key="add" 
+            type="primary" 
+            onClick={() => {
+              if (viewLeadDetails) {
+                addToCart(viewLeadDetails);
+                closeDetails();
+              }
+            }}
+          >
             Add to Cart
           </Button>
         ]}
       >
         {viewLeadDetails && (
-          <div>
-            <p><strong>Seller:</strong> {viewLeadDetails.seller}</p>
-            <p><strong>Category:</strong> {viewLeadDetails.category}</p>
-            <p><strong>Available Quantity:</strong> {viewLeadDetails.quantity}</p>
-            <p><strong>Price per Lead:</strong> ${viewLeadDetails.price}</p>
-            <p><strong>Location:</strong> {viewLeadDetails.location}</p>
-            <p><strong>Expiry Date:</strong> {viewLeadDetails.expiry}</p>
-            <p><strong>Seller Rating:</strong> {viewLeadDetails.rating.toFixed(1)}/5.0</p>
+          <div className="lead-details">
+            <div className="seller-profile">
+              <Avatar size={64} src={viewLeadDetails.seller.avatar} />
+              <div>
+                <Title level={4}>{viewLeadDetails.seller.name}</Title>
+                <Rate disabled defaultValue={viewLeadDetails.seller.rating} allowHalf />
+                <Text type="secondary">{viewLeadDetails.seller.totalSales} sales</Text>
+              </div>
+            </div>
+
             <Divider />
-            <p><strong>Lead Quality Guarantee:</strong> All leads come with a 72-hour verification period.</p>
-            <p><strong>Format:</strong> CSV, Excel or direct API integration</p>
-            <p><strong>Fields Included:</strong> Name, Email, Phone, Address, Interest Level, Time Stamp</p>
+
+            <div className="lead-info">
+              <Title level={4}>{viewLeadDetails.title}</Title>
+              <Text>{viewLeadDetails.description}</Text>
+
+              <div className="metrics-grid">
+                <Card>
+                  <Statistic
+                    title="Conversion Rate"
+                    value={viewLeadDetails.conversionRate * 100}
+                    suffix="%"
+                    prefix={<PercentageOutlined />}
+                  />
+                </Card>
+                <Card>
+                  <Statistic
+                    title="Quality Score"
+                    value={viewLeadDetails.qualityScore}
+                    suffix="/100"
+                  />
+                </Card>
+                <Card>
+                  <Statistic
+                    title="Available Leads"
+                    value={viewLeadDetails.quantity}
+                  />
+                </Card>
+                <Card>
+                  <Statistic
+                    title="Price per Lead"
+                    value={viewLeadDetails.price}
+                    prefix={<DollarOutlined />}
+                  />
+                </Card>
+              </div>
+
+              <div className="unique-factors">
+                <Title level={5}>Unique Selling Points</Title>
+                <ul>
+                  {viewLeadDetails.uniqueFactors.map((factor, index) => (
+                    <li key={index}>
+                      <CheckCircleOutlined style={{ color: '#52c41a' }} /> {factor}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         )}
       </Modal>

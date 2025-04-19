@@ -21,7 +21,10 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line
 } from 'recharts';
 import moment from 'moment';
 import "./Dashboard.css";
@@ -309,7 +312,7 @@ const Dashboard = () => {
     }
   ];
 
-  // Prepare data for the call volume chart
+  // Prepare data for the calls per hour chart
   const callVolumeData = Array.isArray(dashboardData.hourlyData) 
     ? dashboardData.hourlyData
         .filter(h => h.hour_of_day_pdt !== 'Total')
@@ -317,8 +320,21 @@ const Dashboard = () => {
           time: hour.hour_of_day_pdt,
           totalCalls: hour.total_outbound_attempts,
           answeredCalls: hour.answered_calls,
-          agentAvailability: hour.agent_availability || 0,
-          machineDetectionRate: hour.machine_detection_rate_pct
+          machineDetected: hour.machine_detection_rate_pct ? 
+            Math.round((hour.machine_detection_rate_pct / 100) * hour.total_outbound_attempts) : 0,
+          deadAir: hour.dead_air_pct ? 
+            Math.round((hour.dead_air_pct / 100) * hour.total_outbound_attempts) : 0
+        }))
+    : [];
+
+  // Prepare data for the transfers and duration chart
+  const transferDurationData = Array.isArray(dashboardData.hourlyData)
+    ? dashboardData.hourlyData
+        .filter(h => h.hour_of_day_pdt !== 'Total')
+        .map(hour => ({
+          time: hour.hour_of_day_pdt,
+          transfers: hour.total_transfers || 0,
+          avgDuration: hour.avg_call_duration || 0
         }))
     : [];
 
@@ -335,6 +351,18 @@ const Dashboard = () => {
           p1Dialer: hour.p1dialer_calls
         }))
     : [];
+
+  // Calculate the maximum value for scaling
+  const maxValue = Math.max(
+    ...realTimeData.map(item => Math.max(
+      item.calls || 0,
+      item.answered || 0,
+      item.agentAvailability || 0
+    ))
+  );
+
+  // Calculate chart height based on max value
+  const chartHeight = Math.min(280, Math.max(200, maxValue * 2));
 
   // Handle dialer settings update
   const handleDialerUpdate = async (settings) => {
@@ -471,7 +499,7 @@ const Dashboard = () => {
         <div className="charts-grid">
           <div className="chart-card">
             <div className="chart-header">
-              <h3 className="chart-title">Call Volume & Success Rate</h3>
+              <h3 className="chart-title">Calls Per Hour</h3>
               <div className="chart-actions">
                 <Button icon={<SettingOutlined />} size="small" />
               </div>
@@ -482,7 +510,6 @@ const Dashboard = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="time" />
                   <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
                   <Tooltip />
                   <Area 
                     yAxisId="left"
@@ -503,12 +530,21 @@ const Dashboard = () => {
                     fillOpacity={0.6} 
                   />
                   <Area 
-                    yAxisId="right"
+                    yAxisId="left"
                     type="monotone" 
-                    dataKey="machineDetectionRate" 
-                    name="Machine Detection Rate"
+                    dataKey="machineDetected" 
+                    name="Machine Detected"
                     stroke="#722ed1" 
                     fill="#722ed1" 
+                    fillOpacity={0.6} 
+                  />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="deadAir" 
+                    name="Dead Air"
+                    stroke="#ff4d4f" 
+                    fill="#ff4d4f" 
                     fillOpacity={0.6} 
                   />
                 </AreaChart>
@@ -517,18 +553,53 @@ const Dashboard = () => {
           </div>
           <div className="chart-card">
             <div className="chart-header">
-              <h3 className="chart-title">Real-time Activity</h3>
+              <h3 className="chart-title">Transfers & Call Duration</h3>
               <div className="chart-actions">
                 <Button icon={<SettingOutlined />} size="small" />
               </div>
             </div>
             <Spin spinning={chartsLoading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
               <ResponsiveContainer width="100%" height={280}>
-                <AreaChart data={realTimeData}>
+                <ComposedChart data={transferDurationData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="time" />
                   <YAxis yAxisId="left" />
                   <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Bar 
+                    yAxisId="left"
+                    dataKey="transfers" 
+                    name="Transfers"
+                    fill="#722ed1" 
+                    fillOpacity={0.6} 
+                  />
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="avgDuration" 
+                    name="Avg Duration (min)"
+                    stroke="#faad14" 
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </Spin>
+          </div>
+          <div className="chart-card">
+            <div className="chart-header">
+              <h3 className="chart-title">Real-Time Activity</h3>
+              <div className="chart-actions">
+                <Button icon={<SettingOutlined />} size="small" />
+              </div>
+            </div>
+            <Spin spinning={chartsLoading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
+              <ResponsiveContainer width="100%" height={chartHeight}>
+                <AreaChart data={realTimeData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" />
+                  <YAxis yAxisId="left" domain={[0, maxValue]} />
+                  <YAxis yAxisId="right" orientation="right" domain={[0, maxValue]} />
                   <Tooltip />
                   <Area 
                     yAxisId="left"

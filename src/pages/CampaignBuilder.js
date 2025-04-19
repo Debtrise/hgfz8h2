@@ -4,9 +4,39 @@ import * as campaignService from "../services/campaignService";
 import * as journeyService from "../services/journeyService";
 import apiService from "../services/apiService";
 import "./CampaignBuilder.css"; // Import the new CSS file
+import {
+  Card,
+  Form,
+  Input,
+  Select,
+  Button,
+  DatePicker,
+  InputNumber,
+  Space,
+  Row,
+  Col,
+  Typography,
+  Steps,
+  Divider,
+  Switch,
+  Tag,
+  message,
+} from 'antd';
+import {
+  ArrowLeftOutlined,
+  PlusOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons';
+import styled from 'styled-components';
 
-// Import the JourneySelect component
-import JourneySelect from "../components/JourneySelect";
+const { Title, Text } = Typography;
+const { Option } = Select;
+const { RangePicker } = DatePicker;
+const { Step } = Steps;
+
+const CampaignBuilderContainer = styled.div`
+  padding: 24px;
+`;
 
 const CampaignBuilder = () => {
   const navigate = useNavigate();
@@ -14,7 +44,7 @@ const CampaignBuilder = () => {
   const isEditMode = Boolean(id);
 
   // Step management with progress indicators
-  const [step, setStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
   const totalSteps = 4; // Reduced to 4 steps (removed lead creation step)
   
   // Form state management
@@ -42,6 +72,8 @@ const CampaignBuilder = () => {
   const [loading, setLoading] = useState(false);
   const [brands, setBrands] = useState([]);
   const [sources, setSources] = useState([]);
+
+  const [form] = Form.useForm();
   
   // Load resources
   useEffect(() => {
@@ -285,10 +317,10 @@ const CampaignBuilder = () => {
   const handleNext = () => {
     if (!validateForm()) return;
     
-    if (step < totalSteps) {
-      setStep(step + 1);
+    if (currentStep < totalSteps - 1) {
+      setCurrentStep(currentStep + 1);
       // Track progress in analytics (in a real app)
-      console.log(`Step ${step} completed:`, formData);
+      console.log(`Step ${currentStep + 1} completed:`, formData);
     } else {
       // Submit form and navigate to campaign detail
       submitCampaign();
@@ -296,8 +328,8 @@ const CampaignBuilder = () => {
   };
 
   const handleBack = () => {
-    if (step > 1) {
-      setStep(step - 1);
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
     }
   };
 
@@ -394,207 +426,148 @@ const CampaignBuilder = () => {
     navigate("/campaigns");
   };
 
-  // Render form sections
-  const renderBasicDetails = () => (
-    <div className="form-section">
-      <h3 className="section-title">Basic Details</h3>
-      <div className="form-field">
-        <label className="form-field-label">Campaign Name</label>
-        <input
-          type="text"
-          className={`form-field-input ${errors.name ? 'input-error' : ''}`}
+  const steps = [
+    {
+      title: 'Basic Information',
+      content: (
+        <Form.Item
+          label="Campaign Name"
           name="name"
-          value={formData.name}
-          onChange={handleInputChange}
-          placeholder="Enter campaign name"
-        />
-        {errors.name && <div className="error-message">{errors.name}</div>}
-      </div>
-
-      <div className="form-field">
-        <label className="form-field-label">Description</label>
-        <textarea
-          className="form-field-input"
-          name="description"
-          value={formData.description}
-          onChange={handleInputChange}
-          placeholder="Enter campaign description"
-          rows="3"
-        />
-      </div>
-
-      <div className="form-field">
-        <label className="form-field-label">Brand</label>
-        <select
-          className={`form-field-input ${errors.brand ? 'input-error' : ''}`}
-          name="brand"
-          value={formData.brand}
-          onChange={handleInputChange}
+          rules={[{ required: true, message: 'Please input campaign name!' }]}
         >
-          <option value="">Select a brand</option>
-          {brands.map(brand => (
-            <option key={brand.id} value={brand.id}>
-              {brand.name} {brand.lead_count > 0 ? `(${brand.lead_count} leads)` : ''}
-            </option>
-          ))}
-        </select>
-        {errors.brand && <div className="error-message">{errors.brand}</div>}
-      </div>
-
-      <div className="form-field">
-        <label className="form-field-label">Source</label>
-        <select
-          className={`form-field-input ${errors.source ? 'input-error' : ''}`}
-          name="source"
-          value={formData.source}
-          onChange={handleInputChange}
-        >
-          <option value="">Select a source</option>
-          {sources.map(source => (
-            <option key={source.id} value={source.id}>{source.name}</option>
-          ))}
-        </select>
-        {errors.source && <div className="error-message">{errors.source}</div>}
-      </div>
-    </div>
-  );
-
-  const renderPoolSelection = () => (
-    <div className="form-section">
-      <h3 className="section-title">Pool Selection</h3>
-      <div className="form-field">
-        <label className="form-field-label">Lead Pool</label>
-        <select
-          className={`form-field-input ${errors.leadPoolId ? 'input-error' : ''}`}
-          name="leadPoolId"
-          value={formData.leadPoolId}
-          onChange={handleInputChange}
-        >
-          <option value="">Select a lead pool</option>
-          {leadPools.map(pool => (
-            <option key={pool.id} value={pool.id}>
-              {pool.name}
-            </option>
-          ))}
-        </select>
-        {errors.leadPoolId && <div className="error-message">{errors.leadPoolId}</div>}
-      </div>
-
-      <div className="form-field">
-        <label className="form-field-label">DID Pool</label>
-        <select
-          className={`form-field-input ${errors.didPoolId ? 'input-error' : ''}`}
-          name="didPoolId"
-          value={formData.didPoolId}
-          onChange={handleInputChange}
-        >
-          <option value="">Select a DID pool</option>
-          {didPools.map(pool => (
-            <option key={pool.id} value={pool.id}>
-              {pool.name}
-            </option>
-          ))}
-        </select>
-        {errors.didPoolId && <div className="error-message">{errors.didPoolId}</div>}
-      </div>
-    </div>
-  );
-
-  const renderJourneyMappings = () => (
-    <div className="form-section">
-      <h3 className="section-title">Journey Mappings</h3>
-      <div className="journey-mappings-container">
-        {formData.journeyMappings.map((mapping, index) => (
-          <div key={index} className="journey-mapping-item">
-            <div className="mapping-header">
-              <h4>Mapping #{index + 1}</h4>
-              <button
-                type="button"
-                className="button-outline delete-button"
-                onClick={() => removeJourneyMapping(index)}
-              >
-                Remove
-              </button>
-            </div>
-            <div className="mapping-fields">
-              <div className="form-field">
-                <label className="form-field-label">Journey</label>
-                <select
-                  className={`form-field-input ${errors[`journeyMappings.${index}.journeyId`] ? 'input-error' : ''}`}
-                  value={mapping.journeyId}
-                  onChange={(e) => handleJourneyMappingChange(index, 'journeyId', e.target.value)}
+          <Input placeholder="Enter campaign name" />
+        </Form.Item>
+      ),
+    },
+    {
+      title: 'Targeting',
+      content: (
+        <>
+          <Form.Item
+            label="Platform"
+            name="platform"
+            rules={[{ required: true, message: 'Please select platform!' }]}
+          >
+            <Select placeholder="Select platform">
+              <Option value="facebook">Facebook</Option>
+              <Option value="google">Google</Option>
+              <Option value="linkedin">LinkedIn</Option>
+              <Option value="twitter">Twitter</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item
+            label="Objective"
+            name="objective"
+            rules={[{ required: true, message: 'Please select objective!' }]}
+          >
+            <Select placeholder="Select objective">
+              <Option value="lead">Lead Generation</Option>
+              <Option value="awareness">Brand Awareness</Option>
+              <Option value="conversion">Conversions</Option>
+              <Option value="traffic">Website Traffic</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item
+            label="Target Audience"
+            name="audience"
+            rules={[{ required: true, message: 'Please select target audience!' }]}
+          >
+            <Select mode="multiple" placeholder="Select target audience">
+              <Option value="age_25_34">Age 25-34</Option>
+              <Option value="age_35_44">Age 35-44</Option>
+              <Option value="male">Male</Option>
+              <Option value="female">Female</Option>
+              <Option value="us">United States</Option>
+              <Option value="ca">Canada</Option>
+            </Select>
+          </Form.Item>
+        </>
+      ),
+    },
+    {
+      title: 'Budget & Schedule',
+      content: (
+        <>
+          <Form.Item
+            label="Budget Type"
+            name="budgetType"
+            rules={[{ required: true, message: 'Please select budget type!' }]}
+          >
+            <Select placeholder="Select budget type">
+              <Option value="daily">Daily Budget</Option>
+              <Option value="lifetime">Lifetime Budget</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item
+            label="Budget Amount"
+            name="budget"
+            rules={[{ required: true, message: 'Please input budget amount!' }]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={value => value.replace(/\$\s?|(,*)/g, '')}
+            />
+          </Form.Item>
+          <Form.Item
+            label="Schedule"
+            name="schedule"
+            rules={[{ required: true, message: 'Please select schedule!' }]}
+          >
+            <RangePicker style={{ width: '100%' }} />
+          </Form.Item>
+        </>
+      ),
+    },
+    {
+      title: 'Lead Journey',
+      content: (
+        <>
+          <Form.Item
+            label="Journey Type"
+            name="journeyType"
+            rules={[{ required: true, message: 'Please select journey type!' }]}
+          >
+            <Select placeholder="Select journey type">
+              <Option value="nurture">Lead Nurture</Option>
+              <Option value="qualification">Lead Qualification</Option>
+              <Option value="conversion">Conversion</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item
+            label="Webhook Integration"
+            name="webhookEnabled"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => prevValues.webhookEnabled !== currentValues.webhookEnabled}
+          >
+            {({ getFieldValue }) => getFieldValue('webhookEnabled') ? (
+              <>
+                <Form.Item
+                  label="Webhook URL"
+                  name="webhookUrl"
+                  rules={[{ required: true, message: 'Please input webhook URL!' }]}
                 >
-                  <option value="">Select a journey</option>
-                  {journeys.map(journey => (
-                    <option key={journey.id} value={journey.id}>
-                      {journey.name}
-                    </option>
-                  ))}
-                </select>
-                {errors[`journeyMappings.${index}.journeyId`] && (
-                  <div className="error-message">{errors[`journeyMappings.${index}.journeyId`]}</div>
-                )}
-              </div>
-
-              <div className="form-field">
-                <label className="form-field-label">Lead Age Min</label>
-                <input
-                  type="number"
-                  className={`form-field-input ${errors[`journeyMappings.${index}.leadAgeMin`] ? 'input-error' : ''}`}
-                  value={mapping.leadAgeMin}
-                  onChange={(e) => handleJourneyMappingChange(index, 'leadAgeMin', parseInt(e.target.value))}
-                  min="0"
-                />
-                {errors[`journeyMappings.${index}.leadAgeMin`] && (
-                  <div className="error-message">{errors[`journeyMappings.${index}.leadAgeMin`]}</div>
-                )}
-              </div>
-
-              <div className="form-field">
-                <label className="form-field-label">Lead Age Max</label>
-                <input
-                  type="number"
-                  className={`form-field-input ${errors[`journeyMappings.${index}.leadAgeMax`] ? 'input-error' : ''}`}
-                  value={mapping.leadAgeMax}
-                  onChange={(e) => handleJourneyMappingChange(index, 'leadAgeMax', parseInt(e.target.value))}
-                  min="0"
-                />
-                {errors[`journeyMappings.${index}.leadAgeMax`] && (
-                  <div className="error-message">{errors[`journeyMappings.${index}.leadAgeMax`]}</div>
-                )}
-              </div>
-
-              <div className="form-field">
-                <label className="form-field-label">Duration (Days)</label>
-                <input
-                  type="number"
-                  className={`form-field-input ${errors[`journeyMappings.${index}.durationDays`] ? 'input-error' : ''}`}
-                  value={mapping.durationDays}
-                  onChange={(e) => handleJourneyMappingChange(index, 'durationDays', parseInt(e.target.value))}
-                  min="1"
-                />
-                {errors[`journeyMappings.${index}.durationDays`] && (
-                  <div className="error-message">{errors[`journeyMappings.${index}.durationDays`]}</div>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-
-        <button
-          type="button"
-          className="button-outline add-mapping-button"
-          onClick={addJourneyMapping}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Add Journey Mapping
-        </button>
-      </div>
-    </div>
-  );
+                  <Input placeholder="Enter webhook URL" />
+                </Form.Item>
+                <Form.Item
+                  label="Webhook Secret"
+                  name="webhookSecret"
+                  rules={[{ required: true, message: 'Please input webhook secret!' }]}
+                >
+                  <Input.Password placeholder="Enter webhook secret" />
+                </Form.Item>
+              </>
+            ) : null}
+          </Form.Item>
+        </>
+      ),
+    },
+  ];
 
   if (isSubmitting) {
     return (
@@ -608,49 +581,55 @@ const CampaignBuilder = () => {
   }
 
   return (
-    <div className="page-container">
-      <div className="content-container">
-        <div className="content-header">
-          <h1 className="page-title">{isEditMode ? 'Edit Campaign' : 'Create Campaign'}</h1>
-        </div>
+    <CampaignBuilderContainer>
+      <Space direction="vertical" style={{ width: '100%' }}>
+        <Space>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/marketing')}>
+            Back to Dashboard
+          </Button>
+          <Title level={2}>Create New Campaign</Title>
+        </Space>
 
-        {error && (
-          <div className="error-message global-error">
-            {error}
-            <button className="error-dismiss" onClick={() => setError(null)}>×</button>
-          </div>
-        )}
+        <Card>
+          <Steps current={currentStep}>
+            {steps.map(item => (
+              <Step key={item.title} title={item.title} />
+            ))}
+          </Steps>
 
-        {showSuccessMessage && (
-          <div className="success-message">
-            Campaign {isEditMode ? 'updated' : 'created'} successfully!
-          </div>
-        )}
+          <Divider />
 
-        <form onSubmit={submitCampaign} className="campaign-form">
-          {renderBasicDetails()}
-          {renderPoolSelection()}
-          {renderJourneyMappings()}
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={submitCampaign}
+            style={{ marginTop: 24 }}
+          >
+            {steps[currentStep].content}
 
-          <div className="form-actions">
-            <button
-              type="button"
-              className="button-outline"
-              onClick={handleCancel}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="button-primary"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Saving...' : (isEditMode ? 'Update Campaign' : 'Create Campaign')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+            <Divider />
+
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              {currentStep > 0 && (
+                <Button onClick={handleBack}>
+                  Previous
+                </Button>
+              )}
+              {currentStep < steps.length - 1 && (
+                <Button type="primary" onClick={handleNext}>
+                  Next
+                </Button>
+              )}
+              {currentStep === steps.length - 1 && (
+                <Button type="primary" htmlType="submit">
+                  Create Campaign
+                </Button>
+              )}
+            </Space>
+          </Form>
+        </Card>
+      </Space>
+    </CampaignBuilderContainer>
   );
 };
 

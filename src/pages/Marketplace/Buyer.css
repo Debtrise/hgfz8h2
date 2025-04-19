@@ -1,0 +1,144 @@
+.marketplace-buyer {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.marketplace-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.category-selector {
+  margin-bottom: 24px;
+}
+
+.category-list {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.search-filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  justify-content: center;
+}
+
+.lead-grid {
+  margin-top: 24px;
+}
+
+.lead-card {
+  height: 100%;
+  transition: transform 0.2s;
+}
+
+.lead-card:hover {
+  transform: translateY(-4px);
+}
+
+.lead-card-header {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.seller-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.seller-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.lead-content {
+  padding: 16px;
+}
+
+.lead-metrics {
+  display: flex;
+  gap: 24px;
+  margin: 16px 0;
+}
+
+.unique-factors {
+  margin: 16px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lead-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.price-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.price-info strong {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.lead-details {
+  padding: 16px;
+}
+
+.seller-profile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.metrics-grid .ant-card {
+  text-align: center;
+}
+
+.unique-factors ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.unique-factors li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .search-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+} 

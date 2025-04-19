@@ -1579,6 +1579,104 @@ const apiService = {
       }
     },
   },
+
+  // PBX Extensions endpoints
+  pbx: {
+    extensions: {
+      create: async (data) => {
+        try {
+          console.log('Creating PBX extension with data:', {
+            extension: data.extension,
+            name: data.name,
+            hasPassword: !!data.password
+          });
+          
+          const response = await api.post('/pbx/extensions', {
+            extension: data.extension,
+            name: data.name,
+            password: data.password,
+            tenant_id: getTenantId()
+          }, {
+            baseURL: process.env.REACT_APP_API_URL || 'http://35.202.92.164:8080'
+          });
+          
+          console.log('Create PBX extension response:', response);
+          return response;
+        } catch (error) {
+          console.error('Error creating PBX extension:', error);
+          handleApiError(error);
+          throw error;
+        }
+      },
+      getAll: async () => {
+        try {
+          console.log('Fetching all PBX extensions');
+          const response = await api.get('/pbx/extensions', {
+            baseURL: process.env.REACT_APP_API_URL || 'http://35.202.92.164:8080'
+          });
+          console.log('PBX extensions response:', response);
+          return response;
+        } catch (error) {
+          console.error('Error fetching PBX extensions:', error);
+          handleApiError(error);
+          throw error;
+        }
+      },
+      getById: async (id) => {
+        try {
+          console.log(`Fetching PBX extension ${id}`);
+          const response = await api.get(`/pbx/extensions/${id}`, {
+            baseURL: process.env.REACT_APP_API_URL || 'http://35.202.92.164:8080'
+          });
+          console.log('PBX extension response:', response);
+          return response;
+        } catch (error) {
+          console.error(`Error fetching PBX extension ${id}:`, error);
+          handleApiError(error);
+          throw error;
+        }
+      },
+      update: async (id, data) => {
+        try {
+          console.log(`Updating PBX extension ${id} with data:`, {
+            extension: data.extension,
+            name: data.name,
+            hasPassword: !!data.password
+          });
+          
+          const response = await api.put(`/pbx/extensions/${id}`, {
+            extension: data.extension,
+            name: data.name,
+            password: data.password,
+            tenant_id: getTenantId()
+          }, {
+            baseURL: process.env.REACT_APP_API_URL || 'http://35.202.92.164:8080'
+          });
+          
+          console.log('Update PBX extension response:', response);
+          return response;
+        } catch (error) {
+          console.error(`Error updating PBX extension ${id}:`, error);
+          handleApiError(error);
+          throw error;
+        }
+      },
+      delete: async (id) => {
+        try {
+          console.log(`Deleting PBX extension ${id}`);
+          const response = await api.delete(`/pbx/extensions/${id}`, {
+            baseURL: process.env.REACT_APP_API_URL || 'http://35.202.92.164:8080'
+          });
+          console.log('Delete PBX extension response:', response);
+          return response;
+        } catch (error) {
+          console.error(`Error deleting PBX extension ${id}:`, error);
+          handleApiError(error);
+          throw error;
+        }
+      }
+    }
+  },
 };
 
 export default apiService;

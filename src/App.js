@@ -48,6 +48,9 @@ import CallConfig from "./pages/CallConfig";
 import RealTimeAgentDashboard from "./components/RealTimeAgentDashboard";
 import FlowBuilder from "./components/CallFlowBuilder";
 import FlowInventory from "./pages/FlowInventory";
+import Team from "./pages/Team";
+import Reports from "./pages/Reports";
+import Schedule from "./pages/Schedule";
 
 // Import UserProfile component
 import UserProfile from './pages/UserProfile';
@@ -87,6 +90,25 @@ import AgentLogin from "./pages/AgentLogin";
 
 // Import Agent Assignment Management
 import AgentAssignmentManagement from "./pages/settings/AgentAssignmentManagement";
+
+// Import FormBuilder page
+import FormBuilder from "./pages/FormBuilder";
+import FormManagement from "./pages/FormManagement";
+
+// Import MarketingDashboard page
+import MarketingDashboard from "./pages/MarketingDashboard";
+
+// Import CampaignDetails page
+import CampaignDetails from "./pages/CampaignDetails";
+
+// Import EmailManager page
+import EmailManager from "./pages/marketing/EmailManager";
+
+// Import TestPBX page
+import TestPBX from './pages/TestPBX';
+
+// Import PBX Management page
+import PBXManagement from './pages/PBXManagement';
 
 // Set up axios defaults and interceptors
 axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://35.202.92.164:8080/api';
@@ -142,8 +164,16 @@ function App() {
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                {/* Agent Portal - accessible to agents, no sidebar layout */}
-                <Route path="/agent" element={<AgentInterface />} />
+                {/* Agent Portal - accessible to agents with layout */}
+                <Route path="/agent" element={<Layout />}>
+                  <Route index element={<AgentInterface />} />
+                  <Route path="real-time-dashboard" element={<RealTimeAgentDashboard />} />
+                  <Route path="team" element={<Team />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="schedule" element={<Schedule />} />
+                  <Route path="call-logs" element={<CallLogs />} />
+                  <Route path="recordings" element={<Recordings />} />
+                </Route>
 
                 {/* Admin routes - accessible to admins with layout */}
                 <Route path="/" element={<Layout />}>
@@ -206,6 +236,10 @@ function App() {
                   <Route path="settings/notifications" element={<Settings />} />
                   <Route path="settings/relationship" element={<Settings />} />
                   <Route path="settings/integrations" element={<Settings />} />
+                  <Route path="settings/pbx" element={<PBXManagement />} />
+
+                  {/* Test PBX route */}
+                  <Route path="test-pbx" element={<TestPBX />} />
 
                   {/* Call Center Routes */}
                   <Route path="call-center" element={<Navigate to="/call-center/real-time-dashboard" replace />} />
@@ -217,6 +251,17 @@ function App() {
                   <Route path="call-center/recordings" element={<Recordings />} />
                   <Route path="call-center/call-logs" element={<CallLogs />} />
                   <Route path="call-center/call-config" element={<CallConfig />} />
+
+                  {/* Form Builder routes */}
+                  <Route path="/form-builder" element={<FormBuilder />} />
+                  <Route path="/form-builder/:id" element={<FormBuilder />} />
+                  <Route path="/forms" element={<FormManagement />} />
+
+                  {/* Marketing routes */}
+                  <Route path="/marketing" element={<MarketingDashboard />} />
+                  <Route path="/marketing/campaigns/:id" element={<CampaignDetails />} />
+                  <Route path="/marketing/campaigns/new" element={<CampaignBuilder />} />
+                  <Route path="/marketing/emails" element={<EmailManager />} />
 
                   {/* Catch-all fallback */}
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />

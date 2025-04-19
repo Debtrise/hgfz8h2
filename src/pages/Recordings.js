@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Input, Upload, message, Tooltip, Space, Switch, Modal, Select, Form, Typography, Radio, Divider, Popconfirm, Spin, Card } from "antd";
+import { Table, Button, Input, Upload, message, Tooltip, Space, Switch, Modal, Select, Form, Typography, Radio, Divider, Popconfirm, Spin, Card, Dropdown, Menu } from "antd";
 import { 
   SearchOutlined, 
   UploadOutlined, 
@@ -19,7 +19,10 @@ import {
   FilterOutlined,
   ReloadOutlined,
   ClockCircleOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  SoundTwoTone,
+  PlusOutlined,
+  DownOutlined
 } from "@ant-design/icons";
 import "../styles/Recordings.css";
 import "../Dashboard.css"; // Import dashboard styles
@@ -88,6 +91,12 @@ function Recordings() {
   const [form] = Form.useForm();
   const [audioElement, setAudioElement] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [previewClicked, setPreviewClicked] = useState(false);
+  const [audioContext, setAudioContext] = useState(null);
+  const [analyser, setAnalyser] = useState(null);
+  const [audioData, setAudioData] = useState(new Uint8Array(128).fill(0));
+  const [animationId, setAnimationId] = useState(null);
+  const waveformCanvasRef = React.useRef(null);
 
   useEffect(() => {
     fetchRecordings();
@@ -102,12 +111,21 @@ function Recordings() {
     // Set up event listeners
     audio.addEventListener('ended', () => {
       setIsPlaying(false);
+      stopWaveformAnimation();
     });
     
     audio.addEventListener('error', () => {
       setIsPlaying(false);
+      stopWaveformAnimation();
     });
     
+    // Create audio context for waveform visualization
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const audioAnalyser = context.createAnalyser();
+    audioAnalyser.fftSize = 256;
+    
+    setAudioContext(context);
+    setAnalyser(audioAnalyser);
     setAudioElement(audio);
     
     // Clean up on unmount
@@ -118,6 +136,14 @@ function Recordings() {
         audio.removeEventListener('ended', () => {});
         audio.removeEventListener('error', () => {});
         document.body.removeChild(audio);
+      }
+      
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+      
+      if (context && context.state !== 'closed') {
+        context.close();
       }
     };
   }, []);
@@ -217,7 +243,7 @@ function Recordings() {
   };
 
   const playAudio = (audioUrl) => {
-    if (!audioElement) {
+    if (!audioElement || !audioContext) {
       return;
     }
     
@@ -253,6 +279,18 @@ function Recordings() {
           // Set source
           audioElement.src = objectUrl;
           
+          // Connect to analyzer for visualization
+          if (audioContext.state === 'suspended') {
+            audioContext.resume();
+          }
+          
+          const source = audioContext.createMediaElementSource(audioElement);
+          source.connect(analyser);
+          analyser.connect(audioContext.destination);
+          
+          // Start waveform animation
+          drawWaveform();
+          
           // Start playback
           const playPromise = audioElement.play();
           if (playPromise !== undefined) {
@@ -264,16 +302,20 @@ function Recordings() {
                 audioElement.onended = () => {
                   URL.revokeObjectURL(objectUrl);
                   setIsPlaying(false);
+                  stopWaveformAnimation();
                 };
               })
               .catch(() => {
                 URL.revokeObjectURL(objectUrl);
                 setIsPlaying(false);
+                stopWaveformAnimation();
               });
           }
         });
     } catch (err) {
+      console.error('Error playing audio:', err);
       setIsPlaying(false);
+      stopWaveformAnimation();
     }
   };
 
@@ -281,6 +323,7 @@ function Recordings() {
     if (audioElement) {
       audioElement.pause();
       setIsPlaying(false);
+      stopWaveformAnimation();
     }
   };
 
@@ -328,6 +371,7 @@ function Recordings() {
     setPreviewAudio(null);
     setGeneratedAudio(null);
     setSelectedTemplate('custom');
+    setPreviewClicked(false); // Reset preview clicked state
     form.resetFields();
   };
 
@@ -377,6 +421,7 @@ function Recordings() {
           
           setTimeout(() => {
             setPreviewing(false);
+            setPreviewClicked(true); // Set preview clicked to true to show generate options
             playAudio(previewUrl);
           }, 300);
         })
@@ -561,9 +606,20 @@ function Recordings() {
       key: 'name',
       sorter: (a, b) => a.name.localeCompare(b.name),
       render: (text, record) => (
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <SoundOutlined style={{ marginRight: 8, color: '#3797ce' }} />
-          <span>{text}</span>
+        <div 
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            cursor: 'pointer' 
+          }}
+          onClick={() => handlePlay(record)}
+        >
+          {currentAudio === record.id && isPlaying ? (
+            <PauseCircleFilled style={{ marginRight: 12, color: '#3797ce', fontSize: 26 }} />
+          ) : (
+            <PlayCircleFilled style={{ marginRight: 12, color: '#3797ce', fontSize: 26 }} />
+          )}
+          <span style={{ fontWeight: 600, fontSize: '17px' }}>{text}</span>
         </div>
       ),
     },
@@ -576,12 +632,9 @@ function Recordings() {
         { text: 'TTS', value: 'TTS' },
       ],
       onFilter: (value, record) => record.type === value,
-    },
-    {
-      title: 'Duration',
-      dataIndex: 'duration',
-      key: 'duration',
-      render: (text) => text || '—', // Show dash if no duration
+      render: (text) => (
+        <span style={{ fontSize: '17px' }}>{text}</span>
+      ),
     },
     {
       title: 'Upload Date',
@@ -590,35 +643,23 @@ function Recordings() {
       sorter: (a, b) => new Date(a.date) - new Date(b.date),
       defaultSortOrder: 'descend',
       render: (text) => (
-        <span>
-          <ClockCircleOutlined style={{ marginRight: 8, color: '#8c8c8c' }} />
+        <span style={{ fontSize: '17px' }}>
+          <ClockCircleOutlined style={{ marginRight: 8, color: '#8c8c8c', fontSize: 18 }} />
           {text}
         </span>
       ),
-    },
-    {
-      title: 'Size',
-      dataIndex: 'size',
-      key: 'size',
-      render: (text) => text || '—', // Show dash if no size
     },
     {
       title: 'Actions',
       key: 'actions',
       render: (_, record) => (
         <Space size="middle">
-          <Tooltip title={currentAudio === record.id && isPlaying ? "Pause" : "Play"}>
-            <Button 
-              type="text"
-              icon={currentAudio === record.id && isPlaying ? <PauseCircleFilled style={{ color: '#3797ce' }} /> : <PlayCircleFilled style={{ color: '#3797ce' }} />}
-              onClick={() => handlePlay(record)}
-            />
-          </Tooltip>
           <Tooltip title="Download">
             <Button 
               type="text"
-              icon={<DownloadOutlined style={{ color: '#3797ce' }} />}
+              icon={<DownloadOutlined style={{ color: '#3797ce', fontSize: 24 }} />}
               onClick={() => handleDownload(record.filename)}
+              style={{ width: '40px', height: '40px' }}
             />
           </Tooltip>
           <Popconfirm
@@ -634,7 +675,8 @@ function Recordings() {
               <Button 
                 type="text" 
                 danger
-                icon={<DeleteOutlined />}
+                icon={<DeleteOutlined style={{ color: '#ff7875', fontSize: 24 }} />}
+                style={{ width: '40px', height: '40px' }}
               />
             </Tooltip>
           </Popconfirm>
@@ -654,6 +696,72 @@ function Recordings() {
     showUploadList: false,
   };
 
+  // Draw waveform animation when playing
+  const drawWaveform = () => {
+    if (!analyser || !waveformCanvasRef.current) return;
+    
+    const canvas = waveformCanvasRef.current;
+    const canvasCtx = canvas.getContext('2d');
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    analyser.getByteFrequencyData(dataArray);
+    setAudioData(dataArray);
+    
+    // Clear canvas
+    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Set styling
+    canvasCtx.fillStyle = 'rgb(249, 249, 249)';
+    canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw waveform
+    const barWidth = (canvas.width / bufferLength) * 2.5;
+    let barHeight;
+    let x = 0;
+    
+    for (let i = 0; i < bufferLength; i++) {
+      barHeight = dataArray[i] / 2;
+      
+      // Create gradient for waveform bars
+      const gradient = canvasCtx.createLinearGradient(0, canvas.height - barHeight, 0, canvas.height);
+      gradient.addColorStop(0, '#3797ce');
+      gradient.addColorStop(1, '#5092b1');
+      
+      canvasCtx.fillStyle = gradient;
+      canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+      
+      x += barWidth + 1;
+    }
+    
+    // Continue animation
+    const id = requestAnimationFrame(drawWaveform);
+    setAnimationId(id);
+  };
+
+  const stopWaveformAnimation = () => {
+    if (animationId) {
+      cancelAnimationFrame(animationId);
+      setAnimationId(null);
+      
+      // Reset waveform display
+      if (waveformCanvasRef.current) {
+        const canvas = waveformCanvasRef.current;
+        const canvasCtx = canvas.getContext('2d');
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        canvasCtx.fillStyle = 'rgb(249, 249, 249)';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw flat line
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(0, canvas.height / 2);
+        canvasCtx.lineTo(canvas.width, canvas.height / 2);
+        canvasCtx.strokeStyle = '#d9d9d9';
+        canvasCtx.stroke();
+      }
+    }
+  };
+
   return (
     <div className="dashboard-container">
       <div className="dashboard-content">
@@ -661,37 +769,58 @@ function Recordings() {
           <Title level={2}>Recordings</Title>
           <div className="dashboard-actions">
             <Button 
-              icon={<ReloadOutlined />}
-              onClick={fetchRecordings}
-              loading={refreshing}
-              style={{ marginRight: 8 }}
-            >
-              Refresh
-            </Button>
-            <Button 
-              icon={<RobotOutlined />}
+              type="primary" 
+              icon={<PlusOutlined />}
               onClick={showTtsModal}
-              style={{ marginRight: 8 }}
+              style={{ backgroundColor: '#5092b1', borderColor: '#5092b1', marginRight: 8 }}
             >
-              Text to Speech
+              Add Recording
             </Button>
-            <Upload {...uploadProps}>
+            <Dropdown
+              overlay={
+                <Menu>
+                  <Menu.Item 
+                    key="upload" 
+                    icon={<UploadOutlined />}
+                    onClick={() => document.querySelector('.ant-upload input').click()}
+                  >
+                    Upload Recording
+                  </Menu.Item>
+                  <Menu.Item 
+                    key="tts" 
+                    icon={<RobotOutlined />}
+                    onClick={showTtsModal}
+                  >
+                    Text to Speech
+                  </Menu.Item>
+                </Menu>
+              }
+              placement="bottomRight"
+              trigger={['click']}
+            >
               <Button 
                 type="primary" 
-                icon={<UploadOutlined />}
+                icon={<PlusOutlined />}
+                style={{ backgroundColor: '#5092b1', borderColor: '#5092b1' }}
               >
-                Upload Recording
+                More Options <DownOutlined />
               </Button>
-            </Upload>
+            </Dropdown>
           </div>
         </div>
 
-        <Card className="chart-card">
+        <Card className="chart-card" style={{ 
+          borderColor: '#dae3ec', 
+          boxShadow: '0 4px 12px rgba(55, 151, 206, 0.1)',
+          borderRadius: '8px',
+          maxWidth: '950px',
+          margin: '0 auto'
+        }}>
           <div className="chart-header">
-            <h3 className="chart-title">
+            <h3 className="chart-title" style={{ color: '#262626', fontSize: '20px' }}>
               Audio Recordings
               <Tooltip title="Manage audio files for your IVR system">
-                <InfoCircleOutlined style={{ marginLeft: 8, fontSize: 14, color: '#8c8c8c' }} />
+                <InfoCircleOutlined style={{ marginLeft: 8, fontSize: 18, color: '#5092b1' }} />
               </Tooltip>
             </h3>
             <div className="chart-actions">
@@ -699,20 +828,19 @@ function Recordings() {
                 placeholder="Search recordings..."
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
-                prefix={<SearchOutlined />}
-                style={{ width: 250, marginRight: 8 }}
+                prefix={<SearchOutlined style={{ fontSize: 18 }} />}
+                style={{ width: 280, marginRight: 8, height: '38px', fontSize: '16px' }}
               />
-              <Tooltip title="Export recordings">
-                <Button icon={<FileExcelOutlined />} style={{ marginRight: 8 }}>
-                  Export
-                </Button>
-              </Tooltip>
-              <Tooltip title="Filter recordings">
-                <Button icon={<FilterOutlined />} />
+              <Tooltip title="Refresh recordings">
+                <Button 
+                  icon={<ReloadOutlined style={{ fontSize: 18 }} />}
+                  onClick={fetchRecordings}
+                  loading={refreshing}
+                  style={{ color: '#3797ce', height: '38px', width: '38px' }}
+                />
               </Tooltip>
             </div>
           </div>
-
           <Spin spinning={loading}>
             <Table
               dataSource={filteredRecordings}
@@ -723,10 +851,20 @@ function Recordings() {
                 showSizeChanger: true,
                 pageSizeOptions: ['10', '20', '50']
               }}
-              size="middle"
+              size="large"
               bordered={false}
               rowKey="id"
               className="recordings-table"
+              rowClassName={() => "table-row-light"}
+              style={{ 
+                backgroundColor: 'white',
+                borderRadius: '8px',
+                fontSize: '17px'
+              }}
+              onRow={(record) => ({
+                onClick: () => handlePlay(record),
+                style: { cursor: 'pointer', padding: '16px 0' }
+              })}
             />
           </Spin>
         </Card>
@@ -735,8 +873,8 @@ function Recordings() {
         <Modal
           title={
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <RobotOutlined style={{ marginRight: 8, color: '#3797ce' }} />
-              <span>Generate Recording with Text-to-Speech</span>
+              <RobotOutlined style={{ marginRight: 8, color: '#5092b1' }} />
+              <span style={{ color: '#262626' }}>Generate Recording with Text-to-Speech</span>
             </div>
           }
           open={ttsModalVisible}
@@ -744,25 +882,48 @@ function Recordings() {
           footer={null}
           width={700}
           className="modal-container"
+          bodyStyle={{ background: '#f9f9f9' }}
+          style={{ top: 20 }}
         >
           <Form
             form={form}
             layout="vertical"
             className="form-container"
           >
-            <Form.Item label="Select Template">
-              <Radio.Group 
-                onChange={handleTemplateChange} 
+            <Form.Item 
+              label={
+                <span>
+                  <FileTextOutlined style={{ marginRight: 8 }} />
+                  Select Template
+                </span>
+              }
+            >
+              <Select
                 value={selectedTemplate}
-                className="template-selector"
-                buttonStyle="solid"
+                onChange={(value) => {
+                  setSelectedTemplate(value);
+                  const template = RECORDING_TEMPLATES.find(t => t.id === value);
+                  if (template) {
+                    form.setFieldsValue({
+                      text: template.text,
+                      filename: template.filename
+                    });
+                  }
+                }}
+                style={{ width: '100%' }}
+                placeholder="Select a message template"
+                dropdownStyle={{ 
+                  backgroundColor: 'white', 
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)' 
+                }}
               >
                 {RECORDING_TEMPLATES.map(template => (
-                  <Radio.Button key={template.id} value={template.id}>
+                  <Option key={template.id} value={template.id}>
                     {template.name}
-                  </Radio.Button>
+                  </Option>
                 ))}
-              </Radio.Group>
+              </Select>
             </Form.Item>
 
             <Form.Item
@@ -809,17 +970,6 @@ function Recordings() {
               />
             </Form.Item>
             
-            <Button
-              onClick={handlePreviewVoice}
-              icon={<AudioOutlined />}
-              loading={previewing}
-              style={{ marginBottom: 16 }}
-            >
-              Preview Voice <Text type="secondary" style={{ fontSize: 12 }}>(Ctrl+Space)</Text>
-            </Button>
-            
-            <Divider />
-            
             <Form.Item
               name="filename"
               label={
@@ -829,6 +979,7 @@ function Recordings() {
                 </span>
               }
               rules={[{ required: true, message: 'Please enter a filename' }]}
+              style={{ display: previewClicked ? 'block' : 'none' }} // Only show after preview
             >
               <Input 
                 placeholder="Enter filename (without extension)" 
@@ -838,27 +989,109 @@ function Recordings() {
 
             <div style={{ marginTop: 24 }}>
               <Button
-                onClick={handleGenerateAudio}
-                type="primary"
-                loading={generating}
-                disabled={!!generatedAudio}
-                icon={<RobotOutlined />}
-                block
+                onClick={handlePreviewVoice}
+                icon={<AudioOutlined />}
+                loading={previewing}
+                style={{ 
+                  marginBottom: 16, 
+                  backgroundColor: '#265871', 
+                  color: 'white', 
+                  borderColor: '#265871',
+                  width: '100%'
+                }}
               >
-                Generate Recording
+                Preview Voice <Text type="secondary" style={{ fontSize: 12, color: '#f0f7ff' }}>(Ctrl+Space)</Text>
               </Button>
               
+              {previewClicked && !generatedAudio && (
+                <Button
+                  onClick={handleGenerateAudio}
+                  type="primary"
+                  loading={generating}
+                  icon={<RobotOutlined />}
+                  block
+                  style={{ 
+                    backgroundColor: '#3e4648', 
+                    borderColor: '#3e4648',
+                    marginTop: 12
+                  }}
+                >
+                  Generate & Save Recording
+                </Button>
+              )}
+              
               {(previewAudio || generatedAudio) && (
-                <Card style={{ marginTop: 16 }} className="stat-card">
-                  <Title level={5}>
-                    {generatedAudio ? "Generated Recording" : "Voice Preview"}
-                  </Title>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                <div 
+                  style={{ 
+                    marginTop: 16, 
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                    backgroundColor: 'white',
+                    padding: '16px',
+                    border: '1px solid #e8e8e8'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+                    <SoundTwoTone twoToneColor="#3797ce" style={{ fontSize: 20, marginRight: 8 }} />
+                    <Title level={5} style={{ margin: 0, color: '#265871' }}>
+                      {generatedAudio ? "Generated Recording" : "Voice Preview"}
+                    </Title>
+                  </div>
+                  
+                  <div 
+                    style={{ 
+                      borderRadius: '6px',
+                      backgroundColor: '#f9f9f9',
+                      padding: '8px',
+                      marginBottom: 12,
+                      border: '1px solid #f0f0f0',
+                      height: '80px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <canvas 
+                      ref={waveformCanvasRef}
+                      width={600}
+                      height={70}
+                      style={{ width: '100%', height: '100%' }}
+                    />
+                    
+                    {!isPlaying && (
+                      <div 
+                        style={{ 
+                          position: 'absolute',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: 0.7
+                        }}
+                      >
+                        <PlayCircleFilled 
+                          style={{ 
+                            fontSize: 40, 
+                            color: '#3797ce',
+                            cursor: 'pointer'
+                          }}
+                          onClick={handlePreviewPlay}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: 8 }}>
                     <Button
                       icon={isPlaying ? <PauseCircleFilled /> : <PlayCircleFilled />}
                       onClick={handlePreviewPlay}
                       type="primary"
                       ghost
+                      style={{ 
+                        borderColor: '#3797ce', 
+                        color: '#3797ce',
+                        flex: '1 0 auto'
+                      }}
                     >
                       {isPlaying ? "Pause" : "Play"}
                     </Button>
@@ -868,12 +1101,17 @@ function Recordings() {
                         type="primary"
                         onClick={handlePublishAudio}
                         icon={<CheckCircleOutlined />}
+                        style={{ 
+                          backgroundColor: '#265871', 
+                          borderColor: '#265871',
+                          flex: '2 0 auto'
+                        }}
                       >
-                        Publish
+                        Publish Recording
                       </Button>
                     )}
                   </div>
-                </Card>
+                </div>
               )}
             </div>
           </Form>

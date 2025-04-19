@@ -176,7 +176,7 @@
   font-size: 15px;
   font-weight: 600;
   color: white;
-  background: #1890ff;
+  background: #465f76;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -210,8 +210,8 @@
 }
 
 .button-secondary:hover {
-  border-color: #1890ff;
-  color: #1890ff;
+  border-color: #456079;
+  color: #456079;
   background-color: #f0f7ff;
 }
 
@@ -219,7 +219,7 @@
 .configure-button {
   display: block;
   padding: 8px 16px;
-  background-color: #1890ff;
+  background-color: #456079;
   color: white;
   border: none;
   border-radius: 4px;
@@ -231,7 +231,7 @@
 }
 
 .configure-button:hover {
-  background-color: #40a9ff;
+  background-color: #456079;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
 }
@@ -451,11 +451,11 @@
 }
 
 input:checked + .slider {
-  background-color: #1890ff;
+  background-color: #456079;
 }
 
 input:focus + .slider {
-  box-shadow: 0 0 1px #1890ff;
+  box-shadow: 0 0 1px #456079;
 }
 
 input:checked + .slider:before {
@@ -493,7 +493,7 @@ input:checked + .slider:before {
 
 .icon-button:hover {
   background-color: #f0f0f0;
-  color: #1890ff;
+  color: #456079;
 }
 
 .icon-button.delete:hover {
@@ -516,7 +516,7 @@ input:checked + .slider:before {
 
 .info-icon {
   font-size: 24px;
-  color: #1890ff;
+  color: #456079;
 }
 
 .info-content h4 {
@@ -535,7 +535,7 @@ input:checked + .slider:before {
 }
 
 .doc-link {
-  color: #1890ff;
+  color: #516b83;
   text-decoration: none;
   font-weight: 500;
 }
@@ -639,7 +639,7 @@ input:checked + .slider:before {
 
 .filter-select:focus {
   outline: none;
-  border-color: #1890ff;
+  border-color: #3d5467;
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
@@ -708,7 +708,7 @@ input:checked + .slider:before {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: #1890ff;
+  background-color: #435261;
   color: white;
   display: flex;
   align-items: center;
@@ -911,14 +911,14 @@ input:checked + .slider:before {
 }
 
 .ant-btn-primary {
-  background: #1890ff;
-  border-color: #1890ff;
+  background: #455f77;
+  border-color: #455f77;
   color: white;
 }
 
 .ant-btn-primary:hover {
-  background: #40a9ff;
-  border-color: #40a9ff;
+  background: #455f77;
+  border-color: #455f77;
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(24, 144, 255, 0.2);
 }
@@ -929,8 +929,8 @@ input:checked + .slider:before {
 }
 
 .ant-btn-default:hover {
-  color: #1890ff;
-  border-color: #1890ff;
+  color: #263442;
+  border-color: #263442;
   background: #f0f7ff;
 }
 
@@ -1010,11 +1010,11 @@ input:checked + .slider:before {
 }
 
 .ant-select:not(.ant-select-disabled):hover .ant-select-selector {
-  border-color: #40a9ff;
+  border-color: #3d5467;
 }
 
 .ant-select-focused:not(.ant-select-disabled).ant-select:not(.ant-select-customize-input) .ant-select-selector {
-  border-color: #1890ff;
+  border-color: #3d5467;
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
