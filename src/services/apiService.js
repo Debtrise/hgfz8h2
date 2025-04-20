@@ -8,7 +8,7 @@ const getTenantId = () => {
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://35.202.92.164:8080/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://35.202.92.164:8080',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -827,11 +827,9 @@ const apiService = {
     getAll: async (params = {}) => {
       try {
         console.log('Fetching all DIDs with params:', params);
-        const response = await api.get('/dids', { 
-          params: {
-            ...params,
-            tenant_id: getTenantId()
-          } 
+        const response = await api.post('/dids', { 
+          ...params,
+          tenant_id: getTenantId()
         });
         console.log('DIDs response:', response);
         return {

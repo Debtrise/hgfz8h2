@@ -2,11 +2,25 @@
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
+  background: #f5f5f5;
+  min-height: 100vh;
 }
 
 .marketplace-header {
   text-align: center;
   margin-bottom: 32px;
+  padding: 24px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.marketplace-controls {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
 }
 
 .category-selector {
@@ -25,6 +39,8 @@
   gap: 16px;
   margin-bottom: 24px;
   justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .lead-grid {
@@ -33,11 +49,15 @@
 
 .lead-card {
   height: 100%;
-  transition: transform 0.2s;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .lead-card:hover {
-  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .lead-card-header {
@@ -68,6 +88,9 @@
   display: flex;
   gap: 24px;
   margin: 16px 0;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
 }
 
 .unique-factors {
@@ -94,6 +117,7 @@
 .price-info strong {
   font-size: 20px;
   line-height: 1;
+  color: #1890ff;
 }
 
 .lead-details {
@@ -105,6 +129,9 @@
   align-items: center;
   gap: 16px;
   margin-bottom: 24px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
 }
 
 .metrics-grid {
@@ -116,6 +143,13 @@
 
 .metrics-grid .ant-card {
   text-align: center;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.metrics-grid .ant-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .unique-factors ul {
@@ -129,6 +163,26 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
+  padding: 8px 12px;
+  background: #f6ffed;
+  border-radius: 4px;
+  border: 1px solid #b7eb8f;
+}
+
+.lead-stats {
+  margin-top: 24px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.filter-section {
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.filter-section:last-child {
+  border-bottom: none;
 }
 
 /* Responsive adjustments */
@@ -141,4 +195,53 @@
   .metrics-grid {
     grid-template-columns: 1fr;
   }
+
+  .marketplace-controls {
+    padding: 16px;
+  }
+
+  .category-list {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .category-list button {
+    white-space: nowrap;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lead-card {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
 } 

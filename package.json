@@ -24,6 +24,7 @@
     "asterisk-manager": "^0.2.0",
     "axios": "^1.8.4",
     "chart.js": "^4.4.8",
+    "framer-motion": "^12.7.4",
     "jssip": "^3.10.1",
     "moment": "^2.30.1",
     "react": "^18.3.1",
